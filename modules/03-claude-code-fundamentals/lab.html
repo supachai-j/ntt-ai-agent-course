@@ -23,10 +23,10 @@
     </div>
 
     <div class="lab-meta">
-      <span>⏱ 30-40 นาที</span>
+      <span>⏱ 45-55 นาที</span>
       <span>💻 ต้องมี node/npx ในเครื่อง</span>
       <span>🌐 ต้องมี Claude Pro/Max subscription หรือ ANTHROPIC_API_KEY</span>
-      <span>🐚 Bash + jq</span>
+      <span>🐚 Bash + jq + tmux</span>
     </div>
 
     <div class="prereq">
@@ -37,6 +37,7 @@
         <li>☐ มี Claude.ai account (Pro/Max) สำหรับ OAuth login <strong>หรือ</strong> มี <code>ANTHROPIC_API_KEY</code></li>
         <li>☐ ติดตั้ง <code>jq</code> สำหรับ parse JSON output (<code>jq --version</code> ตรวจสอบก่อน)</li>
         <li>☐ ติดตั้ง git (ใช้ <code>git init</code> สร้างโปรเจกต์ทดลอง)</li>
+        <li>☐ ติดตั้ง <code>tmux</code> สำหรับ step 9-10 (<code>tmux -V</code> ตรวจสอบก่อน)</li>
       </ul>
     </div>
 
@@ -47,6 +48,7 @@
         <li>เข้าใจความแตกต่างระหว่าง interactive mode กับ print mode ผ่านการรันจริง</li>
         <li>เขียน CLAUDE.md ของตัวเองและเห็นผลว่า agent ใช้ context นั้นจริง</li>
         <li>รัน print mode พร้อม <code>--output-format json</code> แล้ว parse ผลลัพธ์ด้วย jq</li>
+        <li>รัน Claude Code ข้างใน tmux, detach/attach, และรันหลาย session พร้อมกันได้</li>
         <li>รู้วิธี diagnose ปัญหา auth เบื้องต้นเมื่อ Claude Code ใช้งานไม่ได้</li>
       </ul>
     </div>
@@ -184,6 +186,66 @@ claude
       </div>
     </div>
 
+    <div class="step">
+      <h3><span class="step-num">9</span>tmux: รัน Claude Code แบบ persistent session</h3>
+      <p>จำลองสถานการณ์ SSH disconnect จริง — สร้าง tmux session, รัน Claude Code ข้างใน, detach ออกมา (โดยที่ process ยังรันอยู่) แล้ว attach กลับเข้าไปดู</p>
+      <pre><code># สร้าง tmux session ชื่อ lab03
+tmux new -s lab03
+
+# (ตอนนี้อยู่ข้างใน tmux session แล้ว — prompt อาจดูเหมือนเดิมแต่สังเกต status bar ล่างสุดของจอ)
+cd ~/lab03-claude-code
+claude -p "count the lines of code in app.py and explain what it does" --max-turns 3</code></pre>
+      <p>รอให้ Claude Code ตอบเสร็จ แล้วลอง detach ออกจาก session โดยไม่ปิด terminal:</p>
+      <pre><code># กด Ctrl-b ปล่อยมือ แล้วกด d (สองปุ่มแยกกัน ไม่ใช่กดพร้อมกัน)
+# หลัง detach จะกลับมาเห็น shell ปกติ (ไม่ใช่ error, session ยังอยู่)</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> รัน <code>tmux ls</code> จาก shell ปกติ (นอก tmux) ต้องเห็นบรรทัด
+        <code>lab03: 1 windows (created ...)</code> ยืนยันว่า session ยังมีชีวิตอยู่แม้ detach ออกมาแล้ว
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">10</span>Attach กลับเข้า session และรันหลายงานพร้อมกัน</h3>
+      <p>Attach กลับเข้า session เดิมเพื่อดูผลลัพธ์ที่ค้างไว้ — เสมือนไม่เคย detach ออกไปเลย:</p>
+      <pre><code>tmux attach -t lab03
+# ต้องเห็นผลลัพธ์จาก claude -p ที่รันไว้ก่อนหน้าค้างอยู่บนจอ</code></pre>
+      <p>ลองสร้างอีก session แยกสำหรับงานคู่ขนาน แล้วส่งคำสั่งเข้าไปโดยไม่ต้อง attach ก่อน (ใช้ pattern เดียวกับที่ Module 07 จะสอนต่อ):</p>
+      <pre><code># สร้าง session ที่สองแบบ detached ทันที
+tmux new -s lab03-second -d
+
+# ส่งคำสั่งเข้า session ที่สองโดยตรงจากภายนอก
+tmux send-keys -t lab03-second 'cd ~/lab03-claude-code && claude -p "list all files" --max-turns 2' Enter
+
+# รอสัก 10-15 วินาทีให้ทำงานเสร็จ แล้วดูผลลัพธ์โดยไม่ต้อง attach เต็มรูปแบบ
+sleep 15 && tmux capture-pane -t lab03-second -p -S -20</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> <code>tmux ls</code> ต้องเห็น 2 session (<code>lab03</code> และ <code>lab03-second</code>),
+        และ <code>tmux capture-pane</code> ต้องแสดงผลลัพธ์จาก Claude Code จริง ไม่ใช่จอเปล่า
+      </div>
+      <p>ทำความสะอาดหลังลองเสร็จ — ปิด session ทั้งสองที่สร้างไว้:</p>
+      <pre><code>tmux kill-session -t lab03
+tmux kill-session -t lab03-second</code></pre>
+      <div class="warn"><strong>ข้อควรระวัง:</strong> <code>tmux kill-session</code> ปิด process ข้างในทันทีไม่มีการเตือน — ถ้า Claude Code กำลังทำงานสำคัญอยู่ (เช่น เขียนไฟล์ครึ่งๆ กลางๆ) ให้รอจนงานเสร็จหรือ detach รอไว้ก่อน อย่า kill session ขณะ agent กำลัง execute อยู่</div>
+    </div>
+
+    <details class="troubleshoot">
+      <summary>Troubleshoot: tmux ไม่มีในเครื่อง / attach แล้ว error</summary>
+      <p><strong>ถ้า <code>tmux: command not found</code>:</strong></p>
+      <ul>
+        <li>ติดตั้งผ่าน package manager ของระบบ เช่น <code>sudo apt install tmux</code> (Ubuntu/Debian) หรือ <code>brew install tmux</code> (macOS)</li>
+      </ul>
+      <p><strong>ถ้า <code>tmux attach -t lab03</code> ขึ้น "no sessions" หรือ "can't find session":</strong></p>
+      <ul>
+        <li>เช็คชื่อ session ที่ถูกต้องด้วย <code>tmux ls</code> ก่อนเสมอ — พิมพ์ชื่อผิดเป็นสาเหตุที่พบบ่อยที่สุด</li>
+        <li>ถ้า session ถูก kill ไปแล้ว (เช่นเผลอพิมพ์ <code>exit</code> แทน detach) ต้องสร้างใหม่ ไม่มีทางกู้คืน state เดิมได้</li>
+      </ul>
+      <p><strong>ถ้าเผลอพิมพ์ <code>exit</code> ข้างใน tmux แทนที่จะ detach:</strong></p>
+      <ul>
+        <li>Session (และ process ข้างใน รวมถึง Claude Code ที่กำลังรัน) จะถูกปิดทันที — นี่คือความต่างสำคัญระหว่าง "detach" (<code>Ctrl-b d</code>, ปลอดภัย) กับ "exit shell" (ปิดถาวร)</li>
+        <li>ป้องกันไว้ก่อน: ฝึกกด <code>Ctrl-b d</code> ให้เป็นนิสัยทุกครั้งที่จะออกจาก tmux ไม่ใช่พิมพ์ <code>exit</code></li>
+      </ul>
+    </details>
+
     <details class="troubleshoot">
       <summary>Troubleshoot: Auth ล้มเหลว / ANTHROPIC_API_KEY ไม่ถูกอ่าน</summary>
       <p><strong>อาการ:</strong> <code>claude -p "..."</code> ค้างหรือ error เกี่ยวกับ authentication</p>
@@ -205,13 +267,15 @@ claude
       <h3>สรุป & ต่อยอด</h3>
       <p>
         ตอนนี้ควรมี Claude Code ติดตั้งและ auth เรียบร้อยบนเครื่อง, เข้าใจความต่างระหว่าง interactive
-        กับ print mode จากการรันจริง, และเห็นแล้วว่า CLAUDE.md มีผลต่อคำตอบของ agent จริง
-        พร้อมทั้งรู้วิธีดึง metadata (cost, session id) จาก JSON output ด้วย jq
+        กับ print mode จากการรันจริง, เห็นแล้วว่า CLAUDE.md มีผลต่อคำตอบของ agent จริง,
+        รู้วิธีดึง metadata (cost, session id) จาก JSON output ด้วย jq, และรัน Claude Code ผ่าน tmux
+        แบบที่รอดจาก SSH disconnect ได้จริง
       </p>
       <ul>
         <li>ลองปรับ CLAUDE.md ให้ละเอียดขึ้น (เพิ่ม code standards, key commands) แล้วดูว่าคำตอบของ agent เปลี่ยนไปอย่างไร</li>
         <li>ลอง <code>--allowedTools</code> จำกัด tool ที่ agent ใช้ได้ในโปรเจกต์ทดลองนี้</li>
         <li>ลอง <code>-c/--continue</code> เพื่อสานต่อบทสนทนาเดิมแทนที่จะเริ่มใหม่ทุกครั้ง</li>
+        <li>ลองตั้งชื่อ tmux session ให้เป็นระบบ (เช่น <code>project-task</code>) เมื่อทำงานหลายโปรเจกต์พร้อมกันจริง</li>
         <li>Module ถัดไป (04) จะพาไปลึกขึ้น: feature dev loop, PR review, TDD กับ Claude Code</li>
       </ul>
     </div>

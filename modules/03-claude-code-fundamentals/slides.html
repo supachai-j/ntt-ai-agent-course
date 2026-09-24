@@ -179,12 +179,84 @@ claude -p "explain what this repo does" --max-turns 3</code></pre>
   </section>
 
   <section>
+    <h2>ปัญหา: Interactive session หลุดเมื่อ SSH disconnect</h2>
+    <ul>
+      <li>Claude Code interactive mode (<code>claude</code> เฉยๆ) เป็น process ที่ผูกกับ terminal session — ปิด SSH/ปิดแล็ปท็อป = process ตาย ทั้งงานที่ยังไม่เสร็จ</li>
+      <li>งานที่ใช้เวลานาน (refactor ใหญ่, multi-step pipeline) ต้องรอดูจนจบ ไม่สามารถ "เดินไปทำอย่างอื่นแล้วกลับมาดู" ได้</li>
+      <li>เปิดหลาย SSH session พร้อมกันเพื่อรันหลายงาน → จัดการยาก สลับหน้าต่างไม่สะดวก</li>
+    </ul>
+    <div class="card-box">
+      <h4>ทางออก: tmux (terminal multiplexer)</h4>
+      <p>รัน process ไว้ "ข้างใน" tmux session ที่อยู่บน server เอง — <strong>ไม่ผูกกับ SSH connection ของคุณ</strong> ปิด SSH ได้ session ยังรันต่อ กลับมา SSH ใหม่แล้ว <code>attach</code> กลับเข้าไปดูงานที่ทำค้างไว้ได้เหมือนไม่เคยหลุด</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>tmux พื้นฐานที่ต้องรู้</h2>
+    <table>
+      <tr><th>คำสั่ง</th><th>ใช้ทำอะไร</th></tr>
+      <tr><td><code>tmux new -s work</code></td><td>สร้าง session ใหม่ชื่อ <code>work</code></td></tr>
+      <tr><td><code>Ctrl-b</code> แล้วกด <code>d</code></td><td><strong>Detach</strong> — ออกจาก session โดยไม่ปิด process ข้างใน</td></tr>
+      <tr><td><code>tmux ls</code></td><td>ดูรายชื่อ session ที่กำลังรันอยู่ทั้งหมด</td></tr>
+      <tr><td><code>tmux attach -t work</code></td><td><strong>Attach</strong> กลับเข้า session ที่ detach ไว้</td></tr>
+      <tr><td><code>tmux kill-session -t work</code></td><td>ปิด session ทิ้งถาวร (process ข้างในตายด้วย)</td></tr>
+    </table>
+    <div class="warn"><strong>ข้อควรระวัง:</strong> <code>Ctrl-b d</code> คือ detach (ปลอดภัย งานยังรันต่อ) ส่วน <code>exit</code> หรือ <code>Ctrl-d</code> ภายใน shell ของ tmux pane คือปิด pane นั้นทิ้งจริง — อย่าสับสนสองอย่างนี้ ถ้าพิมพ์ <code>exit</code> ตอน Claude Code กำลังทำงานอยู่ งานจะถูก kill ทันที</div>
+  </section>
+
+  <section>
+    <h2>Workflow จริง: Claude Code ผ่าน tmux บน remote server</h2>
+    <pre><code class="language-bash"># 1. SSH เข้า server ตามปกติ
+ssh user@remote-server
+
+# 2. สร้าง tmux session แล้วรัน Claude Code ข้างใน
+tmux new -s claude-work
+claude
+# ... คุยงานกับ Claude Code ตามปกติ อาจใช้เวลานาน ...
+
+# 3. อยากออกไปทำอย่างอื่นแต่ไม่อยากให้งานหยุด
+#    กด Ctrl-b แล้วกด d (detach) — กลับสู่ shell ปกติ
+#    session ยังรันอยู่เบื้องหลัง แม้ปิด SSH ไปแล้ว
+
+# 4. กลับมาดูทีหลัง (แม้ SSH connection เดิมหลุดไปแล้วก็ตาม)
+ssh user@remote-server
+tmux attach -t claude-work
+# กลับเข้าไปเห็น Claude Code ตรงจุดที่ค้างไว้เป๊ะ</code></pre>
+    <p>Pattern นี้เหมาะกับงานยาว (refactor ข้ามคืน, migration หลายขั้นตอน) หรือเมื่อทำงานจาก network ที่ไม่เสถียร (WiFi หลุดบ่อย, VPN ตัด)</p>
+  </section>
+
+  <section>
+    <h2>รันหลายงานพร้อมกันด้วยหลาย tmux session</h2>
+    <pre><code class="language-bash"># ตั้งชื่อ session ให้สื่อความหมาย แยกงานตามโปรเจกต์/task
+tmux new -s frontend-fix -d    # -d = สร้างแบบ detached ทันที ไม่ต้องเข้าไปก่อน
+tmux new -s backend-refactor -d
+tmux new -s db-migration -d
+
+# ดูว่ามีอะไรรันอยู่บ้าง
+tmux ls
+# frontend-fix: 1 windows ...
+# backend-refactor: 1 windows ...
+# db-migration: 1 windows ...
+
+# ส่งคำสั่งเข้า session โดยไม่ต้อง attach ก่อน (ใช้บ่อยเวลา automate/monitor จากภายนอก)
+tmux send-keys -t frontend-fix 'claude -p "fix the failing test in Button.test.tsx"' Enter
+
+# ตรวจความคืบหน้าแบบไม่ต้อง attach เข้าไปเต็มๆ
+tmux capture-pane -t frontend-fix -p -S -30</code></pre>
+    <div class="card-box">
+      <h4>เกี่ยวข้องกับ Module 07</h4>
+      <p>Pattern <code>tmux send-keys</code> + <code>capture-pane</code> นี้เป็นรากฐานเดียวกับที่ Module 07 (Multi-Agent Orchestration) ใช้ตอน spawn หลาย Claude Code instance พร้อมกัน — ต่างกันแค่ที่นี่คุณเป็นคนสั่งเอง ส่วน Module 07 ให้ agent อื่นเป็นคนสั่งแทน</p>
+    </div>
+  </section>
+
+  <section>
     <h2>สรุป Module 03</h2>
     <ul>
       <li>ติดตั้งง่ายผ่าน npm, auth ได้ทั้ง OAuth subscription และ API key</li>
       <li>เลือกโหมดให้ถูกงาน: Interactive สำหรับสำรวจ/debug, Print mode สำหรับ automation</li>
       <li>CLAUDE.md คือหัวใจของ "ความจำโปรเจกต์" — เขียนดีมีผลต่อคุณภาพงานของ agent โดยตรง</li>
       <li>Flags อย่าง <code>--allowedTools</code>, <code>--max-turns</code> ช่วยควบคุมความเสี่ยงตอนรันแบบ automation</li>
+      <li>tmux ทำให้ Claude Code session รอดจาก SSH disconnect — <code>Ctrl-b d</code> detach, <code>tmux attach</code> กลับเข้าไปดูงานที่ค้างไว้</li>
     </ul>
     <a class="lab-cta" href="lab.html">ไปที่ Lab Module 03 →</a>
   </section>
