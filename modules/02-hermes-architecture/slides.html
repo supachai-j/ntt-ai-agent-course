@@ -163,6 +163,22 @@
 </section>
 
 <section>
+  <h2>Terminology: Profile vs Agent vs Bot vs Subagent</h2>
+  <p style="font-size:0.85em;">Official docs แยก 5 คำนี้ชัดเจน — สับสนกันบ่อยในทีม ควรใช้ให้ตรง:</p>
+  <table>
+    <tr><th>คำ</th><th>ความหมาย</th></tr>
+    <tr><td><strong>Profile</strong></td><td>persistent home directory สำหรับ config+data ของ assistant หนึ่งตัว</td></tr>
+    <tr><td><strong>Agent</strong></td><td>running instance ที่ใช้ profile นั้นอยู่ ณ ขณะนั้น</td></tr>
+    <tr><td><strong>Bot</strong></td><td>profile ที่ถูก present เป็น roster entry ใน Bot Mode พร้อม avatar — ไม่ใช่ทุก profile จะเป็น Bot</td></tr>
+    <tr><td><strong>Platform account</strong></td><td>account จริงบน Telegram/Discord/ฯลฯ ที่ผูกกับ gateway ผ่าน bot token</td></tr>
+    <tr><td><strong>Subagent</strong></td><td>child assistant จาก <code>delegate_task</code> — conversation แยก ไม่ใช่ profile แยก</td></tr>
+  </table>
+  <div class="danger">
+    <strong>Official safety warning:</strong> "Never point two agent processes at the same profile" — สอง process ที่เขียน memory เข้า home เดียวกันจะโหลด write ของกันและกันเข้า system prompt ทุก session start จนสถานะพัง ควรใช้ external memory provider แทนถ้าต้องการ shared memory จริง
+  </div>
+</section>
+
+<section>
   <h2>Memory vs Skills: ต่างกันตรงไหน</h2>
   <table>
     <tr><th>คุณสมบัติ</th><th>Memory</th><th>Skills</th></tr>
@@ -177,27 +193,27 @@
 <section>
   <h2>MCP Tools Layer</h2>
   <p>Hermes ต่อกับเครื่องมือผ่าน <strong>Model Context Protocol (MCP)</strong></p>
-  <div class="two-col">
-    <div class="card-box">
-      <h4>Always-loaded tools</h4>
-      <ul>
-        <li>terminal</li>
-        <li>read_file / write_file / patch</li>
-        <li>search_files</li>
-        <li>web_search / web_extract</li>
-        <li>browser (navigate, click, snapshot)</li>
-      </ul>
-    </div>
-    <div class="card-box">
-      <h4>Orchestration tools</h4>
-      <ul>
-        <li><code>delegate_task</code> — spawn subagent</li>
-        <li><code>clarify</code> — ถามผู้ใช้กลับ</li>
-        <li><code>cronjob</code> — scheduled tasks</li>
-        <li><code>context_notes</code> — memory ops</li>
-        <li><code>skill_manage</code> — สร้าง/แก้ skill</li>
-      </ul>
-    </div>
+  <p style="font-size:0.8em;color:var(--r-text-dim);">Official docs แบ่ง built-in tools เป็น 9 category — ต่างจากที่คอร์สนี้เคยแบ่งเองแบบ 2 กลุ่ม (ฉบับ official ละเอียดและ verifiable กว่า)</p>
+  <table>
+    <tr><th>Category</th><th>ตัวอย่าง</th></tr>
+    <tr><td>Web</td><td><code>web_search</code>, <code>web_extract</code></td></tr>
+    <tr><td>Terminal &amp; Files</td><td><code>terminal</code>, <code>process</code>, <code>read_file</code>, <code>patch</code></td></tr>
+    <tr><td>Browser</td><td><code>browser_navigate</code>, <code>browser_snapshot</code>, <code>browser_vision</code></td></tr>
+    <tr><td>Media</td><td><code>vision_analyze</code>, <code>image_generate</code>, <code>text_to_speech</code></td></tr>
+    <tr><td>Agent orchestration</td><td><code>todo</code>, <code>clarify</code>, <code>execute_code</code>, <code>delegate_task</code></td></tr>
+    <tr><td>Memory &amp; recall</td><td><code>memory</code>, <code>session_search</code></td></tr>
+    <tr><td>Automation</td><td><code>cronjob</code></td></tr>
+    <tr><td>Integrations</td><td><code>ha_*</code> (Home Assistant), MCP server tools</td></tr>
+  </table>
+  <div class="warn"><strong>ข้อควรระวัง:</strong> ตัวเลข "60+ built-in tools" มาจากคำโปรยหน้า docs index เท่านั้น ไม่ใช่ authoritative count — ถ้าต้องการตัวเลขแม่นยำให้เปิด Tools Reference/Toolsets Reference บน official docs โดยตรง</div>
+</section>
+
+<section>
+  <h2>Nous Portal / Tool Gateway</h2>
+  <p>ฟีเจอร์ที่ Hermes ไม่ได้บังคับให้ทุกคนหา API key เอง — paid subscriber ใช้ web search/image gen/TTS/browser ผ่าน <strong>Tool Gateway</strong> โดยไม่ต้องมี API key แยกต่างหาก</p>
+  <div class="card-box">
+    <h4>เทียบกับสถานการณ์จริงของทีม</h4>
+    <p>คล้ายกับ subscription ที่หลายคนมีอยู่แล้ว (เช่น ChatGPT Enterprise, Gemini Plus) — <strong>มี subscription ไม่ได้แปลว่ามี API access อัตโนมัติ</strong> ต้องแยกสมัคร API key ต่างหากเสมอ เว้นแต่ผู้ให้บริการมี "gateway" แบบเดียวกับ Nous Portal ที่ bridge ให้</p>
   </div>
 </section>
 
@@ -218,7 +234,7 @@ tool_call({calls: [{name: "discord_send", arguments: {...}}]})</code></pre>
 <section>
   <h2>Connectors: ช่องทางสื่อสารจริง</h2>
   <ul>
-    <li>Hermes ไม่ได้ผูกกับ UI เดียว — เชื่อมกับ <strong>Discord</strong> (แบบที่ใช้คุยตอนนี้), <strong>Telegram</strong>, <strong>Email</strong> ฯลฯ</li>
+    <li>Hermes ไม่ได้ผูกกับ UI เดียว — official docs ของ Nous Research ระบุว่ารองรับ <strong>20+ platforms</strong> จากตัว gateway เดียวกัน ไม่ใช่แค่ 2-3 ตัวที่คนทั่วไปคุ้นเคย</li>
     <li><strong>Multi-user thread</strong> — หลายคนคุยใน channel เดียวกันได้ Hermes ต้องแยกแยะว่าใครพูด</li>
     <li><strong>Sender prefix</strong> — ข้อความ inbound ถูก tag ด้วยชื่อผู้ส่ง เพื่อให้ agent ตอบถูกคน/บริบทถูก</li>
     <li><strong>Home channel</strong> — concept ของช่องทางหลักที่ agent "รายงานกลับ" หรือส่ง notification โดยดีฟอลต์</li>
@@ -227,6 +243,22 @@ tool_call({calls: [{name: "discord_send", arguments: {...}}]})</code></pre>
     <h4>ตัวอย่างในคอร์สนี้</h4>
     <p>คุณกำลังคุยกับ Claude Code ผ่าน Discord connector — ข้อความของคุณถูก route เข้า Hermes, ประมวลผลด้วย profile ที่กำหนด, แล้วตอบกลับผ่าน connector เดิม</p>
   </div>
+</section>
+
+<section>
+  <h2>Connectors: ลิสต์เต็มจาก official docs</h2>
+  <p style="font-size:0.85em;">Hermes Agent รองรับ platform ต่อไปนี้จาก gateway process เดียว (ที่มา: <a href="https://hermes-agent.nousresearch.com" target="_blank" rel="noopener">hermes-agent.nousresearch.com</a>):</p>
+  <div class="two-col">
+    <div class="card-box">
+      <h4>Chat/Messaging ที่คุ้นเคย</h4>
+      <p>Telegram, Discord, Slack, WhatsApp, Signal, Matrix, Mattermost, Email, SMS</p>
+    </div>
+    <div class="card-box">
+      <h4>Enterprise/ภูมิภาคเฉพาะ</h4>
+      <p>Microsoft Teams, Google Chat, DingTalk, Feishu, WeCom, Weixin, QQ Bot, Yuanbao, BlueBubbles, Home Assistant, และอื่นๆ</p>
+    </div>
+  </div>
+  <div class="warn"><strong>ข้อควรระวัง:</strong> อย่าอธิบาย Hermes ว่า "Discord bot ที่มี AI" กับลูกค้า/ทีม — มันคือ multi-platform gateway จริงจัง เหมาะกับองค์กรที่ทีมกระจายใช้หลาย platform (เช่น ทีมไทยใช้ LINE คู่กับ Teams ของฝั่ง global)</div>
 </section>
 
 <section>
@@ -248,7 +280,7 @@ version: 1.0
 
 ## Pitfalls
 - ...</code></pre>
-  <p>Frontmatter (YAML) + markdown body — <code>description</code> คือ trigger หลัก: ต้องขึ้นต้นด้วยวลีที่ self-contained ภายใน ~57 ตัวอักษรแรก เพื่อให้ระบบ keyword-match แล้วโหลด skill ได้ถูกต้อง</p>
+  <p>Frontmatter (YAML) + markdown body — <code>description</code> คือ trigger หลัก: ต้องขึ้นต้นด้วยวลีที่ self-contained ภายใน ~60 ตัวอักษรแรก (house authoring standard ของ Hermes) เพื่อให้ระบบ keyword-match แล้วโหลด skill ได้ถูกต้อง</p>
 </section>
 
 <section>
@@ -267,6 +299,22 @@ version: 1.0
     </div>
   </div>
   <div class="warn"><strong>Write lessons, not logs:</strong> skill ควรบันทึก imperative rule + เหตุผล ("ทำแบบนี้เพราะ X") ไม่ใช่ log เหตุการณ์ ("วันที่ Y แก้ bug Z") — log ไม่ generalize ข้าม task ในอนาคต</div>
+</section>
+
+<section>
+  <h2>ทางลัด: /learn และ Autonomous Curator</h2>
+  <div class="two-col">
+    <div class="card-box">
+      <h4>/learn — สอน skill โดยไม่ต้องเขียน SKILL.md เอง</h4>
+      <p>บอก agent ว่า "อยากให้รู้เรื่องอะไร" หรือชี้ไปยังเอกสารอ้างอิง agent จะ gather material ด้วย tool ที่มีอยู่แล้ว แล้ว author skill ให้เองตาม house standard</p>
+      <pre><code>/learn filing an expense: open the portal,
+New > Expense, attach the receipt, submit</code></pre>
+    </div>
+    <div class="card-box">
+      <h4>Autonomous Curator</h4>
+      <p><code>hermes curator</code> รีวิว skill ที่ agent สร้างเอง, consolidate ที่ซ้ำซ้อน, archive ที่ล้าสมัย — ส่วนหนึ่งของ "closed learning loop" ที่ทำให้ Hermes ต่างจาก agent framework ทั่วไป</p>
+    </div>
+  </div>
 </section>
 
 <section>
@@ -309,11 +357,12 @@ version: 1.0
 <section>
   <h2>สรุป Module 02</h2>
   <ul>
-    <li>Profiles แยก workspace สมบูรณ์ต่อบริบท — memory/skills/cron คนละชุด</li>
-    <li>Memory = inject ทุก turn มี limit, Skills = โหลดตามต้องการ ไม่จำกัดจำนวน</li>
+    <li>Profiles แยก workspace สมบูรณ์ต่อบริบท — memory/skills/cron คนละชุด, ห้ามสอง process ชี้ profile เดียวกัน</li>
+    <li>Terminology: Profile ≠ Agent ≠ Bot ≠ Platform account ≠ Subagent</li>
+    <li>Memory = inject ทุก turn มี limit, Skills = โหลดตามต้องการ ไม่จำกัดจำนวน, description ≤60 ตัวอักษร</li>
     <li>MCP tools ใช้ pattern tool_search → tool_describe → tool_call เพื่อลด context overhead</li>
-    <li>Connectors เชื่อม Hermes กับช่องทางจริง (Discord/Telegram/Email) พร้อม multi-user thread</li>
-    <li>Skills เขียนแบบ "lessons not logs" + linked_files แยก references/templates/scripts</li>
+    <li>Connectors เชื่อม Hermes กับ 20+ platforms จริง (ไม่ใช่แค่ Discord/Telegram/Email)</li>
+    <li>Skills เขียนแบบ "lessons not logs" + <code>/learn</code> สอน skill เร็วๆ + Autonomous Curator ดูแลให้</li>
     <li>delegate_task = isolated subagent — ต้อง verify ผลลัพธ์ด้วย evidence เสมอ</li>
   </ul>
   <a class="lab-cta" href="lab.html">เริ่มทำ Lab →</a>

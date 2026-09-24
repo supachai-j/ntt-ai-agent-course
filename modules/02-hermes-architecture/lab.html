@@ -44,7 +44,7 @@
       <li>อธิบายได้ว่า profile หนึ่งมีโฟลเดอร์อะไรบ้าง และทำไมต้องแยกจาก profile อื่น</li>
       <li>สำรวจโครงสร้าง skill directory จริง (หรือจำลองถ้าไม่มีสิทธิ์เข้าถึง)</li>
       <li>เขียน SKILL.md ของตัวเองที่มี frontmatter ถูกต้อง (name + description) ตาม format ที่สอน</li>
-      <li>ตรวจสอบว่า description ของ skill ขึ้นต้นด้วย trigger phrase ที่ self-contained ภายใน ~57 ตัวอักษร</li>
+      <li>ตรวจสอบว่า description ของ skill ขึ้นต้นด้วย trigger phrase ที่ self-contained ภายใน ~60 ตัวอักษร (house authoring standard ของ Hermes)</li>
       <li>อธิบาย pattern tool_search → tool_describe → tool_call ได้ด้วยคำพูดตัวเอง</li>
     </ul>
   </div>
@@ -134,7 +134,7 @@ nano ~/my-skill/SKILL.md
       <strong>Verify:</strong> รันคำสั่งด้านล่างเพื่อยืนยันว่า YAML frontmatter valid และมี field ที่จำเป็นครบ:
       <pre><code>head -6 ~/my-skill/SKILL.md
 # ควรเห็น --- ... name: ... description: ... version: ... ---</code></pre>
-      description ต้องขึ้นต้นด้วย trigger phrase ที่ self-contained (บอกว่า "ใช้เมื่อไร" ได้โดยไม่ต้องอ่านส่วนอื่น) และควรอยู่ในช่วง ~57 ตัวอักษรแรก
+      description ต้องขึ้นต้นด้วย trigger phrase ที่ self-contained (บอกว่า "ใช้เมื่อไร" ได้โดยไม่ต้องอ่านส่วนอื่น) และควรอยู่ในช่วง ~60 ตัวอักษรแรก
     </div>
   </div>
 
@@ -216,6 +216,24 @@ diagram แสดง 3 แหล่งข้อมูล — แต่ละแ�
       <strong>Verify:</strong> ไฟล์ <code>integration-mapping.md</code> ต้องตอบครบทั้ง 3 กลุ่ม (Skills&amp;Tools / Knowledge Layer / Channels&amp;CI) และมีข้อเสนอ integration ใหม่อย่างน้อย 1 อย่างพร้อมเหตุผลว่าทำไมควรอยู่กลุ่มนั้น — ไม่ใช่แค่ copy คำจาก diagram โดยไม่คิดต่อ
     </div>
     <div class="warn"><strong>ข้อควรระวัง:</strong> Diagram นี้คือตัวอย่าง production deployment จริงหนึ่งชุด ไม่ใช่ spec ตายตัวของ Hermes — Hermes รองรับ MCP connector อื่นนอกเหนือจากที่แสดงในภาพได้ (เช่น Airtable, Box, Slack) ให้เข้าใจ "รูปแบบ" (3 กลุ่ม) มากกว่าจำชื่อ tool เฉพาะเจาะจง</div>
+  </div>
+
+  <div class="step">
+    <h3><span class="step-num">9</span> Quiz: Profile vs Agent vs Bot vs Subagent</h3>
+    <p>ตาม official docs ของ Hermes Agent มี 5 คำที่มักสับสนกัน — จับคู่สถานการณ์ต่อไปนี้กับคำที่ถูกต้อง แล้วเขียนคำตอบลงไฟล์เดียวกับ Step 8:</p>
+    <pre><code>## Terminology Quiz (เพิ่มต่อท้าย integration-mapping.md)
+
+1. "profile 'coder' ที่กำลังรัน conversation อยู่ตอนนี้" คือคำว่าอะไร?
+2. "profile ที่ถูกเพิ่มเข้า roster ของ Bot Mode พร้อม avatar" คือคำว่าอะไร?
+3. "account จริงบน Telegram ที่ผูกกับ gateway ผ่าน bot token" คือคำว่าอะไร?
+4. "child assistant ที่เกิดจาก delegate_task มี conversation แยกใหม่" คือคำว่าอะไร?
+5. เพราะอะไรห้ามให้สอง process ชี้ไปยัง profile เดียวกัน?</code></pre>
+    <div class="verify">
+      <strong>Verify:</strong> คำตอบที่ถูกคือ 1=Agent, 2=Bot, 3=Platform account, 4=Subagent, 5=เพราะทั้งสอง
+      process จะเขียน memory เข้า home เดียวกัน แล้วโหลด write ของกันและกันเข้า system prompt ทุก session
+      start จนสถานะพัง — ต้องใช้ external memory provider แทนถ้าต้องการ shared memory จริง
+    </div>
+    <div class="danger"><strong>ข้อควรระวัง (Irreversible ถ้าพลาด):</strong> อย่ารัน Hermes สอง instance ชี้ profile เดียวกันในงานจริงเด็ดขาด — memory state จะพังแบบกู้คืนยาก เพราะทั้งสอง agent เขียนทับ/ผสาน write ของกันและกันต่อเนื่องทุก session</div>
   </div>
 
   <details class="troubleshoot">
