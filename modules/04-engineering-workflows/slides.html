@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module 04 · Engineering Workflows with Claude Code</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css">
+<link rel="stylesheet" href="../../assets/reveal-theme.css">
+</head>
+<body>
+<div class="reveal">
+  <div class="slides">
+
+    <section class="title-slide">
+      <span class="badge">Module 04 · Engineering</span>
+      <h1>Engineering Workflows<br>with Claude Code</h1>
+      <p class="subtitle">Feature dev loop · PR review · Refactor · TDD · Session control · Cost discipline</p>
+    </section>
+
+    <section>
+      <h2>Agenda</h2>
+      <ul>
+        <li>Feature development loop มาตรฐาน (branch → prompt → review → iterate → commit → PR)</li>
+        <li>PR review pattern ด้วย <code>git diff | claude -p</code></li>
+        <li>Interactive refactor workflow ผ่าน tmux + PTY</li>
+        <li>Test-Driven Development กับ agent (RED-GREEN-REFACTOR)</li>
+        <li>Session continuation: <code>-c</code>, <code>-r</code>, <code>--fork-session</code></li>
+        <li>Cost/performance discipline: <code>--max-turns</code>, <code>--max-budget-usd</code>, <code>--effort</code></li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Feature Development Loop</h2>
+      <div class="two-col">
+        <div class="card-box">
+          <h4>Loop มาตรฐาน</h4>
+          <ol>
+            <li><span class="step-num">1</span>สร้าง branch ใหม่</li>
+            <li><span class="step-num">2</span>prompt Claude Code ให้ implement</li>
+            <li><span class="step-num">3</span>review diff ที่เกิดขึ้น</li>
+            <li><span class="step-num">4</span>iterate — ให้ feedback รอบต่อไป</li>
+            <li><span class="step-num">5</span>commit เมื่อพอใจ</li>
+            <li><span class="step-num">6</span>เปิด PR</li>
+          </ol>
+        </div>
+        <div class="card-box">
+          <h4>หลักการสำคัญ</h4>
+          <p>Agent เขียนโค้ดได้เร็ว แต่ engineer ยังต้อง <strong>review ทุก diff</strong>
+          ก่อน commit เสมอ — ไม่ trust output แบบ blind. Loop นี้เหมือน pair-programming
+          ที่คุณเป็นคนตัดสินใจสุดท้าย</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Feature Loop: ตัวอย่างจริง</h2>
+      <p>สร้าง branch แล้วสั่ง Claude Code ใน print mode ให้ทำงานที่ scope ชัดเจน จากนั้น
+      review diff, iterate ถ้าจำเป็น แล้วค่อย commit:</p>
+      <pre><code class="language-bash">git checkout -b feature/api-error-handling
+
+claude -p 'Add error handling to all API calls in src/' \
+  --allowedTools 'Read,Edit' \
+  --max-turns 10
+
+# ตรวจ diff ทุกครั้งก่อน commit
+git diff
+
+# ถ้าไม่โอเค ให้ prompt ต่อเพื่อ iterate (ใช้ -c เพื่อสาน context เดิม)
+claude -p 'The retry logic in fetchUser() is missing a max-retry cap, fix it' \
+  --continue --max-turns 5
+
+# พอใจแล้วค่อย commit + เปิด PR
+git add -p
+git commit -m "Add error handling to API calls"
+git push -u origin feature/api-error-handling
+gh pr create --fill</code></pre>
+    </section>
+
+    <section>
+      <h2>PR Review Pattern</h2>
+      <p>ใช้ Claude Code เป็น <strong>first-pass reviewer</strong> ก่อนส่งให้ human review —
+      pipe diff เข้าไปตรง ๆ ด้วย print mode</p>
+      <pre><code class="language-bash">git diff main...feature | claude -p \
+  'Review this diff for bugs, security issues, style' \
+  --max-turns 2</code></pre>
+      <div class="card-box">
+        <h4>ทำไมต้องตั้ง <code>--max-turns</code> ต่ำ ๆ (แต่ไม่ใช่ 1)</h4>
+        <p>Review งานนี้เป็น text-in / text-out เป็นหลัก ไม่ต้องแก้ไฟล์ จึงตั้ง turn limit
+        ต่ำเพื่อควบคุมต้นทุน — แต่จากการทดสอบจริง <code>--max-turns 1</code> มักไม่พอ
+        เพราะ Claude มักขอใช้ tool หนึ่งครั้งก่อนตอบ (เช่น ตรวจสอบ context) ทำให้ error
+        <code>error_max_turns</code> ตั้งแต่ turn แรก — ใช้ <code>--max-turns 2</code> ขึ้นไปจึงจะสำเร็จจริง</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>PR Review: ใช้ใน CI จริง</h2>
+      <pre><code class="language-bash">#!/usr/bin/env bash
+set -euo pipefail
+
+git fetch origin main
+git diff origin/main...HEAD | claude -p \
+  'Review this diff for bugs, security issues, style. \
+   Output a bullet list, flag any CRITICAL issue at the top.' \
+  --output-format json \
+  --max-turns 3 > review.json
+
+python -c "import json,sys; r=json.load(open('review.json')); print(r['result'])"</code></pre>
+      <p><code>--output-format json</code> ให้ผลลัพธ์ที่ parse ได้ เหมาะกับ pipeline
+      ที่ต้อง post comment กลับเข้า PR อัตโนมัติ</p>
+    </section>
+
+    <section>
+      <h2>Interactive Refactor Workflow: tmux + PTY</h2>
+      <p>Refactor ใหญ่ ๆ มักต้องมี <strong>human-in-the-loop หลายรอบ</strong> —
+      print mode ไม่พอเพราะเราอยากเห็น progress และ steer ระหว่างทาง ต้องรัน Claude Code
+      แบบ interactive ข้างใน tmux session แล้วควบคุมด้วย <code>send-keys</code>,
+      ตรวจ progress ด้วย <code>capture-pane</code></p>
+      <pre><code class="language-bash"># เปิด session
+tmux new-session -d -s refactor-auth -x 140 -y 40
+
+# เข้าโปรเจกต์แล้วสั่ง claude
+tmux send-keys -t refactor-auth \
+  'cd ~/project && claude' Enter
+
+# รอ startup + trust dialog แล้ว Enter รับ default
+sleep 4 && tmux send-keys -t refactor-auth Enter
+
+# ส่ง task แรก
+sleep 2 && tmux send-keys -t refactor-auth \
+  'Refactor the auth module to use JWT tokens' Enter
+
+# ตรวจความคืบหน้า
+sleep 15 && tmux capture-pane -t refactor-auth -p -S -50</code></pre>
+    </section>
+
+    <section>
+      <h2>tmux Pattern: iterate แล้วปิด session</h2>
+      <pre><code class="language-bash"># เห็น diff ที่ยังไม่ถูกใจ ส่ง feedback รอบสอง
+tmux send-keys -t refactor-auth \
+  'Also add unit tests for the new JWT verify function' Enter
+
+sleep 20 && tmux capture-pane -t refactor-auth -p -S -60
+
+# จบงาน — ออกจาก Claude แล้วเก็บ session
+tmux send-keys -t refactor-auth '/exit' Enter
+tmux kill-session -t refactor-auth</code></pre>
+      <div class="warn">
+        <strong>ข้อควรระวัง:</strong> อย่าลืม kill session เมื่อจบงาน — session ที่ค้างไว้
+        กิน resource และอาจสร้างความสับสนเมื่อรัน task ใหม่ในไดเรกทอรีเดิม
+      </div>
+    </section>
+
+    <section>
+      <h2>Test-Driven Development กับ Agent</h2>
+      <p>วินัยสำคัญที่สุดของ engineering workflow กับ agent: <strong>ห้ามให้ agent
+      เขียนโค้ด production โดยไม่มี test คุมทิศทาง</strong></p>
+      <div class="two-col">
+        <div class="card-box">
+          <h4>RED</h4>
+          <p>Engineer เขียน failing test เองก่อน — กำหนด contract ที่ชัดเจน</p>
+        </div>
+        <div class="card-box">
+          <h4>GREEN</h4>
+          <p>ให้ Claude Code implement จนกว่า test จะผ่าน ไม่มากไม่น้อยกว่านั้น</p>
+        </div>
+      </div>
+      <div class="card-box">
+        <h4>REFACTOR</h4>
+        <p>เมื่อ test เขียวแล้ว ค่อยให้ agent (หรือ human) ปรับโครงสร้างโค้ดให้สะอาดขึ้น
+        โดย test ต้องเขียวตลอดขั้นตอนนี้</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>TDD Loop: ตัวอย่างคำสั่ง</h2>
+      <pre><code class="language-bash"># RED: engineer เขียน failing test เอง (ไม่ให้ agent เขียน)
+pytest tests/test_discount.py
+# FAILED — apply_discount() not implemented
+
+# GREEN: ให้ Claude Code implement จนผ่าน
+claude -p 'Implement apply_discount() in src/pricing.py so that \
+  tests/test_discount.py passes. Do not modify the test file.' \
+  --allowedTools 'Read,Edit,Bash(pytest*)' \
+  --max-turns 8
+
+# verify
+pytest tests/test_discount.py -q</code></pre>
+      <div class="danger">
+        <strong>กฎเหล็ก:</strong> ห้ามให้ <code>--allowedTools</code> รวม permission แก้ไฟล์ test
+        ในรอบ GREEN — ถ้า agent แก้ test ให้ผ่านง่าย ๆ แทนที่จะแก้โค้ด นั่นคือ false green
+      </div>
+    </section>
+
+    <section>
+      <h2>Session Continuation</h2>
+      <p>งานยาวข้ามหลาย session ต้องใช้ flag เหล่านี้แทนการเริ่ม context ใหม่ทุกครั้ง</p>
+      <table>
+        <tr><th>Flag</th><th>ใช้เมื่อไหร่</th></tr>
+        <tr><td><code>-c, --continue</code></td><td>สาน conversation ล่าสุดในไดเรกทอรีปัจจุบัน</td></tr>
+        <tr><td><code>-r, --resume &lt;id&gt;</code></td><td>resume session เฉพาะเจาะจงด้วย session ID</td></tr>
+        <tr><td><code>--fork-session</code></td><td>resume แต่แตก session ID ใหม่ (เก็บ history เดิมไว้)</td></tr>
+      </table>
+      <pre><code class="language-bash"># เริ่มงาน เก็บ session_id จาก JSON output
+claude -p 'Start refactoring the database layer' \
+  --output-format json --max-turns 10 > session1.json
+
+SID=$(python -c "import json;print(json.load(open('session1.json'))['session_id'])")
+
+# มาต่อวันถัดไปในไดเรกทอรีเดียวกัน
+claude -p 'Continue and add connection pooling' \
+  --continue --max-turns 5
+
+# หรือ resume แบบเจาะจง id / fork เพื่อลองแนวทางอื่นโดยไม่ทับของเดิม
+claude -p 'Continue' --resume "$SID" --max-turns 5
+claude -p 'Try a different pooling strategy' \
+  --resume "$SID" --fork-session --max-turns 10</code></pre>
+    </section>
+
+    <section>
+      <h2>Cost / Performance Discipline</h2>
+      <p>Automation จริงต้อง <strong>set flag เหล่านี้เสมอ</strong> — อย่าปล่อย default</p>
+      <table>
+        <tr><th>Flag</th><th>ทำไมต้อง set</th></tr>
+        <tr><td><code>--max-turns</code></td><td>กัน agentic loop ที่ไม่มีจุดจบ — งาน automation ต้องมี upper bound</td></tr>
+        <tr><td><code>--max-budget-usd</code></td><td>cap ค่าใช้จ่าย API ต่อ run โดยตรง</td></tr>
+        <tr><td><code>--effort low/high</code></td><td>งานง่ายใช้ low ลด latency/cost, งานซับซ้อนใช้ high เพื่อความแม่นยำ</td></tr>
+        <tr><td><code>--allowedTools</code></td><td>จำกัด blast radius — งาน review ไม่ควรมีสิทธิ์ Write/Bash</td></tr>
+      </table>
+      <pre><code class="language-bash"># งาน review เบา ๆ: effort ต่ำ, turn จำกัด, ไม่มีสิทธิ์แก้ไฟล์
+git diff | claude -p 'Quick style review' \
+  --effort low --max-turns 3 --allowedTools ''
+
+# งาน implement ที่ซับซ้อน: effort สูง, budget cap ชัดเจน
+claude -p 'Implement the rate limiter per docs/rate-limit-spec.md' \
+  --effort high --max-turns 15 --max-budget-usd 2.00 \
+  --allowedTools 'Read,Edit,Write,Bash(pytest*)'</code></pre>
+      <div class="warn">
+        <strong>อย่าลืม:</strong> ไม่ set flag พวกนี้ = agent มีสิทธิ์เต็ม + ไม่มี turn limit
+        = เสี่ยง runaway cost และแก้ไฟล์เกิน scope ที่ตั้งใจ
+      </div>
+    </section>
+
+    <section>
+      <h2>สรุป</h2>
+      <ul>
+        <li>Feature loop: branch → prompt → review diff → iterate → commit → PR — review เสมอ ไม่ trust blind</li>
+        <li>PR review: pipe diff เข้า <code>claude -p</code> เป็น first-pass ก่อน human review</li>
+        <li>Refactor ใหญ่ที่ต้อง human-in-the-loop → interactive mode ผ่าน tmux</li>
+        <li>TDD: agent implement ได้เฉพาะเมื่อมี failing test คุมทิศทางเสมอ</li>
+        <li>งานยาวข้าม session ใช้ <code>-c</code>/<code>-r</code>/<code>--fork-session</code></li>
+        <li>Automation จริงต้อง set <code>--max-turns</code>, <code>--max-budget-usd</code>, <code>--effort</code>, <code>--allowedTools</code> เสมอ</li>
+      </ul>
+      <a class="lab-cta" href="lab.html">ไปทำ Lab Module 04 →</a>
+    </section>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    plugins: [ RevealHighlight, RevealNotes ],
+    slideNumber: true,
+    transition: 'slide'
+  });
+</script>
+</body>
+</html>

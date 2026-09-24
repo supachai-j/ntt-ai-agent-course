@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module 09 · CI/CD &amp; Automation Integration</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/theme/black.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/highlight/monokai.css">
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="../../assets/reveal-theme.css">
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<section class="title-slide">
+  <span class="badge">Module 09 · Ship</span>
+  <h1>CI/CD &amp; Automation Integration</h1>
+  <p class="subtitle">รัน Claude Code แบบ headless ใน pipeline, gh CLI automation, deploy แบบตรวจสอบได้จริง</p>
+</section>
+
+<section>
+  <h2>ทำไม CI ต้องรัน Claude Code แบบ headless</h2>
+  <ul>
+    <li>Interactive REPL ใช้กับ pipeline อัตโนมัติไม่ได้ — ไม่มีคนกด Enter ตอบ prompt</li>
+    <li><strong>Headless mode</strong> (<code>--bare -p</code>) รันครั้งเดียว รับ input → output แล้วจบ เหมาะกับ CI runner</li>
+    <li>ใช้ทำ automated PR review, changelog generation, test-failure triage ได้โดยไม่ต้องมี human ในลูป</li>
+    <li>ข้อควรระวัง: headless = ไม่มีใครยืนยัน permission กลางทาง ต้อง lock <code>--allowedTools</code> ให้แคบ</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Headless flags ที่ต้องรู้</h2>
+  <table>
+    <tr><th>Flag</th><th>ทำอะไร</th></tr>
+    <tr><td><code>--bare</code></td><td>ปิด UI แบบ interactive, ข้าม OAuth login flow</td></tr>
+    <tr><td><code>-p "..."</code></td><td>ส่ง prompt ตรงเข้าไปรันครั้งเดียว</td></tr>
+    <tr><td><code>--allowedTools 'Read,Bash'</code></td><td>จำกัด tool ที่ agent เรียกได้ในรอบนี้</td></tr>
+    <tr><td><code>--max-turns N</code></td><td>จำกัดจำนวนรอบคิด/เรียก tool กัน loop ไม่จบ</td></tr>
+  </table>
+  <div class="card-box">
+    <h4>Auth ต้องมาจาก env</h4>
+    <p>Bare mode ข้าม OAuth device flow ดังนั้นต้องมี <code>ANTHROPIC_API_KEY</code> อยู่ใน environment ของ runner — ปกติ set ผ่าน GitHub Secrets</p>
+  </div>
+</section>
+
+<section>
+  <h2>ตัวอย่างคำสั่ง headless</h2>
+  <pre><code class="language-bash">export ANTHROPIC_API_KEY="${{ secrets.ANTHROPIC_API_KEY }}"
+
+claude --bare \
+  -p "Review the diff in this PR for bugs, security issues, and style. Output findings as a markdown list." \
+  --allowedTools 'Read,Bash' \
+  --max-turns 8 \
+  --max-budget-usd 0.50 \
+  --fallback-model claude-3-5-haiku-20241022 \
+  > review-output.md
+</code></pre>
+  <p>ผลลัพธ์ที่ได้เป็น text ธรรมดา → เอาไป pipe ต่อเข้า step อื่นได้ เช่น comment กลับเข้า PR</p>
+</section>
+
+<section>
+  <h2>GitHub Actions workflow: auto-review PR</h2>
+  <pre><code class="language-yaml">name: claude-review
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run headless review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          git diff origin/${{ github.base_ref }}...HEAD > pr.diff
+          claude --bare -p "Review pr.diff for bugs and risks. Be concise." \
+            --allowedTools 'Read,Bash' --max-turns 6 > review.md
+
+      - name: Post comment to PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr comment ${{ github.event.pull_request.number }} --body-file review.md
+</code></pre>
+</section>
+
+<section>
+  <h2>Trigger event: อ่านให้ถูกก่อนเขียน job</h2>
+  <div class="two-col">
+    <div class="card-box">
+      <h4>pull_request</h4>
+      <p><code>types: [opened, synchronize]</code> — รันตอนเปิด PR ใหม่ และทุกครั้งที่ push commit เพิ่มเข้า branch นั้น</p>
+    </div>
+    <div class="card-box">
+      <h4>Context ที่ใช้บ่อย</h4>
+      <p><code>github.event.pull_request.number</code>, <code>github.base_ref</code>, <code>github.head_ref</code> — ใช้ระบุ PR และ diff range</p>
+    </div>
+  </div>
+  <p><code>permissions: pull-requests: write</code> จำเป็น — ไม่งั้น <code>gh pr comment</code> จะถูก GitHub API ปฏิเสธด้วย 403</p>
+</section>
+
+<section>
+  <h2>gh CLI automation patterns</h2>
+  <pre><code class="language-bash"># สร้าง PR จาก branch ปัจจุบัน
+gh pr create --title "fix: retry logic" --body "Fixes timeout on flaky tests" --base main
+
+# เช็คสถานะ checks ของ PR ปัจจุบัน (ใช้ตัดสินใจ merge ใน script)
+gh pr checks --watch
+
+# เรียก endpoint ที่ porcelain command ไม่รองรับ ผ่าน REST โดยตรง
+gh api repos/OWNER/REPO/pages -X POST \
+  -f source[branch]=main -f source[path]=/
+</code></pre>
+  <p><code>gh api</code> คือทางออกเมื่อ <code>gh</code> ไม่มี subcommand ให้ — เช่นการตั้งค่า GitHub Pages, branch protection, repo settings ปลีกย่อย</p>
+</section>
+
+<section>
+  <h2>Cost control: กันบิลบาน</h2>
+  <ul>
+    <li>Pipeline รันซ้ำทุก push/PR — ถ้าไม่กำกับ cost, agent วน loop นานเท่าไหร่ก็ได้</li>
+    <li><code>--max-turns N</code> — จำกัดจำนวนรอบ tool-call/think ต่อการรันหนึ่งครั้ง</li>
+    <li><code>--max-budget-usd</code> — ตัดการทำงานทันทีเมื่อค่าใช้จ่ายถึงเพดานที่ตั้ง</li>
+    <li><code>--fallback-model haiku</code> — เปลี่ยนไปใช้โมเดลเล็ก/ถูกกว่าอัตโนมัติเมื่อโควตาโมเดลหลักหมดหรือ budget ใกล้เต็ม</li>
+  </ul>
+  <div class="card-box">
+    <h4>กฎง่ายๆ</h4>
+    <p>ทุก job ที่รัน Claude Code แบบอัตโนมัติซ้ำๆ (ทุก PR, ทุก commit) ต้องมีทั้งเพดานเทิร์นและเพดานเงินเสมอ — ไม่มีข้อยกเว้น</p>
+  </div>
+</section>
+
+<section>
+  <h2>Deploy pattern: static site → GitHub Pages</h2>
+  <ol>
+    <li>เปิดใช้งาน Pages ผ่าน API เพราะ porcelain <code>gh</code> ไม่มี subcommand ตรง:
+      <pre><code class="language-bash">gh api repos/OWNER/REPO/pages -X POST \
+  -f "source[branch]=main" -f "source[path]=/"</code></pre>
+    </li>
+    <li>Poll สถานะ build จนกว่าจะเป็น <code>built</code>:
+      <pre><code class="language-bash">gh api repos/OWNER/REPO/pages | jq -r '.status'</code></pre>
+    </li>
+    <li>ยืนยันด้วย HTTP request จริง — <strong>ไม่ใช่</strong> เชื่อ API response อย่างเดียว:
+      <pre><code class="language-bash">curl -s -o /dev/null -w '%{http_code}\n' https://OWNER.github.io/REPO/</code></pre>
+    </li>
+  </ol>
+</section>
+
+<section>
+  <h2>ทำไมต้อง curl เอง — ห้ามเชื่อ API เฉยๆ</h2>
+  <div class="two-col">
+    <div class="card-box">
+      <h4>API บอกว่าสำเร็จ ≠ เว็บ live แล้ว</h4>
+      <p>POST เปิด Pages มักตอบ 201/204 ทันที แต่ build จริงเป็น <strong>async</strong> — ใช้เวลาหลักสิบวินาทีถึงหลายนาที</p>
+    </div>
+    <div class="card-box">
+      <h4>สถานะ 404 ช่วงแรกคือเรื่องปกติ</h4>
+      <p>เพราะ static asset ยัง build ไม่เสร็จ ต้อง poll <code>status</code> ก่อน แล้วค่อย curl ตรวจ HTTP 200 จริง</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>วินัยการ verify — กฎเดียวที่คุมทุกอย่าง</h2>
+  <div class="card-box">
+    <h4>Never report CI green without checking yourself</h4>
+    <p>Log ของ CI บอกว่า "success" ได้ทั้งที่ผลลัพธ์จริงผิด (เช่น test flaky, step skip เงียบๆ, permission ไม่พอแล้ว silent-fail)</p>
+  </div>
+  <ul>
+    <li>ก่อนบอกว่า deploy สำเร็จ → curl ตรวจ HTTP code จริงด้วยตัวเอง</li>
+    <li>ก่อนบอกว่า PR review ทำงานถูก → เปิด PR ไปดู comment ที่โพสต์จริง</li>
+    <li>ก่อนบอกว่า workflow syntax ถูก → validate ด้วย YAML parser หรือ <code>actionlint</code> จริงๆ ไม่ใช่อ่านตาเปล่า</li>
+  </ul>
+</section>
+
+<section>
+  <h2>สรุป Pattern การทำ CI/CD Automation</h2>
+  <table>
+    <tr><th>ขั้นตอน</th><th>เครื่องมือ</th></tr>
+    <tr><td>1. รัน Claude Code แบบ headless</td><td><code>--bare -p ... --allowedTools --max-turns</code></td></tr>
+    <tr><td>2. ควบคุมต้นทุน</td><td><code>--max-budget-usd</code>, <code>--fallback-model</code></td></tr>
+    <tr><td>3. Trigger จาก event จริง</td><td><code>on: pull_request</code></td></tr>
+    <tr><td>4. โพสต์ผลกลับ</td><td><code>gh pr comment</code></td></tr>
+    <tr><td>5. Deploy + verify จริง</td><td><code>gh api</code> + poll + <code>curl</code></td></tr>
+  </table>
+  <a class="lab-cta" href="lab.html">เริ่ม Lab: เขียน workflow จริง + deploy ขึ้น Pages →</a>
+</section>
+
+<section class="title-slide">
+  <span class="badge">Module 09 · Ship</span>
+  <h2>ต่อไป</h2>
+  <p class="subtitle">ลงมือเขียน .github/workflows/claude-review.yml และ deploy static page ขึ้น GitHub Pages จริง พร้อม verify ทุกขั้นตอน</p>
+</section>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/highlight/highlight.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/notes/notes.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    controls: true,
+    progress: true,
+    center: false,
+    transition: 'slide',
+    plugins: [ RevealHighlight, RevealNotes ]
+  });
+</script>
+</body>
+</html>

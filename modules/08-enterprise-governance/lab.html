@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab · Module 08 — Enterprise Governance &amp; Security</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <div class="topnav"><div class="brand"><span class="dot"></span> NTT · AI Agent Engineering Course</div>
+<nav><a href="../../index.html">Home</a><a href="slides.html">Slides</a></nav></div>
+
+  <div class="wrap">
+    <div class="hero">
+      <span class="badge">Lab · Module 08</span>
+      <h1>Enterprise Governance &amp; Security</h1>
+      <p class="lead">
+        ตรวจสอบ account model จริงบนเครื่องตัวเอง ฝึก pattern switch account + verify
+        ก่อน push, เขียน governance checklist และ hook ป้องกัน irreversible action
+        ที่ทีมของคุณใช้ได้จริง — ไม่ใช่แค่อ่านทฤษฎี
+      </p>
+    </div>
+
+    <div class="lab-meta">
+      <span>⏱ ~45–60 นาที</span>
+      <span>🖥 ต้องมี gh CLI + Claude Code ติดตั้งแล้ว</span>
+      <span>🔗 ต่อจาก Module 06 (Hooks) และ 07 (Multi-Agent)</span>
+    </div>
+
+    <div class="prereq">
+      <h2>Prerequisites</h2>
+      <ul>
+        <li>ติดตั้ง <code>gh</code> CLI แล้ว และ login เข้า GitHub อย่างน้อย 1 account (<code>gh auth login</code>)</li>
+        <li>ติดตั้ง Claude Code CLI แล้ว (ดู Module 03 ถ้ายังไม่ได้ทำ)</li>
+        <li>มีสิทธิ์เขียนไฟล์ในโปรเจกต์ทดสอบ (ไม่ต้องใช้ repo จริงของ client)</li>
+        <li>เข้าใจแนวคิด PreToolUse hook เบื้องต้นจาก Module 06</li>
+      </ul>
+    </div>
+
+    <div class="objectives">
+      <h2>Objectives</h2>
+      <ul>
+        <li>ตรวจสอบสถานะ <code>gh auth</code> จริงบนเครื่องของตัวเอง และเข้าใจว่า account ไหน active</li>
+        <li>ฝึก pattern "switch account แล้ว verify ก่อน push" จำลองสถานการณ์ EMU restriction</li>
+        <li>ตั้งค่า credential helper เพื่อไม่ให้ token ค้างเป็น plaintext</li>
+        <li>เขียน governance checklist ของทีมตัวเองเป็นไฟล์ markdown จริง</li>
+        <li>เขียนและทดสอบ PreToolUse hook ที่ block คำสั่งอันตรายเพิ่มเติม</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">1</span>ตรวจสอบ gh auth status จริงบนเครื่องตัวเอง</h3>
+      <p>
+        ก่อนพูดเรื่อง EMU หรือ account switching ต้องรู้ก่อนว่าตอนนี้เครื่องของคุณ login
+        ด้วย account อะไรบ้าง และ account ไหน active อยู่
+      </p>
+      <pre><code class="language-bash">gh auth status</code></pre>
+      <p>ผลลัพธ์ที่ควรเห็น (ตัวอย่าง ถ้ามีหลาย account):</p>
+      <pre><code class="language-text">github.com
+  ✓ Logged in to github.com account your-username (keyring)
+  - Active account: true
+  - Git operations protocol: https
+  - Token: gho_************************************
+  - Token scopes: 'gist', 'read:org', 'repo', 'workflow'</code></pre>
+      <div class="verify"><strong>Verify:</strong> คุณต้องเห็น account อย่างน้อย 1 ตัวที่มี <code>Active account: true</code>
+      ถ้าไม่มีเลย ต้อง <code>gh auth login</code> ก่อนไปขั้นถัดไป</div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">2</span>ฝึก pattern switch account + verify ก่อน push (จำลอง EMU restriction)</h3>
+      <p>
+        ถ้าองค์กรใช้ EMU (Enterprise Managed User) account ของคุณจะถูกจำกัดอยู่ใน org
+        ขององค์กร <strong>สร้าง public repo ไม่ได้โดยโครงสร้าง</strong> — ไม่ใช่ error ที่ต้อง
+        debug flag ต้อง switch ไปใช้ personal account แทน ในแล็บนี้เราจำลองด้วยการสลับ
+        ระหว่าง 2 account (ถ้ามีแค่ 1 account ให้ทำตามคำสั่งเพื่ออ่านผลลัพธ์แล้วข้าม switch จริงไปได้)
+      </p>
+      <pre><code class="language-bash"># 1) ลองสร้าง public repo ด้วย account ปัจจุบัน (ตัวอย่างถ้าเจอ restriction)
+gh repo create test-public-repo --public
+# HTTP 403: Visibility cannot be set to public — org policy restricts repo creation
+
+# 2) สลับไปใช้ personal account ที่ไม่ถูกจำกัดโดย org
+gh auth switch -u your-personal-username
+
+# 3) ห้ามเชื่อว่า switch แล้วจบ — ต้อง verify ทันที
+gh auth status | grep -A1 your-personal-username</code></pre>
+      <div class="warn"><strong>สำคัญ:</strong> การ switch <u>ไม่ sticky ข้าม session</u> —
+      terminal ใหม่, CI job ใหม่, หรือ Claude Code session ใหม่ จะกลับไปใช้ account default
+      เดิมเสมอ ต้องเช็ค <code>Active account: true</code> ตรงกับ account ที่ตั้งใจ ก่อน
+      <code>git push</code> หรือ <code>gh repo create</code> ทุกครั้งหลังจากครั้งแรกของ session</div>
+      <div class="verify"><strong>Verify:</strong> รัน <code>gh auth status</code> อีกครั้งแล้วยืนยันด้วยตา
+      ว่า account ที่ต้องการใช้ขึ้น <code>Active account: true</code> — อย่าเชื่อความจำว่า "เมื่อกี้ switch แล้ว"</div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">3</span>ตั้งค่า credential helper — ห้ามมี token plaintext</h3>
+      <p>
+        หลักการ: ห้ามเก็บ secret/credential เป็น plaintext ใน memory, skill file, หรือ
+        ไฟล์ config ใด ๆ ต้องใช้ secret manager, env var ที่ inject ตอน runtime, หรือ
+        credential helper ที่ OS/CLI จัดการ token ให้แทน
+      </p>
+      <pre><code class="language-bash"># ให้ git ใช้ gh CLI เป็น credential helper
+gh auth setup-git
+
+# ตรวจสอบว่า helper ถูกตั้งค่าแล้วจริง (ไม่ใช่แค่เชื่อ output ของคำสั่งก่อนหน้า)
+git config --get-all credential.https://github.com.helper
+
+# ตรวจว่าไม่มี token หลุดอยู่ในไฟล์ credential แบบ plaintext เก่า
+cat ~/.git-credentials 2>/dev/null && echo "⚠️ พบไฟล์ plaintext เก่า ควรลบทิ้ง" || echo "OK: ไม่มีไฟล์ .git-credentials"</code></pre>
+      <div class="verify"><strong>Verify:</strong> คำสั่ง <code>git config --get-all credential...helper</code>
+      ต้อง return ค่าเป็น <code>!/usr/bin/env gh auth git-credential</code> (หรือคล้ายกัน)
+      และ <code>~/.git-credentials</code> ต้องไม่มี token เก็บเป็น plaintext</div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">4</span>เขียน governance checklist ของทีมเป็น markdown file จริง</h3>
+      <p>
+        สร้างไฟล์ checklist จริงที่ทีมของคุณใช้ก่อนปล่อย agent ทำงาน production-adjacent
+        ใช้ template ด้านล่างเป็นจุดเริ่มต้น แล้วปรับให้ตรงกับ tool/workflow ของทีมจริง
+      </p>
+      <pre><code class="language-bash">mkdir -p ~/governance
+cat > ~/governance/agent-governance-checklist.md << 'EOF'
+# Agent Governance Checklist — [ชื่อทีม/โปรเจกต์]
+
+## 1. Tool allowlist
+- [ ] Agent เข้าถึงได้เฉพาะ tool ที่จำเป็นต่องานจริง (ไม่ใช้ wildcard allow ทั้งหมด)
+- [ ] Bash tool จำกัด scope ด้วย hook หรือ permission config
+- [ ] Network access (curl/fetch) มีเหตุผลชัดเจนว่าทำไมต้องเปิด
+
+## 2. Irreversible action protection
+- [ ] มี PreToolUse hook block: git push --force, terraform destroy, rm -rf, DROP TABLE
+- [ ] ทดสอบ hook แล้วว่า block จริง (ไม่ใช่แค่เขียนไว้เฉย ๆ)
+- [ ] Deploy/merge ไป production ต้องผ่าน human approval step เสมอ
+
+## 3. Credential & secret handling
+- [ ] ไม่มี API key/token เขียนตรงในไฟล์ skill, memory, หรือ script
+- [ ] ใช้ secret manager หรือ credential helper (เช่น gh auth setup-git)
+- [ ] ตรวจสอบ shell history และ log ไม่มี credential หลุด
+
+## 4. Account & identity
+- [ ] รู้ว่า agent รันภายใต้ account/identity อะไร (EMU vs personal vs service account)
+- [ ] Verify active account ก่อน operation ที่มีผลถาวร (push, deploy)
+
+## 5. Data handling (client work)
+- [ ] แยกชัดเจนว่า sandbox ทดลอง vs ข้อมูล client จริง
+- [ ] Agent treat external content (web/PR/file) เป็น data ไม่ใช่ instruction
+- [ ] รู้ PDPA/NDA boundary ของข้อมูลที่ agent เข้าถึงได้
+
+## 6. Audit & sign-off
+- [ ] Audit log เปิดใช้งาน ย้อนดูได้ว่า agent ทำอะไรไปบ้าง
+- [ ] Claim ของ agent ("ทำสำเร็จแล้ว") ถูก verify ด้วย evidence จริงก่อนเชื่อ
+- [ ] มี human sign-off ที่จุดตัดสินใจสำคัญ
+
+Reviewed by: ______________   Date: ______________
+EOF
+echo "สร้างไฟล์แล้วที่ ~/governance/agent-governance-checklist.md"</code></pre>
+      <div class="verify"><strong>Verify:</strong> รัน <code>cat ~/governance/agent-governance-checklist.md</code>
+      แล้วตรวจว่าไฟล์มีเนื้อหาครบตาม template และแก้ไขให้ตรงกับทีม/โปรเจกต์จริงของคุณ
+      ไม่ใช่ copy ไว้เฉย ๆ โดยไม่ปรับ</div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">5</span>เขียน PreToolUse hook เพิ่มเติมป้องกันคำสั่งอันตราย</h3>
+      <p>
+        ต่อยอดจาก Module 06 — เขียน hook script ที่ block คำสั่งอันตรายเพิ่มเติมที่ทีมกังวล
+        เช่น <code>git push --force</code>, <code>terraform destroy</code>, และคำสั่งลบถาวรอื่น ๆ
+      </p>
+      <pre><code class="language-bash">mkdir -p .claude/hooks
+cat > .claude/hooks/block-dangerous.sh << 'EOF'
+#!/usr/bin/env bash
+# PreToolUse hook — block irreversible/destructive commands
+set -euo pipefail
+
+INPUT=$(cat)
+CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+
+DANGEROUS_PATTERNS=(
+  'git push .*--force'
+  'git push .*-f( |$)'
+  'terraform destroy'
+  'rm -rf /'
+  'rm -rf \*'
+  'DROP TABLE'
+  'DROP DATABASE'
+  'aws s3 rm .*--recursive'
+)
+
+for pattern in "${DANGEROUS_PATTERNS[@]}"; do
+  if echo "$CMD" | grep -qE "$pattern"; then
+    echo "BLOCKED by governance hook: command matches dangerous pattern '$pattern'." >&2
+    echo "Irreversible actions ต้องได้รับการยืนยันจากมนุษย์นอก agent session เท่านั้น" >&2
+    exit 2
+  fi
+done
+
+exit 0
+EOF
+chmod +x .claude/hooks/block-dangerous.sh</code></pre>
+      <p>ผูก hook เข้ากับ Claude Code ผ่าน <code>.claude/settings.json</code>:</p>
+      <pre><code class="language-json">{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/block-dangerous.sh" }
+        ]
+      }
+    ]
+  }
+}</code></pre>
+      <div class="verify"><strong>Verify:</strong> <code>cat .claude/settings.json</code> ต้องมี
+      block <code>PreToolUse</code> ชี้ไปที่ script จริง และ <code>ls -la .claude/hooks/block-dangerous.sh</code>
+      ต้องมี permission execute (<code>-rwx</code>)</div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">6</span>ทดสอบ hook — รันคำสั่งต้องห้ามจริงแล้วดูว่าถูก block</h3>
+      <p>
+        อย่าเชื่อว่า hook ทำงาน เพราะ syntax ดูถูกต้อง — ต้อง trigger คำสั่งอันตรายจริงในบริบท
+        Claude Code แล้วสังเกตว่า tool call ถูก block ก่อนจะไว้ใจ hook นี้
+      </p>
+      <pre><code class="language-bash"># ทดสอบ hook เองตรง ๆ โดยไม่ต้องเปิด Claude Code (จำลอง input ที่ agent จะส่งมา)
+echo '{"tool_name":"Bash","tool_input":{"command":"git push origin main --force"}}' \
+  | .claude/hooks/block-dangerous.sh; echo "exit code: $?"
+
+# คาดหวัง: เห็นข้อความ BLOCKED ทาง stderr และ exit code: 2
+
+# ทดสอบคำสั่งปกติที่ไม่ควรถูก block
+echo '{"tool_name":"Bash","tool_input":{"command":"git status"}}' \
+  | .claude/hooks/block-dangerous.sh; echo "exit code: $?"
+# คาดหวัง: ไม่มีข้อความ BLOCKED, exit code: 0</code></pre>
+      <div class="verify"><strong>Verify:</strong> คำสั่งอันตราย (force push, terraform destroy)
+      ต้องได้ <code>exit code: 2</code> พร้อมข้อความ BLOCKED ส่วนคำสั่งปกติต้องได้
+      <code>exit code: 0</code> ผ่านโดยไม่มีข้อความเตือน — ถ้าไม่ตรงตามนี้ กลับไปแก้ regex pattern</div>
+      <div class="danger"><strong>คำเตือน:</strong> อย่านำ production credential (API key, DB
+      password, deploy token) มาทดสอบใน terminal ตรง ๆ — คำสั่งจะถูกบันทึกใน shell history
+      (<code>~/.bash_history</code>, <code>~/.zsh_history</code>) เป็น plaintext ถาวร ใช้ค่า
+      ตัวอย่าง/ปลอมสำหรับทดสอบเสมอ และถ้าพลาดพิมพ์ credential จริงลงไป ให้ revoke token
+      ทันทีแล้วลบ history entry นั้นออก</div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">7</span>Cleanup: ตรวจว่าไม่มี credential หลุดใน history</h3>
+      <p>
+        ปิดท้าย lab ด้วยการตรวจสอบว่าขั้นตอนที่ทำมาไม่ทิ้ง credential หรือ token ไว้เป็น
+        plaintext ที่ไหนบนเครื่อง
+      </p>
+      <pre><code class="language-bash"># ค้นหา pattern ที่คล้าย token ใน shell history (ตัวอย่าง GitHub token prefix)
+grep -E "gh[ps]_[A-Za-z0-9]{20,}" ~/.bash_history ~/.zsh_history 2>/dev/null \
+  && echo "⚠️ พบ token หลุดใน history — revoke ทันทีแล้วลบ entry" \
+  || echo "OK: ไม่พบ token pattern ใน shell history"
+
+# ลบ test repo ที่สร้างไว้ตอนขั้นตอนที่ 2 (ถ้ามี)
+gh repo delete your-personal-username/test-public-repo --yes 2>/dev/null || true</code></pre>
+      <div class="verify"><strong>Verify:</strong> คำสั่ง grep ต้อง return "OK" ไม่พบ token
+      pattern ใน history file — ถ้าพบ ต้อง revoke token ที่ GitHub Settings → Developer
+      settings → Personal access tokens ทันที ก่อนลบ history entry</div>
+    </div>
+
+    <details class="troubleshoot">
+      <summary>Troubleshoot: gh auth switch ไม่ทำงาน / hook ไม่ trigger</summary>
+      <ul>
+        <li><strong>"gh: no account matching"</strong> — ต้อง <code>gh auth login</code>
+        account นั้นก่อน จะ switch ไปหา account ที่ยังไม่เคย login ไม่ได้</li>
+        <li><strong>Active account ไม่เปลี่ยนหลัง switch</strong> — บาง shell alias/wrapper
+        script cache ค่าเก่าไว้ ลองเปิด terminal ใหม่แล้วรัน <code>gh auth status</code> อีกครั้ง</li>
+        <li><strong>Hook ไม่ block อะไรเลย</strong> — เช็คว่า path ใน <code>settings.json</code>
+        ตรงกับ path จริงของ script, และ script มี execute permission (<code>chmod +x</code>)
+        แล้ว ทดสอบ script ตรง ๆ ด้วย echo pipe แบบขั้นตอนที่ 6 ก่อนพึ่งพา Claude Code เรียกเอง</li>
+        <li><strong>jq: command not found</strong> — ติดตั้ง jq ก่อน (<code>apt install jq</code>
+        หรือ <code>brew install jq</code>) hook ใช้ jq parse JSON จาก stdin</li>
+      </ul>
+    </details>
+
+    <h2>สรุป &amp; ต่อยอด</h2>
+    <p>
+      Governance ไม่ใช่เอกสารที่เขียนแล้ววางไว้เฉย ๆ — ต้องเป็น pattern ที่ verify ได้จริง:
+      เช็ค active account ก่อน push ทุกครั้ง, credential ไม่มี plaintext ที่ไหนเลย, hook
+      block irreversible action ต้องทดสอบว่า block จริง และทุก claim ของ agent ต้องมี evidence
+      รองรับ ไม่ใช่เชื่อคำพูดของ agent เฉย ๆ
+    </p>
+    <p>
+      ต่อยอด: เอา checklist และ hook ที่เขียนวันนี้ไปรวมเข้ากับ template repo ของทีม
+      แล้วบังคับให้ทุก project ที่ใช้ Claude Code ต้องมี <code>.claude/hooks/</code> พร้อม
+      block script เป็น default ไม่ใช่ opt-in — ต่อไปใน Module 09 เราจะเอา pattern เหล่านี้
+      ไปใช้ใน CI/CD pipeline ที่รัน agent แบบ headless
+    </p>
+
+    <div class="pagefoot">
+      <a href="../07-multi-agent-orchestration/lab.html">← Module 07: Multi-Agent Orchestration</a>
+      <a href="../09-cicd-automation/lab.html">Module 09: CI/CD &amp; Automation →</a>
+    </div>
+
+    <div class="footer-note">NTT DATA Internal Enablement — Module 08 Lab</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab — Module 02: Hermes Agent Platform Architecture</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+
+<div class="topnav">
+  <div class="brand"><span class="dot"></span> NTT · AI Agent Engineering Course</div>
+  <nav><a href="../../index.html">Home</a><a href="slides.html">Slides</a></nav>
+</div>
+
+<div class="wrap">
+
+  <div class="hero">
+    <span class="badge">Module 02 · Lab</span>
+    <h1>Hermes Agent Platform — Architecture</h1>
+    <p class="lead">สำรวจโครงสร้างจริงของ Profiles, Skills และ MCP tools บนเครื่องที่รัน Hermes อยู่ พร้อมออกแบบ SKILL.md ของตัวเอง</p>
+  </div>
+
+  <div class="lab-meta">
+    <span>⏱ ระยะเวลา: 45-60 นาที</span>
+    <span>🎯 ระดับ: Beginner–Intermediate</span>
+    <span>📋 Prereq: เข้าถึง Claude Code / Hermes ผ่าน terminal ได้</span>
+  </div>
+
+  <div class="prereq">
+    <h2>สิ่งที่ต้องมีก่อนเริ่ม</h2>
+    <ul>
+      <li>เข้าถึง terminal ของเครื่องที่รัน Hermes (หรือคุยกับ Claude Code ที่มี tool terminal อยู่แล้ว เช่นตอนนี้)</li>
+      <li>เข้าใจพื้นฐาน command line: <code>ls</code>, <code>find</code>, <code>mkdir</code>, text editor เช่น <code>nano</code></li>
+      <li>อ่าน slides.html ของ Module 02 มาก่อน (โดยเฉพาะเรื่อง Profiles และ Skills system)</li>
+    </ul>
+  </div>
+
+  <div class="objectives">
+    <h2>Learning Objectives</h2>
+    <ul>
+      <li>อธิบายได้ว่า profile หนึ่งมีโฟลเดอร์อะไรบ้าง และทำไมต้องแยกจาก profile อื่น</li>
+      <li>สำรวจโครงสร้าง skill directory จริง (หรือจำลองถ้าไม่มีสิทธิ์เข้าถึง)</li>
+      <li>เขียน SKILL.md ของตัวเองที่มี frontmatter ถูกต้อง (name + description) ตาม format ที่สอน</li>
+      <li>ตรวจสอบว่า description ของ skill ขึ้นต้นด้วย trigger phrase ที่ self-contained ภายใน ~57 ตัวอักษร</li>
+      <li>อธิบาย pattern tool_search → tool_describe → tool_call ได้ด้วยคำพูดตัวเอง</li>
+    </ul>
+  </div>
+
+  <div class="step">
+    <h3><span class="step-num">1</span> สำรวจโครงสร้าง Hermes profile directory</h3>
+    <p>ลองรันคำสั่งนี้ผ่าน terminal (ถ้าคุณกำลังคุยกับ Claude Code/Hermes อยู่ ให้ขอให้มันรันคำสั่งนี้ให้ หรือรันเองถ้ามี shell access):</p>
+    <pre><code>find ~/.hermes -maxdepth 3 -type d 2>/dev/null | head -30</code></pre>
+    <p>คำสั่งนี้ปลอดภัย (read-only, จำกัดความลึกแค่ 3 ระดับ) และจะโชว์โครงสร้างโฟลเดอร์ระดับบนของ Hermes เช่น <code>profiles/</code>, <code>skills/</code>, <code>memories/</code>, <code>cron/</code></p>
+    <div class="verify">
+      <strong>Verify:</strong> คุณควรเห็น path รูปแบบ <code>~/.hermes/profiles/&lt;ชื่อ profile&gt;/</code> อย่างน้อยหนึ่งรายการ หรือ <code>~/.hermes/skills/</code> ถ้าเป็น default profile — จดชื่อ profile ที่เจอไว้
+    </div>
+    <div class="warn"><strong>ถ้าไม่มีสิทธิ์เข้าถึงเครื่อง Hermes จริง:</strong> ข้ามไป Step 2 และทำ lab แบบ "design a skill" แทน (ไม่ต้องพึ่ง shell access จริงของ Hermes host)</div>
+  </div>
+
+  <div class="step">
+    <h3><span class="step-num">2</span> เจาะดูภายใน profile หนึ่ง</h3>
+    <p>เลือก profile ที่เจอจาก Step 1 แล้วดูรายละเอียดของ skills ที่มีอยู่:</p>
+    <pre><code># แทน &lt;profile&gt; ด้วยชื่อ profile จริงที่เจอ (หรือข้าม path profiles/&lt;profile&gt; ถ้าใช้ default profile)
+find ~/.hermes/profiles/&lt;profile&gt;/skills -maxdepth 2 2>/dev/null
+
+# หรือ default profile
+find ~/.hermes/skills -maxdepth 2 2>/dev/null</code></pre>
+    <p>สังเกตว่าแต่ละ skill เป็นโฟลเดอร์ที่มีไฟล์ <code>SKILL.md</code> อยู่ข้างใน และบางตัวมี subfolder <code>references/</code>, <code>templates/</code>, หรือ <code>scripts/</code> เพิ่ม</p>
+    <div class="verify">
+      <strong>Verify:</strong> คุณสามารถชี้ได้ว่า skill กี่ตัวที่เจอ และมีตัวไหนบ้างที่มี linked_files (references/templates/scripts) เพิ่มเติมนอกเหนือจาก SKILL.md เปล่าๆ
+    </div>
+  </div>
+
+  <div class="step">
+    <h3><span class="step-num">3</span> อ่าน SKILL.md ตัวจริงหนึ่งไฟล์</h3>
+    <p>เปิดไฟล์ SKILL.md ของ skill ใดก็ได้ที่เจอ แล้วสังเกต frontmatter (YAML ระหว่าง <code>---</code>) กับ body:</p>
+    <pre><code>cat ~/.hermes/profiles/&lt;profile&gt;/skills/&lt;skill-name&gt;/SKILL.md
+# หรือใช้ text editor เช่น
+nano ~/.hermes/profiles/&lt;profile&gt;/skills/&lt;skill-name&gt;/SKILL.md</code></pre>
+    <p>ตรวจดูว่า <code>description</code> field ขึ้นต้นด้วยประโยคที่บอก trigger condition ชัดเจน (เช่น "Use when...") และมี behavior สั้นๆ ต่อท้าย</p>
+    <div class="verify">
+      <strong>Verify:</strong> คุณระบุได้ว่า field <code>name</code> และ <code>description</code> ของ skill ที่เปิดดูคืออะไร และ description ยาวกี่ตัวอักษร (ควรสื่อ trigger ได้ภายใน ~57 ตัวอักษรแรก)
+    </div>
+  </div>
+
+  <div class="step">
+    <h3><span class="step-num">4</span> ออกแบบ SKILL.md ของตัวเอง (Design a Skill)</h3>
+    <p>เลือก use case จริงจากงาน presale หรือ engineering ของคุณเอง (เช่น "การเตรียม proposal", "การ deploy ESXi lab", "การเขียน incident report") แล้วออกแบบ skill ตาม template ด้านล่าง:</p>
+    <pre><code>---
+name: my-presale-proposal-skill
+description: Use when preparing a customer proposal for NTT presales engagements. Structures scope, pricing tiers, and technical assumptions consistently.
+version: 1.0
+---
+
+# My Presale Proposal Skill
+
+## When to use
+Use this skill when a presale engineer needs to draft a customer-facing
+technical proposal that must follow NTT's standard structure.
+
+## Routing table
+| Situation                          | Action                          |
+|-------------------------------------|----------------------------------|
+| New proposal from scratch           | Use templates/proposal.md       |
+| Revising existing proposal          | Diff against previous version   |
+| Pricing needs approval              | Escalate via clarify tool        |
+
+## Steps
+1. Gather customer requirements and constraints
+2. Fill templates/proposal.md section by section
+3. Validate pricing tiers against references/pricing-rules.md
+4. Review with imperative checklist before sending
+
+## Pitfalls
+- Never quote pricing without checking references/pricing-rules.md first —
+  stale pricing causes contract disputes.
+- Always confirm scope boundaries explicitly — ambiguous scope is the
+  #1 cause of scope-creep escalations in past engagements.
+</code></pre>
+    <p>สร้างไฟล์จริงด้วย terminal:</p>
+    <pre><code>mkdir -p ~/my-skill
+nano ~/my-skill/SKILL.md
+# วางเนื้อหา template ด้านบน (แก้ name/description ให้ตรงกับ use case จริงของคุณ) แล้ว save (Ctrl+O, Enter, Ctrl+X)</code></pre>
+    <div class="verify">
+      <strong>Verify:</strong> รันคำสั่งด้านล่างเพื่อยืนยันว่า YAML frontmatter valid และมี field ที่จำเป็นครบ:
+      <pre><code>head -6 ~/my-skill/SKILL.md
+# ควรเห็น --- ... name: ... description: ... version: ... ---</code></pre>
+      description ต้องขึ้นต้นด้วย trigger phrase ที่ self-contained (บอกว่า "ใช้เมื่อไร" ได้โดยไม่ต้องอ่านส่วนอื่น) และควรอยู่ในช่วง ~57 ตัวอักษรแรก
+    </div>
+  </div>
+
+  <div class="step">
+    <h3><span class="step-num">5</span> เพิ่ม linked_files (references / templates / scripts)</h3>
+    <p>ถ้า skill ของคุณซับซ้อนพอที่จะมี routing table (เช่น step 4 ข้างบน) ให้แยกไฟล์เสริมออกจาก SKILL.md หลัก เพื่อไม่ให้ main file ยาวเกินไป:</p>
+    <pre><code>mkdir -p ~/my-skill/references ~/my-skill/templates
+# ตัวอย่าง: ย้าย pricing rules ยาวๆ ไปไว้ที่ reference แยก
+nano ~/my-skill/references/pricing-rules.md
+nano ~/my-skill/templates/proposal.md</code></pre>
+    <p>หลักการ: SKILL.md ควรสั้น กระชับ พอที่จะโหลดเข้า context ได้เร็ว ส่วนรายละเอียดยาวๆ (เช่น ตาราง pricing เต็ม, ตัวอย่างเอกสารยาว) ให้แยกเป็นไฟล์ reference ที่โหลดเฉพาะเมื่อจำเป็นจริงๆ</p>
+    <div class="verify">
+      <strong>Verify:</strong> <code>find ~/my-skill -type f</code> ควรเห็นอย่างน้อย SKILL.md + 1 ไฟล์ใน references/ หรือ templates/
+    </div>
+  </div>
+
+  <div class="step">
+    <h3><span class="step-num">6</span> เขียน "lesson" ไม่ใช่ "log"</h3>
+    <p>กลับไปดู section <strong>Pitfalls</strong> ใน SKILL.md ที่เขียนไว้ใน Step 4 แล้วถามตัวเองว่า:</p>
+    <ul>
+      <li>แต่ละบรรทัดเป็น <strong>imperative rule + เหตุผล</strong> หรือเปล่า? (เช่น "Never X — เพราะ Y")</li>
+      <li>หรือมันเป็นแค่ <strong>log เหตุการณ์</strong> ที่ generalize ไม่ได้? (เช่น "วันที่ 3 มกรา เจอ bug ที่ proposal ของลูกค้า A")</li>
+    </ul>
+    <p>ถ้าเจอ pitfall ที่เขียนเป็น log ให้แก้เป็น rule ทั่วไปที่ใช้ได้กับทุก use case ในอนาคต ไม่ใช่แค่เหตุการณ์เดียว</p>
+    <div class="verify">
+      <strong>Verify:</strong> อ่าน pitfalls ทั้งหมดใน SKILL.md ของคุณ — ทุกบรรทัดต้องขึ้นต้นด้วยกริยาสั่ง (Never/Always/Use/Avoid) และมีเหตุผลต่อท้ายด้วย "—" หรือ "because"
+    </div>
+  </div>
+
+  <div class="step">
+    <h3><span class="step-num">7</span> จำลอง tool_search → tool_describe → tool_call</h3>
+    <p>เข้าใจ pattern การเรียก deferred tools โดยลองไล่ scenario สมมุตินี้ (ไม่ต้องรันจริง เป็น mental exercise):</p>
+    <pre><code>สถานการณ์: คุณต้องการส่งข้อความแจ้งเตือนไปที่ Discord channel หนึ่ง
+แต่ tool ส่ง Discord message ไม่ได้อยู่ใน default tool list
+
+Step 1: tool_search({queries: ["send discord message"]})
+        → ได้ชื่อ tool กลับมา เช่น "discord_send" (ยังไม่รู้ parameter)
+
+Step 2: tool_describe({names: ["discord_send"]})
+        → ได้ full JSON schema พร้อม parameter ที่ต้องใส่
+
+Step 3: tool_call({calls: [{name: "discord_send", arguments: {...}}]})
+        → เรียกใช้งานจริง</code></pre>
+    <div class="verify">
+      <strong>Verify:</strong> อธิบายเป็นคำพูดของตัวเองได้ว่าทำไม pattern นี้ถึงลด context overhead เมื่อเทียบกับการโหลด schema ของทุก tool ไว้ตั้งแต่ต้น (คำตอบที่ถูก: schema ที่ไม่ถูกใช้ไม่ถูก inject เข้า context ทุก turn)
+    </div>
+    <div class="danger"><strong>ข้อควรระวัง:</strong> อย่าสมมุติชื่อ parameter ของ tool เอง — เรียก tool_describe เพื่อดู schema จริงก่อนเรียก tool_call เสมอ ชื่อ parameter ที่เดาผิดจะทำให้ call fail</div>
+  </div>
+
+  <details class="troubleshoot">
+    <summary>Troubleshooting: find ~/.hermes ไม่เจออะไรเลย / permission denied</summary>
+    <p>สาเหตุที่เป็นไปได้:</p>
+    <ul>
+      <li>คุณไม่มี shell access ตรงกับเครื่องที่รัน Hermes จริง (พบได้บ่อยถ้าคุยผ่าน connector อย่าง Discord ที่ terminal ทำงานบน sandbox/VM แยก) — ให้ข้ามไปทำ Step 4 (design a skill) แทน ซึ่งไม่ต้องพึ่ง path จริงของ Hermes</li>
+      <li>Hermes ถูกติดตั้งด้วย path หรือชื่อโฟลเดอร์อื่น ลองหา <code>find / -maxdepth 4 -iname "*hermes*" -type d 2>/dev/null</code> (อาจช้าและต้องรอสักครู่)</li>
+      <li>permission denied เป็นเรื่องปกติถ้า user ปัจจุบันไม่ใช่ owner ของ home directory ที่รัน Hermes — ไม่ต้องพยายาม sudo เข้าไปดู, ให้ทำ lab แบบ design skill แทน</li>
+    </ul>
+  </details>
+
+  <details class="troubleshoot">
+    <summary>Troubleshooting: SKILL.md frontmatter ไม่ valid</summary>
+    <p>ปัญหาที่พบบ่อย:</p>
+    <ul>
+      <li>ลืมใส่ <code>---</code> ปิดท้าย frontmatter (ต้องมีทั้งเปิดและปิด)</li>
+      <li><code>description</code> มีเครื่องหมาย <code>:</code> อยู่ในข้อความโดยไม่ quote — YAML จะตีความผิด ให้ครอบด้วย <code>"..."</code></li>
+      <li>เว้นบรรทัดว่างระหว่าง key: value ผิดตำแหน่ง (YAML sensitive กับ indentation)</li>
+    </ul>
+    <p>ตรวจสอบเร็วๆ ด้วย Python ถ้ามี:</p>
+    <pre><code>python3 -c "
+import re
+content = open('$HOME/my-skill/SKILL.md').read()
+fm = content.split('---')[1]
+print(fm)
+"</code></pre>
+  </details>
+
+  <h2>สรุป &amp; ต่อยอด</h2>
+  <p>ใน lab นี้คุณได้สำรวจ (หรือจำลอง) โครงสร้างจริงของ Hermes profile/skills directory, เข้าใจความแตกต่างระหว่าง memory กับ skills ในทางปฏิบัติ, และเขียน SKILL.md ของตัวเองที่มี frontmatter ถูกต้องตาม format ที่ใช้จริง พร้อมฝึกหลักการ "write lessons, not logs"</p>
+  <p><strong>ต่อยอด:</strong></p>
+  <ul>
+    <li>ลองขยาย skill ที่เขียนไว้ด้วย scripts/ ที่ automate ขั้นตอนซ้ำๆ ของ use case นั้น</li>
+    <li>ลองใช้ <code>delegate_task</code> เพื่อให้ subagent ทดสอบใช้ skill ของคุณ แล้วดูว่า self-report ตรงกับสิ่งที่เกิดขึ้นจริงหรือไม่ (verify ด้วย evidence เสมอ ตามที่เรียนใน slides)</li>
+    <li>ไป Module 03 เพื่อเจาะลึก Claude Code — coding-focused agent ที่ต่างจาก Hermes ตรงที่เน้น workflow เขียนโค้ดโดยเฉพาะ</li>
+  </ul>
+
+  <div class="pagefoot">
+    <a href="../01-agents-101/lab.html">← Module 01: AI Agents 101</a>
+    <a href="../03-claude-code-fundamentals/lab.html">Module 03: Claude Code Fundamentals →</a>
+  </div>
+
+  <div class="footer-note">NTT DATA Internal Enablement — Module 02 Lab</div>
+
+</div>
+</body>
+</html>

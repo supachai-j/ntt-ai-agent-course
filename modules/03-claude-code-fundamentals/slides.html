@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module 03 · Claude Code CLI — Fundamentals</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" id="theme">
+<link rel="stylesheet" href="../../assets/reveal-theme.css">
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+  <section class="title-slide">
+    <span class="badge">Module 03 · Foundations</span>
+    <h1>Claude Code CLI — Fundamentals</h1>
+    <p class="subtitle">ติดตั้ง, auth, orchestration modes, CLAUDE.md และการรันงานจริงครั้งแรก</p>
+    <p style="margin-top:2em;color:var(--r-text-dim);font-size:0.55em;">NTT AI Agent Engineering Course</p>
+  </section>
+
+  <section>
+    <h2>Claude Code คืออะไร</h2>
+    <ul>
+      <li><strong>Claude Code</strong> คือ official CLI coding agent จาก Anthropic</li>
+      <li>ติดตั้งผ่าน npm package: <code>@anthropic-ai/claude-code</code></li>
+      <li>รันในเทอร์มินัล อ่าน/แก้ไฟล์ รัน command จริง ใช้ git ได้เหมือน engineer คนหนึ่ง</li>
+      <li>ใช้ได้ทั้งแบบ interactive (คุยโต้ตอบ) และแบบ automation/CI (one-shot, headless)</li>
+      <li>เป็น agent ตัวเดียวกับที่กำลังรันงานหลายโมดูลของคอร์สนี้อยู่เบื้องหลัง</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>ติดตั้งและ Authentication</h2>
+    <div class="two-col">
+      <div>
+        <h4 style="color:var(--r-accent-2);">1. ติดตั้ง</h4>
+        <pre><code class="language-bash">npm install -g @anthropic-ai/claude-code
+claude --version</code></pre>
+        <h4 style="color:var(--r-accent-2);">2. ตรวจสุขภาพ</h4>
+        <pre><code class="language-bash">claude doctor</code></pre>
+      </div>
+      <div>
+        <h4 style="color:var(--r-accent-2);">3. Auth (เลือก 1 วิธี)</h4>
+        <pre><code class="language-bash"># Browser OAuth — Claude Pro/Max subscription
+claude
+# หรือ login แบบ console สำหรับ API billing
+claude auth login --console
+# หรือใช้ API key ตรงๆ
+export ANTHROPIC_API_KEY="sk-ant-..."</code></pre>
+        <pre><code class="language-bash">claude auth status</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>ตรวจสอบสถานะการติดตั้ง</h2>
+    <p>คำสั่งพื้นฐานที่ควรรันทุกครั้งหลังติดตั้งหรือเมื่อพบปัญหา</p>
+    <table>
+      <tr><th>คำสั่ง</th><th>ใช้ทำอะไร</th></tr>
+      <tr><td><code>claude --version</code></td><td>เช็ค version ของ CLI ที่ติดตั้งอยู่</td></tr>
+      <tr><td><code>claude doctor</code></td><td>ตรวจสุขภาพการติดตั้ง (path, config, auto-update, multiple installs)</td></tr>
+      <tr><td><code>claude auth status</code></td><td>เช็คว่า login อยู่หรือยัง ใช้ auth method ไหน</td></tr>
+    </table>
+    <div class="card-box">
+      <h4>ตัวอย่าง output จริงจาก <code>claude auth status</code></h4>
+      <pre><code class="language-json">{
+  "loggedIn": true,
+  "authMethod": "claude.ai",
+  "apiProvider": "firstParty",
+  "email": "user@example.com"
+}</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>สอง Orchestration Mode</h2>
+    <p>Claude Code รันได้ 2 แบบหลัก ขึ้นกับว่าต้องการ dialog กับ agent หรือแค่ผลลัพธ์เดียว</p>
+    <table>
+      <tr><th>โหมด</th><th>คำสั่ง</th><th>เหมาะกับ</th></tr>
+      <tr><td><strong>Interactive REPL</strong></td><td><code>claude</code></td><td>ทำงานร่วมกับ agent แบบโต้ตอบ, สำรวจโค้ด, debug ทีละขั้น</td></tr>
+      <tr><td><strong>Print mode</strong></td><td><code>claude -p "task"</code></td><td>Automation, CI/CD, script — รันครั้งเดียวแล้วจบ ไม่มี dialog</td></tr>
+    </table>
+    <div class="card-box">
+      <h4>กฎง่ายๆ ในการเลือกโหมด</h4>
+      <ul>
+        <li>ต้องการควบคุมทีละ step + ตรวจงานระหว่างทาง → <strong>Interactive</strong></li>
+        <li>ต้องรันใน pipeline / script / ไม่มีคนนั่งดู → <strong>Print mode (<code>-p</code>)</strong></li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Print Mode ในทางปฏิบัติ</h2>
+    <pre><code class="language-bash"># รันงานเดียวแล้วจบ ไม่มี interactive dialog
+claude -p "explain what this repo does" --max-turns 3
+
+# เอาผลลัพธ์เป็น JSON เพื่อ parse ต่อใน script
+claude -p "list files" --output-format json | jq -r '.result'</code></pre>
+    <p>Print mode <strong>ข้าม trust dialog</strong> โดยอัตโนมัติ — เหมาะกับ non-interactive context (CI runner, cron, script) แต่ต้องรันเฉพาะใน directory ที่เชื่อถือได้</p>
+  </section>
+
+  <section>
+    <h2>CLAUDE.md — Project Memory</h2>
+    <ul>
+      <li>ไฟล์ที่ Claude Code <strong>auto-load</strong> ทุกครั้งที่เริ่ม session ใน directory นั้น</li>
+      <li>เก็บบริบทโปรเจกต์: architecture, key commands (test/lint/dev), code standards</li>
+      <li>ไม่ใช่ prompt แต่คือ "ความจำถาวร" ที่ agent อ่านก่อนเริ่มงานทุกครั้ง</li>
+      <li>ยิ่งเขียนดี agent ยิ่งเดาโครงสร้างโปรเจกต์ถูกโดยไม่ต้องถามซ้ำ</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>ตัวอย่าง CLAUDE.md</h2>
+    <pre><code class="language-markdown"># Project: internal-billing-api
+
+## Architecture
+Node.js + Express REST API, PostgreSQL via Prisma ORM.
+Entry point: src/server.js. Routes in src/routes/.
+
+## Key commands
+- Run dev server: npm run dev
+- Run tests: npm test
+- Lint: npm run lint
+- Build: npm run build
+
+## Code standards
+- Use TypeScript strict mode, no `any`
+- All routes need input validation via zod
+- Write a test for every new endpoint
+- Follow existing error-handling pattern in src/lib/errors.js</code></pre>
+  </section>
+
+  <section>
+    <h2>CLAUDE.md — Hierarchy</h2>
+    <table>
+      <tr><th>ระดับ</th><th>Path</th><th>ขอบเขต</th></tr>
+      <tr><td>Global</td><td><code>~/.claude/CLAUDE.md</code></td><td>ใช้กับทุกโปรเจกต์ของ user คนนั้น</td></tr>
+      <tr><td>Project</td><td><code>./CLAUDE.md</code></td><td>เฉพาะโปรเจกต์นี้ — commit เข้า git แชร์กับทีม</td></tr>
+      <tr><td>Local</td><td><code>.claude/CLAUDE.local.md</code></td><td>เฉพาะเครื่อง — <strong>gitignored</strong> ใช้เก็บ config ส่วนตัว</td></tr>
+    </table>
+    <p>Claude Code รวมทั้ง 3 ระดับเข้าด้วยกันตอนโหลด context — ระดับที่เฉพาะเจาะจงกว่าจะ override</p>
+  </section>
+
+  <section>
+    <h2>Flags สำคัญที่ใช้บ่อย</h2>
+    <table>
+      <tr><th>Flag</th><th>ใช้ทำอะไร</th></tr>
+      <tr><td><code>--allowedTools</code></td><td>จำกัด tool ที่ agent ใช้ได้ เช่น <code>"Bash(git *) Edit"</code></td></tr>
+      <tr><td><code>--max-turns</code></td><td>จำกัดจำนวนรอบการคุย/tool call ป้องกัน runaway loop</td></tr>
+      <tr><td><code>--output-format json</code></td><td>output เป็น JSON เพื่อ parse ต่อด้วย script/jq</td></tr>
+      <tr><td><code>--model</code></td><td>เลือกโมเดล เช่น <code>sonnet</code>, <code>opus</code>, หรือชื่อเต็ม</td></tr>
+      <tr><td><code>-c, --continue</code></td><td>สานต่อ conversation ล่าสุดใน directory ปัจจุบัน</td></tr>
+      <tr><td><code>-r, --resume</code></td><td>resume session เดิมด้วย session ID หรือเปิด picker</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Trust Dialog & Workspace Safety</h2>
+    <div class="card-box">
+      <h4>ครั้งแรกที่เปิด directory ใหม่ (interactive mode)</h4>
+      <p>Claude Code จะถามว่า <em>"Do you trust the files in this folder?"</em> ก่อนอ่าน/รันอะไรในโฟลเดอร์นั้น เพื่อป้องกันการรันโค้ดที่ไม่รู้จักที่มาโดยไม่ตั้งใจ</p>
+    </div>
+    <ul>
+      <li>Trust dialog ถูก<strong>ข้ามอัตโนมัติ</strong>ใน print mode (<code>-p</code>) — เพราะออกแบบมาให้รันแบบ non-interactive</li>
+      <li>ข้อแนะนำ: รัน print mode เฉพาะใน directory ที่ควบคุม/เชื่อถือได้เท่านั้น</li>
+      <li>Permission mode ควบคุมเพิ่มเติมได้ผ่าน <code>--permission-mode</code> (เช่น <code>acceptEdits</code>, <code>plan</code>, <code>bypassPermissions</code>)</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Quick Win Demo</h2>
+    <p>ตัวอย่างคำสั่งเดียวที่พิสูจน์ว่า Claude Code ใช้งานได้จริงบนเครื่อง — รันใน directory ของโปรเจกต์ใดก็ได้</p>
+    <pre><code class="language-bash">cd /path/to/your-project
+claude -p "explain what this repo does" --max-turns 3</code></pre>
+    <p>ภายใน 3 turns agent จะสำรวจไฟล์สำคัญ (README, package.json, entry point) แล้วสรุปโครงสร้างโปรเจกต์กลับมาเป็นข้อความ</p>
+  </section>
+
+  <section>
+    <h2>สรุป Module 03</h2>
+    <ul>
+      <li>ติดตั้งง่ายผ่าน npm, auth ได้ทั้ง OAuth subscription และ API key</li>
+      <li>เลือกโหมดให้ถูกงาน: Interactive สำหรับสำรวจ/debug, Print mode สำหรับ automation</li>
+      <li>CLAUDE.md คือหัวใจของ "ความจำโปรเจกต์" — เขียนดีมีผลต่อคุณภาพงานของ agent โดยตรง</li>
+      <li>Flags อย่าง <code>--allowedTools</code>, <code>--max-turns</code> ช่วยควบคุมความเสี่ยงตอนรันแบบ automation</li>
+    </ul>
+    <a class="lab-cta" href="lab.html">ไปที่ Lab Module 03 →</a>
+  </section>
+
+  <section>
+    <h2>Module ถัดไป</h2>
+    <p>Module 04 — Engineering Workflows: feature dev loop, PR review, refactor และ TDD กับ Claude Code ในงานจริงที่ engineer ใช้ทุกวัน</p>
+    <a class="lab-cta" href="lab.html">กลับไปทำ Lab ก่อน →</a>
+  </section>
+
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+<script>
+  Reveal.initialize({hash:true, plugins:[RevealHighlight, RevealNotes], slideNumber:true, transition:'slide'});
+</script>
+</body>
+</html>

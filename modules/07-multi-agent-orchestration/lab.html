@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab · Module 07 — Multi-Agent Orchestration</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <div class="topnav">
+    <div class="brand"><span class="dot"></span> NTT · AI Agent Engineering Course</div>
+    <nav>
+      <a href="../../index.html">Home</a>
+      <a href="slides.html">Slides</a>
+    </nav>
+  </div>
+
+  <div class="wrap">
+    <div class="hero">
+      <span class="badge">Lab · Module 07</span>
+      <h1>Multi-Agent Orchestration</h1>
+      <p class="lead">
+        สร้าง custom subagent จริงสำหรับ code review, เรียกใช้ผ่าน <code>@reviewer</code>,
+        แล้วรัน 2 งาน Claude Code print-mode แบบขนานจริงด้วย background terminal —
+        จบด้วยการ verify ผลลัพธ์ทั้งสองงานด้วยหลักฐานจริง ไม่ใช่แค่เชื่อ log
+      </p>
+    </div>
+
+    <div class="lab-meta">
+      <span>⏱ ~50 นาที</span>
+      <span>🖥 ต้องมี Claude Code CLI ติดตั้งแล้ว</span>
+      <span>📦 ต้องมี tmux ติดตั้งแล้ว</span>
+      <span>🔧 ระดับ: Intermediate</span>
+    </div>
+
+    <div class="prereq">
+      <h2>Prerequisites</h2>
+      <ul>
+        <li>Claude Code CLI ติดตั้งและ authenticate แล้ว (ดู Module 03)</li>
+        <li><code>tmux</code> ติดตั้งในเครื่อง — เช็คด้วย <code>tmux -V</code></li>
+        <li>มี git repo ทดสอบ (จะสร้าง scratch repo ใหม่ในแล็บนี้ก็ได้)</li>
+        <li>เข้าใจพื้นฐาน subagent/context isolation จาก slides ของ module นี้</li>
+      </ul>
+    </div>
+
+    <div class="objectives">
+      <h2>Objectives</h2>
+      <ul>
+        <li>สร้าง custom subagent <code>.claude/agents/reviewer.md</code> พร้อม frontmatter ที่ถูกต้อง</li>
+        <li>เรียกใช้ subagent ด้วย <code>@reviewer</code> ใน interactive session จริง</li>
+        <li>รัน 2 Claude Code print-mode task แบบขนานผ่าน background terminal process (tmux)</li>
+        <li>Verify ผลลัพธ์ทั้งสองงานด้วยการเปิดไฟล์ output จริง ไม่เชื่อ log อย่างเดียว</li>
+        <li>รู้จัก failure mode: tmux session ค้าง/ลืม kill และวิธีแก้</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">1</span>เตรียม scratch project</h3>
+      <p>สร้างโฟลเดอร์ทดสอบแยกจากงานจริง เพื่อไม่ให้ subagent แก้ไฟล์ที่สำคัญโดยไม่ตั้งใจ</p>
+      <pre><code class="language-bash">mkdir -p ~/lab07-multiagent && cd ~/lab07-multiagent
+git init -q
+mkdir -p .claude/agents
+echo "def add(a, b):
+    return a + b
+
+def divide(a, b):
+    return a / b
+" > utils.py
+git add -A && git commit -q -m "init scratch repo for lab 07"</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> รัน <code>ls -la .claude/agents utils.py</code> — ต้องเห็นโฟลเดอร์ <code>.claude/agents</code> ว่างเปล่า และไฟล์ <code>utils.py</code> มีเนื้อหาตามด้านบน
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">2</span>สร้าง custom subagent: reviewer</h3>
+      <p>เขียนไฟล์ Markdown พร้อม YAML frontmatter — <code>name</code>/<code>description</code>/<code>model</code>/<code>tools</code> ตามสเปกของ Claude Code custom agents</p>
+      <pre><code class="language-bash">cat > .claude/agents/reviewer.md << 'EOF'
+---
+name: reviewer
+description: Reviews code for correctness, edge cases (e.g. division by zero), and security issues. Use proactively after code changes.
+model: sonnet
+tools: Read, Grep, Glob
+---
+
+You are a senior code reviewer. When given a file or diff to review:
+
+1. Check for unhandled edge cases (null/zero/empty input, off-by-one, etc.)
+2. Check for security issues (injection, unsafe eval, secrets in code)
+3. Check for missing input validation and error handling
+
+Report findings as a bullet list with severity (critical/high/medium/low),
+exact file:line reference, and a concrete one-line fix suggestion.
+Do NOT edit files — you only have read-only tools. Report only.
+EOF</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> <code>cat .claude/agents/reviewer.md</code> — ต้องเห็น frontmatter ที่ parse เป็น YAML ได้ (มี <code>---</code> เปิด-ปิด, <code>name:</code>, <code>description:</code>, <code>model:</code>, <code>tools:</code> ครบ)
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">3</span>เรียกใช้ @reviewer ใน interactive session</h3>
+      <p>เปิด Claude Code แบบ interactive ในโฟลเดอร์นี้ แล้วเรียก subagent ด้วย <code>@reviewer</code> ตรงในพรอมต์</p>
+      <pre><code class="language-bash">cd ~/lab07-multiagent
+claude</code></pre>
+      <p>ในพรอมต์ interactive พิมพ์:</p>
+      <pre><code>› @reviewer review utils.py for edge cases and issues</code></pre>
+      <p>
+        Claude Code จะ spawn subagent <code>reviewer</code> ด้วย system prompt และ tools ตามที่กำหนดไว้
+        ผลที่ควรได้: subagent ชี้ว่า <code>divide(a, b)</code> ไม่ได้เช็ค <code>b == 0</code> ซึ่งจะ raise <code>ZeroDivisionError</code>
+      </p>
+      <div class="verify">
+        <strong>Verify:</strong> อ่าน output จาก subagent จริง — ต้องมีการชี้ severity + file:line ของ <code>divide</code>
+        ที่ระบุปัญหา division-by-zero ชัดเจน ถ้า subagent ตอบทั่วๆไปไม่ชี้ปัญหานี้ แสดงว่า tools/frontmatter ตั้งผิด
+        ให้กลับไปเช็ค step 2
+      </div>
+      <div class="warn">
+        <strong>ข้อสังเกต:</strong> subagent มี <code>tools: Read, Grep, Glob</code> เท่านั้น — ไม่มี Write/Edit
+        เพราะฉะนั้นมันจะ "รายงานปัญหา" ไม่ใช่ "แก้ไฟล์" ถ้าอยากให้แก้ต้องเปลี่ยน tools list เอง
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">4</span>เตรียม 2 งาน independent สำหรับรันขนาน</h3>
+      <p>
+        เลือกงานที่ <strong>ไม่มี dependency ระหว่างกัน</strong> — งานที่ 1 เขียน README, งานที่ 2 เขียน unit test
+        ทั้งสองอ่าน <code>utils.py</code> เหมือนกันแต่ไม่แก้ไฟล์เดียวกัน ไม่ต้องรอผลกัน จึงปลอดภัยที่จะขนาน
+      </p>
+      <pre><code class="language-bash">mkdir -p out
+# ทดสอบว่า claude print mode ใช้ได้
+claude --version</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> <code>claude --version</code> ต้องคืนเลขเวอร์ชันโดยไม่ error ก่อนไปขั้นถัดไป
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">5</span>รัน 2 tmux session ขนานกันจริง</h3>
+      <p>แต่ละงานแยก tmux session ของตัวเอง รันเป็น background process จริง ไม่ block terminal หลัก</p>
+      <pre><code class="language-bash">cd ~/lab07-multiagent
+
+tmux new-session -d -s task-readme \
+  "claude -p 'Read utils.py and write a README.md documenting the add() and divide() functions, including their signatures and any known edge cases. Save it as README.md in the current directory.' --allowedTools Read,Write > out/readme.log 2>&1"
+
+tmux new-session -d -s task-tests \
+  "claude -p 'Read utils.py and write pytest unit tests for add() and divide(), including a test for division by zero raising ZeroDivisionError. Save as test_utils.py in the current directory.' --allowedTools Read,Write > out/tests.log 2>&1"
+
+tmux list-sessions</code></pre>
+      <p>ต้องเห็น session ชื่อ <code>task-readme</code> และ <code>task-tests</code> ทั้งคู่ในลิสต์</p>
+      <div class="verify">
+        <strong>Verify:</strong> <code>tmux list-sessions</code> แสดงทั้งสอง session — ถ้าเห็นแค่ session เดียวหรือ error
+        แปลว่า tmux ตัวก่อนไม่ได้ detach (<code>-d</code>) ถูกต้อง หรือชื่อ session ชนกัน
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">6</span>Monitor ด้วย loop tmux capture-pane</h3>
+      <p>เช็คความคืบหน้าของทั้งสอง session โดยไม่ต้อง attach เข้าไปแบบ interactive</p>
+      <pre><code class="language-bash">for s in task-readme task-tests; do
+  if tmux has-session -t "$s" 2>/dev/null; then
+    echo "=== $s: still running ==="
+    tmux capture-pane -t "$s" -p | tail -15
+  else
+    echo "=== $s: session ended (task finished or crashed) ==="
+  fi
+  echo
+done</code></pre>
+      <p>รันคำสั่งนี้ซ้ำทุก 10-15 วินาที (หรือใส่ใน <code>watch</code>) จนทั้งสอง session หาย (แปลว่า process จบแล้ว)</p>
+      <pre><code class="language-bash">watch -n 10 'tmux list-sessions 2>/dev/null || echo "no sessions left — both tasks finished"'</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> รอจน <code>tmux list-sessions</code> คืน error/ว่าง (no server running) — แปลว่า
+        ทั้งสอง process จบแล้วจริง ไม่ใช่แค่ terminal เงียบ
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">7</span>Verify ผลลัพธ์ทั้งสองงานด้วยหลักฐานจริง</h3>
+      <p>
+        <strong>อย่าเชื่อ log ว่า "เสร็จแล้ว" อย่างเดียว</strong> — ต้องเปิดไฟล์ output จริงและตรวจเนื้อหา
+      </p>
+      <pre><code class="language-bash"># 1. ไฟล์ README.md ต้องมีอยู่จริงและพูดถึงฟังก์ชันทั้งสอง
+test -f README.md && echo "README.md exists" || echo "MISSING: README.md"
+grep -E "add|divide" README.md
+
+# 2. ไฟล์ test_utils.py ต้องมีอยู่จริงและมี test สำหรับ zero-division
+test -f test_utils.py && echo "test_utils.py exists" || echo "MISSING: test_utils.py"
+grep -i "zero" test_utils.py
+
+# 3. รัน test จริง — นี่คือหลักฐานที่แน่นอนที่สุด ไม่ใช่แค่อ่าน log
+python3 -m pytest test_utils.py -v</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> ทั้งสามคำสั่งต้องผ่าน — ไฟล์ต้องมีอยู่จริง เนื้อหาต้องตรงกับงานที่สั่ง
+        และ <code>pytest</code> ต้องรันผ่านจริง (รวม test ที่เช็ค <code>ZeroDivisionError</code>)
+        ถ้าขั้นไหนล้มเหลว = งานยังไม่เสร็จจริง ต่อให้ log บอกว่า "Done" ก็ตาม
+      </div>
+      <div class="danger">
+        <strong>อย่าข้ามขั้นนี้:</strong> การเชื่อ self-report ของ subagent โดยไม่ verify คือสาเหตุอันดับหนึ่งที่ทำให้
+        multi-agent workflow ล้มเหลวแบบเงียบๆ — subagent อาจรายงานว่า "สร้างไฟล์แล้ว" ทั้งที่ path ผิด
+        หรือ tool call ถูก permission ปฏิเสธไปเฉยๆ
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">8</span>Cleanup — kill session ที่เหลือ</h3>
+      <p>ถ้ามี session ใดยังไม่จบ (hang) หรือรันจบแล้วแต่ session ยังไม่ถูกลบ ให้ kill ทิ้งเสมอ</p>
+      <pre><code class="language-bash"># เช็คว่ามี session หลงเหลือไหม
+tmux list-sessions 2>/dev/null
+
+# kill รายตัว ถ้ายังเหลือ
+tmux kill-session -t task-readme 2>/dev/null
+tmux kill-session -t task-tests 2>/dev/null
+
+# หรือ kill server tmux ทั้งหมดถ้าแน่ใจว่าไม่มีงานอื่นค้างอยู่
+# tmux kill-server</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> <code>tmux list-sessions</code> ต้องคืน "no server running" หรือว่างเปล่า
+        ก่อนปิดแล็บนี้ — ห้ามทิ้ง session ค้างไว้
+      </div>
+    </div>
+
+    <details class="troubleshoot">
+      <summary>Troubleshoot: tmux session ค้าง / ลืม kill</summary>
+      <p>
+        <strong>อาการ:</strong> รัน <code>tmux list-sessions</code> แล้วเห็น session เก่าจากแล็บก่อนหน้าที่ไม่มีใครไป kill —
+        กิน memory เปล่าๆ หรือแย่กว่านั้นคือ process ข้างในยัง "ทำงาน" อยู่โดยที่คุณไม่รู้ตัว
+        (เช่น เขียนไฟล์ทับของเดิมโดยไม่ได้ตั้งใจ)
+      </p>
+      <p><strong>วิธีเช็คและแก้:</strong></p>
+      <pre><code class="language-bash"># ดู session ทั้งหมดที่รันอยู่ในเครื่อง (ไม่ใช่แค่ของแล็บนี้)
+tmux list-sessions
+
+# เข้าไปดูว่า session ไหนยัง active อยู่จริง ทำอะไรอยู่
+tmux capture-pane -t &lt;session-name&gt; -p | tail -30
+
+# kill รายตัวที่ไม่ต้องการแล้ว
+tmux kill-session -t &lt;session-name&gt;
+
+# ถ้าจำชื่อไม่ได้เลยและมั่นใจว่าไม่มีงานสำคัญค้างอยู่ — ปิดทุก session รวดเดียว
+tmux kill-server</code></pre>
+      <p>
+        <strong>ป้องกันไว้ก่อน:</strong> ตั้งชื่อ session ให้สื่อความหมายและมี timestamp/task-id เสมอ
+        (เช่น <code>task-readme-20240115</code>) และปิดท้าย workflow ทุกครั้งด้วยขั้นตอน cleanup (step 8)
+        อย่าปล่อยให้เป็น "manual step ที่ลืมได้" — ถ้าทำเป็น script ให้ใส่ <code>trap 'tmux kill-session -t $SESSION' EXIT</code>
+        ใน wrapper script เพื่อ kill อัตโนมัติแม้ script fail กลางทาง
+      </p>
+    </details>
+
+    <h2>สรุป &amp; ต่อยอด</h2>
+    <p>
+      ในแล็บนี้คุณสร้าง custom subagent จริงที่จำกัด tools เฉพาะ read-only สำหรับงาน review,
+      เรียกใช้มันผ่าน <code>@reviewer</code> ในเซสชัน interactive, และรันสองงานที่ independent จริง
+      (README กับ test) แบบขนานผ่าน tmux background process — จุดสำคัญที่สุดคือขั้น verify:
+      การเปิดไฟล์จริงและรัน <code>pytest</code> จริง คือสิ่งที่แยก "งานเสร็จจริง" จาก "log บอกว่าเสร็จ"
+    </p>
+    <p>
+      ต่อยอด: ลองสร้าง subagent เพิ่มอีกตัว (เช่น <code>docs-writer</code>) แล้วให้ทั้งสามตัวทำงานร่วมกันในโฟลว์เดียว
+      — แต่ระวัง anti-pattern จาก slides: ถ้างานสองอันมี dependency กัน (เช่น subagent เขียน endpoint ใหม่
+      กับ subagent เขียน integration test เรียก endpoint นั้น) ต้องรัน sequential ไม่ใช่ขนาน
+      ลองทดลองสร้างสถานการณ์ dependency แบบนี้ดูว่า race condition เกิดขึ้นจริงยังไงเมื่อรันขนานผิดๆ
+    </p>
+
+    <div class="pagefoot">
+      <a href="../06-hooks-permissions-mcp/lab.html">← Module 06: Hooks, Permissions &amp; MCP</a>
+      <a href="../08-enterprise-governance/lab.html">Module 08: Enterprise Governance →</a>
+    </div>
+
+    <div class="footer-note">NTT DATA Internal Enablement — Module 07 Lab</div>
+  </div>
+</body>
+</html>

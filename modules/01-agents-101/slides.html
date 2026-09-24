@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module 01 · AI Agents 101 — NTT AI Agent Engineering Course</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" id="theme">
+<link rel="stylesheet" href="../../assets/reveal-theme.css">
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+  <section class="title-slide">
+    <span class="badge">Module 01 · Foundations</span>
+    <h1>AI Agents 101</h1>
+    <p class="subtitle">Agentic loop, tool use และทำไม NTT ต้องลงทุนเรื่องนี้</p>
+    <p>NTT AI Agent Engineering Course</p>
+  </section>
+
+  <section>
+    <h2>วันนี้เราจะคุยอะไรกัน</h2>
+    <ul>
+      <li>Agent คืออะไร ต่างจาก LLM call ธรรมดายังไง</li>
+      <li>องค์ประกอบหลักของ agent</li>
+      <li>Chatbot vs Agent — เทียบให้เห็นชัด</li>
+      <li>ทำไม NTT ต้องสนใจเรื่องนี้ (use case จริง)</li>
+      <li>ความเสี่ยงที่ต้องรู้ตั้งแต่ต้น</li>
+      <li>ภาพรวมเครื่องมือที่คอร์สนี้จะสอน — Hermes vs Claude Code</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>LLM call ธรรมดา คืออะไร</h2>
+    <div class="card-box">
+      <h4>Single-turn inference</h4>
+      <p>ส่ง prompt เข้าไป → โมเดลตอบกลับมาครั้งเดียว → จบ</p>
+    </div>
+    <pre><code class="language-text">User: "สรุป email นี้ให้หน่อย"
+LLM:  [สรุปข้อความ] → จบการทำงาน</code></pre>
+    <p>โมเดลไม่รู้จักโลกภายนอก ไม่สามารถไปอ่านไฟล์ เรียก API หรือรันคำสั่งเองได้</p>
+  </section>
+
+  <section>
+    <h2>Agent คืออะไร</h2>
+    <p>สิ่งที่ทำให้เป็น <strong>agent</strong> ไม่ใช่โมเดลที่ฉลาดกว่า แต่คือ <strong>agentic loop</strong></p>
+    <div class="card-box">
+      <h4>Agentic Loop</h4>
+      <p>
+        <span class="step-num">1</span> Observe (ดู state / user request)<br>
+        <span class="step-num">2</span> Plan (ตัดสินใจว่าต้องทำอะไรต่อ)<br>
+        <span class="step-num">3</span> Act (เรียก tool / function call)<br>
+        <span class="step-num">4</span> Observe result (ดูผลลัพธ์จาก tool)<br>
+        → วนกลับไปข้อ 1 จนงานเสร็จ หรือถึง limit
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Agentic Loop ในทางปฏิบัติ</h2>
+    <pre><code class="language-text">User: "เช็คว่า service X down อยู่ไหม แล้ว restart ถ้า down"
+
+Loop:
+  observe → user request
+  plan    → ต้องเรียก tool "check_status" ก่อน
+  act     → check_status("service-x")
+  observe → result: "down"
+  plan    → ต้องเรียก tool "restart_service"
+  act     → restart_service("service-x")
+  observe → result: "restarted, status: up"
+  plan    → งานเสร็จแล้ว ไม่ต้องเรียก tool เพิ่ม
+  → ตอบ user: "restart สำเร็จ service กลับมา up แล้ว"</code></pre>
+  </section>
+
+  <section>
+    <h2>องค์ประกอบหลักของ agent</h2>
+    <ul>
+      <li><strong>System prompt / instructions</strong> — กำหนดบทบาท ขอบเขต และกติกาการทำงาน</li>
+      <li><strong>Available tools</strong> — function calling: อ่าน/เขียนไฟล์, เรียก API, รัน command</li>
+      <li><strong>Memory / context</strong> — conversation history, retrieved docs, state ระหว่าง loop</li>
+      <li><strong>Loop controller</strong> — ตัดสินใจว่าจะเรียก tool ไหนต่อ หรือหยุดแล้วตอบ user</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Chatbot ธรรมดา vs Agent</h2>
+    <table>
+      <thead>
+        <tr><th>Chatbot ธรรมดา</th><th>Agent</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Single-turn — ตอบครั้งเดียวจบ</td><td>Multi-turn tool use — วน loop จนงานเสร็จ</td></tr>
+        <tr><td>ไม่มี tool / ไม่แตะโลกภายนอก</td><td>เรียก tool จริง: ไฟล์, API, terminal, DB</td></tr>
+        <tr><td>ผู้ใช้ต้องทำ step ต่อไปเอง</td><td>ทำงานหลายขั้นตอนอัตโนมัติ</td></tr>
+        <tr><td>ไม่มี state ระหว่าง turn</td><td>เก็บ context/observe result เพื่อวางแผนต่อ</td></tr>
+        <tr><td>เหมาะกับ Q&amp;A, สรุปข้อความ</td><td>เหมาะกับงานที่ต้องลงมือทำจริง</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>ทำไม NTT ต้องสนใจ</h2>
+    <div class="two-col">
+      <div class="card-box">
+        <h4>Presale</h4>
+        <p>research คู่แข่ง/ลูกค้า, drafting proposal เบื้องต้น, สรุป requirement จาก meeting notes ให้เร็วขึ้น</p>
+      </div>
+      <div class="card-box">
+        <h4>Engineering</h4>
+        <p>เขียนโค้ด, debug, review PR, deploy อัตโนมัติ, ลด manual toil ในงาน routine เช่น log analysis, config check</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>ตัวอย่างงานจริงที่ agent ช่วยได้</h2>
+    <ul>
+      <li>Engineer: "หา bug ที่ทำให้ test นี้ fail แล้ว fix ให้" — agent อ่านโค้ด, รัน test, แก้, รันซ้ำ</li>
+      <li>Presale: "สรุป pain point ลูกค้าจาก transcript นี้ แล้วร่าง outline proposal" — agent ค้น, สรุป, ร่าง draft</li>
+      <li>Ops: "ตรวจ log 24 ชม.ที่ผ่านมา หา anomaly แล้วสรุปเป็น report" — agent วน query + สรุปอัตโนมัติ</li>
+    </ul>
+    <p>จุดร่วม: งานที่มีหลายขั้นตอน ทำซ้ำได้ แต่ยังต้องใช้ "การตัดสินใจ" ระหว่างทาง</p>
+  </section>
+
+  <section>
+    <h2>ความเสี่ยง/ข้อจำกัดที่ต้องรู้</h2>
+    <ul>
+      <li><strong>Hallucination</strong> — agent อาจสร้างข้อมูล/ผลลัพธ์ที่ดูสมเหตุสมผลแต่ผิด</li>
+      <li><strong>สิทธิ์ tool กว้างเกินไป</strong> — ให้ agent เข้าถึง production DB หรือ deploy key โดยไม่จำเป็น</li>
+      <li><strong>ต้องมี human-in-the-loop</strong> สำหรับ action ที่ <em>irreversible</em> เช่น deploy, delete, ส่งอีเมลลูกค้า</li>
+    </ul>
+    <div class="card-box">
+      <h4>รายละเอียดเชิงลึก</h4>
+      <p>เรื่อง governance, permission model และ audit trail จะเรียนเต็มใน <strong>Module 08: Enterprise Governance &amp; Security</strong></p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Landscape เครื่องมือที่คอร์สนี้สอน</h2>
+    <div class="two-col">
+      <div class="card-box">
+        <h4>Hermes</h4>
+        <p>Agent orchestration platform — จัดการ profile, skills, memory, MCP tool layer และ connector (Discord/Telegram/Email) ให้ agent ทำงานแบบ persistent, multi-channel</p>
+      </div>
+      <div class="card-box">
+        <h4>Claude Code</h4>
+        <p>Coding agent CLI — รันในเครื่อง/CI, เข้าถึง filesystem และ terminal โดยตรง เหมาะกับงาน engineering: เขียนโค้ด, review, refactor, automation</p>
+      </div>
+    </div>
+    <p>ใช้คนละบริบท: Hermes = platform ที่ orchestrate agent หลายตัว/หลาย channel, Claude Code = agent เดี่ยวที่โฟกัสงานโค้ดในเครื่อง — Module 02 และ 03 จะลงลึกแต่ละตัว</p>
+  </section>
+
+  <section>
+    <h2>สรุป</h2>
+    <ul>
+      <li>Agent = LLM + agentic loop (observe → plan → act → observe) + tools + memory</li>
+      <li>ต่างจาก chatbot ตรงที่ทำงานหลายขั้นตอนอัตโนมัติผ่าน tool call จริง</li>
+      <li>มีประโยชน์ชัดเจนทั้งฝั่ง presale และ engineering แต่ต้องระวัง hallucination และสิทธิ์ tool</li>
+      <li>Action ที่ irreversible ต้องมี human-in-the-loop เสมอ</li>
+    </ul>
+    <a class="lab-cta" href="lab.html">เริ่มทำ Lab →</a>
+  </section>
+
+  <section>
+    <h2>คำถาม?</h2>
+    <p>พร้อมแล้วไปต่อที่ Lab — วิเคราะห์ use case ของตัวเองเป็น agentic loop</p>
+  </section>
+
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+<script>
+  Reveal.initialize({hash:true, plugins:[RevealHighlight, RevealNotes], slideNumber:true, transition:'slide'});
+</script>
+</body>
+</html>

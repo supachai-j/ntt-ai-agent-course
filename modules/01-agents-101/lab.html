@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab — Module 01: AI Agents 101 — NTT AI Agent Engineering Course</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <div class="topnav">
+    <div class="brand"><span class="dot"></span> NTT · AI Agent Engineering Course</div>
+    <nav>
+      <a href="../../index.html">Home</a>
+      <a href="slides.html">Slides</a>
+    </nav>
+  </div>
+
+  <div class="wrap">
+    <div class="hero">
+      <span class="badge">Lab · Module 01</span>
+      <h1>Lab: ออกแบบ Agentic Loop ของงานจริง</h1>
+      <p class="lead">
+        Lab นี้ไม่มี CLI ให้ติดตั้ง (ยังไม่ถึง Claude Code) — เป็น reasoning exercise เชิงปฏิบัติ
+        ให้คุณเลือก use case จริงจากงานตัวเอง (presale หรือ engineering) แล้วแตกออกเป็น
+        agentic loop ลงในไฟล์ markdown จริงบนเครื่อง เพื่อฝึกคิดแบบ agent designer ก่อนเริ่มลงมือ build จริงใน module ถัดไป
+      </p>
+    </div>
+
+    <div class="lab-meta">
+      <span>⏱ 30-45 นาที</span>
+      <span>ระดับ: เริ่มต้น</span>
+      <span>ต้องมี: terminal, text editor (nano/vim/VS Code)</span>
+      <span>🎯 Hands-on</span>
+    </div>
+
+    <div class="prereq">
+      <h2>สิ่งที่ต้องมีก่อนเริ่ม</h2>
+      <ul>
+        <li>เครื่องที่มี terminal ใช้งานได้ (macOS/Linux/WSL)</li>
+        <li>Text editor ที่ถนัด — ตัวอย่างในนี้ใช้ <code>nano</code> แต่จะใช้ <code>vim</code>, <code>code</code> หรืออื่นก็ได้</li>
+        <li>Use case งานจริง 1 อย่างในใจ จาก presale หรือ engineering ที่คุณอยากให้ agent ช่วยทำ</li>
+        <li>ไม่ต้องมี API key, ไม่ต้องมี Claude Code — module นี้เป็นการฝึกคิด/ออกแบบล้วนๆ</li>
+      </ul>
+    </div>
+
+    <div class="objectives">
+      <h2>Learning Objectives</h2>
+      <ul>
+        <li>อธิบายความต่างระหว่าง chatbot ธรรมดากับ agent ด้วยตัวอย่างของตัวเองได้</li>
+        <li>แตก use case จริง 1 อย่างออกเป็น agentic loop (observe → plan → act → observe) ได้ครบทุกขั้น</li>
+        <li>ระบุ tools ที่ agent ต้องใช้จริง พร้อมเหตุผลว่าทำไมต้องมี tool นั้น</li>
+        <li>กำหนด stopping condition ที่ชัดเจน ไม่ใช่ "ทำจนกว่าจะพอ"</li>
+        <li>ระบุจุดที่ต้องมี human approval ก่อน agent ลงมือทำจริง (โดยเฉพาะ action ที่ irreversible)</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">1</span> เตรียม working directory</h3>
+      <p>สร้างโฟลเดอร์สำหรับเก็บงาน lab ของ module นี้ — ใช้ terminal จริง ไม่ใช่แค่คิดในหัว</p>
+      <pre><code class="language-bash">mkdir -p ~/agent-course-lab01
+cd ~/agent-course-lab01
+pwd</code></pre>
+      <div class="verify"><strong>✅ ตรวจสอบผล:</strong> คำสั่ง <code>pwd</code> ต้อง print path ที่ลงท้ายด้วย <code>/agent-course-lab01</code></div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">2</span> เลือก use case จริงของตัวเอง</h3>
+      <p>เลือก 1 use case จากงานจริงของคุณ — เกณฑ์คือต้องเป็นงานที่ "มีหลายขั้นตอน" และ "ต้องตัดสินใจระหว่างทาง" ไม่ใช่แค่ single-shot Q&amp;A</p>
+      <p>ตัวอย่างที่ใช้ได้จริง:</p>
+      <ul>
+        <li><strong>Presale:</strong> "อ่าน RFP ของลูกค้า สรุป requirement หลัก แล้วร่าง outline proposal เบื้องต้น"</li>
+        <li><strong>Engineering:</strong> "หา root cause ของ test ที่ fail ใน CI แล้วเสนอ fix"</li>
+        <li><strong>Ops:</strong> "ตรวจ error log 24 ชม.ล่าสุด สรุป anomaly เป็นรายงาน"</li>
+      </ul>
+      <div class="verify"><strong>✅ ตรวจสอบผล:</strong> คุณเขียน use case ของตัวเองเป็นประโยคเดียวได้ (goal ชัดเจน ไม่กำกวม)</div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">3</span> สร้างไฟล์ markdown สำหรับออกแบบ agent</h3>
+      <p>สร้างไฟล์ <code>.md</code> จริงด้วย editor ในเครื่อง เพื่อเก็บ agent design ของคุณ</p>
+      <pre><code class="language-bash">nano ~/agent-course-lab01/my-agent-design.md
+# (หรือใช้ vim / code แทน nano ก็ได้)</code></pre>
+      <div class="verify"><strong>✅ ตรวจสอบผล:</strong> ไฟล์ <code>~/agent-course-lab01/my-agent-design.md</code> ถูกสร้างขึ้น — เช็คด้วย <code>ls -la ~/agent-course-lab01/</code></div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">4</span> Copy template ลงไฟล์แล้วกรอกให้ครบ</h3>
+      <p>Copy template ด้านล่างนี้ลงในไฟล์ <code>my-agent-design.md</code> แล้วแก้ทุกส่วนให้ตรงกับ use case ของคุณจริงๆ (ห้ามเว้นว่าง)</p>
+      <pre><code class="language-markdown"># Agent Design: [ชื่อ use case ของคุณ]
+
+## 1. Goal
+[Agent นี้มีเป้าหมายอะไร เขียนเป็นประโยคเดียว ชัดเจน วัดผลได้]
+
+## 2. Tools ที่ agent ต้องใช้
+- Tool 1: [ชื่อ tool] — [ทำไมต้องมี tool นี้ / ใช้ทำอะไร]
+- Tool 2: [ชื่อ tool] — [ทำไมต้องมี tool นี้ / ใช้ทำอะไร]
+- Tool 3: [ชื่อ tool] — [ทำไมต้องมี tool นี้ / ใช้ทำอะไร]
+
+## 3. Agentic Loop (observe → plan → act → observe)
+1. Observe: [agent เห็น/รับ input อะไรตอนเริ่ม]
+2. Plan: [agent ตัดสินใจอะไรต่อ]
+3. Act: [agent เรียก tool ไหน ด้วย input อะไร]
+4. Observe result: [ผลลัพธ์ที่ agent เห็นหลัง act]
+5. (วนซ้ำ step 2-4 จนกว่าจะถึง stopping condition)
+
+## 4. Stopping condition
+[Agent จะหยุด/ตอบ user เมื่อไหร่ — ต้องเจาะจง ไม่ใช่ "ทำจนกว่าจะพอ"]
+
+## 5. จุดที่ต้องมี human approval
+[Step ไหนที่ agent ต้องหยุดรอ human อนุมัติก่อนทำต่อ โดยเฉพาะ action ที่ irreversible เช่น
+deploy, ลบข้อมูล, ส่งอีเมลออกไปหาลูกค้าจริง]</code></pre>
+      <div class="warn"><strong>⚠️ ข้อควรระวัง:</strong> อย่าเขียน tool กว้างเกินไปแบบ "เข้าถึงทุกอย่าง" — ระบุ tool ให้เจาะจงเท่าที่ agent ต้องใช้จริงเท่านั้น (least privilege) จะเป็นพื้นฐานสำคัญตอนเรียน Module 08 เรื่อง governance</div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">5</span> ตรวจสอบว่า stopping condition ไม่คลุมเครือ</h3>
+      <p>อ่านข้อ 4 ในไฟล์ของคุณอีกรอบ — ถ้าคำตอบเป็นอะไรทำนอง "จนกว่างานจะเสร็จ" หรือ "จนกว่าจะโอเค" แปลว่ายังไม่เจาะจงพอ ให้แก้ใหม่ให้เป็นเงื่อนไขที่ตรวจสอบได้จริง เช่น "หยุดเมื่อ test suite ผ่านทั้งหมด (exit code 0)" หรือ "หยุดเมื่อ draft proposal มีครบ 3 section: pain point, solution, timeline"</p>
+      <pre><code class="language-bash"># เปิดไฟล์กลับมาแก้ไข section 4 ถ้ายังคลุมเครือ
+nano ~/agent-course-lab01/my-agent-design.md</code></pre>
+      <div class="verify"><strong>✅ ตรวจสอบผล:</strong> Stopping condition ในไฟล์เป็นประโยคที่ตรวจสอบได้จริง (measurable) ไม่ใช่ความรู้สึก</div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">6</span> ระบุ human-in-the-loop point สำหรับ action ที่ irreversible</h3>
+      <p>ทบทวนอีกครั้งว่าใน loop ของคุณ มี step ไหนที่ทำแล้วแก้คืนไม่ได้บ้าง (เช่น deploy production, ลบไฟล์/ข้อมูล, ส่ง email ออกไปหาลูกค้าจริง) — step เหล่านั้นต้องมี human approval คั่นก่อนเสมอ</p>
+      <div class="danger"><strong>🛑 ระวัง (Irreversible):</strong> ถ้า use case ของคุณมี action ที่ irreversible แต่ในไฟล์ section 5 ยังไม่มีจุด human approval คั่นไว้ — ให้กลับไปแก้ก่อน อย่าปล่อยให้ agent ทำ action แบบนี้แบบอัตโนมัติ 100% แม้แต่ในการออกแบบเชิงทฤษฎี</div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">7</span> ตรวจสอบไฟล์ครบ 4 องค์ประกอบ</h3>
+      <p>เปิดไฟล์อีกครั้งเพื่อ review ทั้งหมด แล้วเช็คด้วยตาว่าครบทุก section</p>
+      <pre><code class="language-bash">cat ~/agent-course-lab01/my-agent-design.md</code></pre>
+      <div class="verify">
+        <strong>✅ ตรวจสอบผล:</strong> ไฟล์ต้องมีครบทั้ง 4 องค์ประกอบนี้ (ไม่มีช่องว่าง [ ] ที่ยังไม่ได้กรอก):
+        <ul>
+          <li>Goal ชัดเจน วัดผลได้</li>
+          <li>รายการ tools ที่ agent ต้องใช้ พร้อมเหตุผล</li>
+          <li>Agentic loop ครบ 4 ขั้น (observe → plan → act → observe)</li>
+          <li>Stopping condition + human approval point ระบุชัดเจน</li>
+        </ul>
+      </div>
+    </div>
+
+    <details class="troubleshoot">
+      <summary>ปัญหาที่พบบ่อย: เขียน stopping condition ไม่ออก / รู้สึกว่า loop วนไม่รู้จบ</summary>
+      <p>
+        อาการนี้มักเกิดเพราะ goal ในข้อ 1 กว้างเกินไป (เช่น "ช่วยงานลูกค้าให้ดีขึ้น") ลองย่อ use case
+        ให้แคบลงเหลือ 1 task ที่จบได้จริงใน 1 ครั้ง เช่นแทนที่จะเป็น "จัดการ support ticket ทั้งหมด"
+        ให้แคบเป็น "แก้ ticket เดียวที่ระบุ ID มา แล้วหยุดเมื่อ ticket ถูก mark เป็น resolved"
+        ยิ่ง scope แคบ ยิ่งเขียน stopping condition ที่วัดผลได้ง่าย
+      </p>
+    </details>
+
+    <h2>สรุป &amp; ต่อยอด</h2>
+    <p>
+      คุณเพิ่งฝึกคิดแบบ "agent designer" — แตก use case จริงออกเป็น goal, tools, loop, stopping
+      condition และจุดที่ต้องมี human approval ก่อนลงมือ ทักษะนี้เป็นพื้นฐานที่ใช้ทุก module ต่อจากนี้
+      เมื่อเริ่มใช้ Claude Code และ Hermes จริงใน module ถัดไป คุณจะเอา design นี้ไปเทียบกับสิ่งที่เครื่องมือจริงทำได้
+    </p>
+    <p><strong>ลองต่อยอด:</strong></p>
+    <ul>
+      <li>ลองออกแบบ agent design อีก 1 use case จากทีมอื่น (เช่น ถ้าคุณเป็น engineer ลองออกแบบของฝั่ง presale ดูบ้าง)</li>
+      <li>ลอง identify ว่า tools ที่คุณระบุใน section 2 มีตัวไหนที่ "มีอยู่แล้ว" ใน Claude Code หรือ Hermes MCP tools บ้าง (จะเรียนใน Module 02-03)</li>
+      <li>เก็บไฟล์ <code>my-agent-design.md</code> นี้ไว้ — ใน Module 07 (Multi-Agent Orchestration) จะย้อนกลับมาใช้ design นี้ต่อยอดเป็น subagent จริง</li>
+    </ul>
+
+    <div class="pagefoot">
+      <a href="../../index.html">← Course Home</a>
+      <a href="../02-hermes-architecture/lab.html">Module 02: Hermes Architecture →</a>
+    </div>
+
+    <div class="footer-note">NTT DATA Internal Enablement — Module 01 Lab</div>
+  </div>
+</body>
+</html>

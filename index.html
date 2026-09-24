@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hermes Agent Platform & Claude Code — NTT Internal Technical Course</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="topnav">
+    <div class="brand"><span class="dot"></span> NTT · AI Agent Engineering Course</div>
+    <nav>
+      <a href="index.html" class="active">Home</a>
+      <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+
+  <div class="wrap">
+    <div class="hero">
+      <span class="badge">NTT DATA · Internal Enablement</span>
+      <h1>Hermes Agent Platform &amp; Claude Code<br>Internal Technical Course</h1>
+      <p class="lead">
+        คอร์สภายในสำหรับทีม Engineer ของ NTT — เรียนรู้สถาปัตยกรรม AI agent
+        แบบเจาะลึก ตั้งแต่ Hermes Agent Platform (orchestration, skills, MCP tools)
+        ไปจนถึง Claude Code CLI (coding agent, automation, CI/CD) พร้อม hands-on lab
+        ทุกบท — รันจริง ตรวจผลจริง ไม่ใช่แค่ทฤษฎี
+      </p>
+    </div>
+
+    <div class="track-label">Part 1 — Foundations</div>
+    <div class="grid">
+
+      <div class="card">
+        <div class="num">Module 01</div>
+        <h3>AI Agents 101</h3>
+        <p>Agentic loop, tool use, LLM vs agent, ทำไม NTT ต้องลงทุนเรื่องนี้ — ปูพื้นก่อนแตะเครื่องมือจริง</p>
+        <div class="links">
+          <a class="slides" href="modules/01-agents-101/slides.html">Slides</a>
+          <a class="lab" href="modules/01-agents-101/lab.html">Lab</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="num">Module 02</div>
+        <h3>Hermes Agent Platform — Architecture</h3>
+        <p>Profiles, skills, memory, MCP tool layer, connectors (Discord/Telegram/Email) — โครงสร้างของแพลตฟอร์มที่กำลังรันคอร์สนี้อยู่</p>
+        <div class="links">
+          <a class="slides" href="modules/02-hermes-architecture/slides.html">Slides</a>
+          <a class="lab" href="modules/02-hermes-architecture/lab.html">Lab</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="num">Module 03</div>
+        <h3>Claude Code CLI — Fundamentals</h3>
+        <p>ติดตั้ง, auth, interactive REPL vs print mode, CLAUDE.md, การรัน Claude Code ครั้งแรกในโปรเจกต์จริง</p>
+        <div class="links">
+          <a class="slides" href="modules/03-claude-code-fundamentals/slides.html">Slides</a>
+          <a class="lab" href="modules/03-claude-code-fundamentals/lab.html">Lab</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="track-label">Part 2 — Engineering with Agents</div>
+    <div class="grid">
+
+      <div class="card">
+        <div class="num">Module 04</div>
+        <h3>Engineering Workflows</h3>
+        <p>Feature dev loop, PR review, refactor, TDD กับ Claude Code — workflow จริงที่ engineer ใช้ทุกวัน</p>
+        <div class="links">
+          <a class="slides" href="modules/04-engineering-workflows/slides.html">Slides</a>
+          <a class="lab" href="modules/04-engineering-workflows/lab.html">Lab</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="num">Module 05</div>
+        <h3>Prompt Engineering &amp; Context Management</h3>
+        <p>System prompt vs CLAUDE.md, context window health, /compact, การเขียน skill ให้ agent ใช้ซ้ำได้</p>
+        <div class="links">
+          <a class="slides" href="modules/05-prompt-context/slides.html">Slides</a>
+          <a class="lab" href="modules/05-prompt-context/lab.html">Lab</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="num">Module 06</div>
+        <h3>Hooks, Permissions &amp; MCP Integration</h3>
+        <p>Security gates ด้วย hooks, allowlist tools, เชื่อมต่อ MCP server ภายนอก (DB, API, custom tools)</p>
+        <div class="links">
+          <a class="slides" href="modules/06-hooks-permissions-mcp/slides.html">Slides</a>
+          <a class="lab" href="modules/06-hooks-permissions-mcp/lab.html">Lab</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="track-label">Part 3 — Scale, Govern, Ship</div>
+    <div class="grid">
+
+      <div class="card">
+        <div class="num">Module 07</div>
+        <h3>Multi-Agent Orchestration</h3>
+        <p>Subagents, parallel delegation, Claude Code custom agents + Hermes delegate_task — เมื่องานเดียวไม่พอสำหรับ agent เดียว</p>
+        <div class="links">
+          <a class="slides" href="modules/07-multi-agent-orchestration/slides.html">Slides</a>
+          <a class="lab" href="modules/07-multi-agent-orchestration/lab.html">Lab</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="num">Module 08</div>
+        <h3>Enterprise Governance &amp; Security</h3>
+        <p>EMU accounts, secret management, audit trail, ข้อควรระวังเมื่อใช้ AI agent กับงาน client — สิ่งที่ presale/engineer ต้องรู้ก่อนใช้จริง</p>
+        <div class="links">
+          <a class="slides" href="modules/08-enterprise-governance/slides.html">Slides</a>
+          <a class="lab" href="modules/08-enterprise-governance/lab.html">Lab</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="num">Module 09</div>
+        <h3>CI/CD &amp; Automation Integration</h3>
+        <p>รัน Claude Code แบบ headless ใน GitHub Actions, gh CLI automation, PR review อัตโนมัติใน pipeline</p>
+        <div class="links">
+          <a class="slides" href="modules/09-cicd-automation/slides.html">Slides</a>
+          <a class="lab" href="modules/09-cicd-automation/lab.html">Lab</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="num">Module 10</div>
+        <h3>Capstone Project</h3>
+        <p>สร้าง internal automation agent ตั้งแต่ต้นจนจบ — รวมทุกอย่างที่เรียนมาเป็นโปรเจกต์เดียวที่ใช้งานได้จริง</p>
+        <div class="links">
+          <a class="slides" href="modules/10-capstone/slides.html">Slides</a>
+          <a class="lab" href="modules/10-capstone/lab.html">Lab</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      NTT DATA Internal Enablement — Hermes Agent Platform &amp; Claude Code Course · Built as a static site (no backend, no tracking) · Content and labs run against real tools; screenshots/output shown are illustrative unless a lab step says otherwise.
+    </div>
+  </div>
+</body>
+</html>

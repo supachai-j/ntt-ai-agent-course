@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module 02 — Hermes Agent Platform: Architecture</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" id="theme">
+<link rel="stylesheet" href="../../assets/reveal-theme.css">
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<section class="title-slide">
+  <span class="badge">Module 02</span>
+  <h1>Hermes Agent Platform</h1>
+  <p class="subtitle">Architecture: Profiles · Skills · MCP Tools · Connectors · Subagents</p>
+  <p style="margin-top:2em;font-size:0.55em;color:var(--r-text-dim);">NTT AI Agent Engineering Course</p>
+</section>
+
+<section>
+  <h2>ทำไมต้องเข้าใจสถาปัตยกรรมของ Hermes?</h2>
+  <ul>
+    <li>Hermes คือ platform ที่กำลังรันคอร์สนี้อยู่จริง — สิ่งที่คุณคุยกับ Claude Code ผ่าน Discord ตอนนี้คือ Hermes instance หนึ่ง</li>
+    <li>เข้าใจ architecture → debug ได้เร็วขึ้น, เขียน skill ได้ตรงจุด, ออกแบบ automation ได้ปลอดภัยขึ้น</li>
+    <li>Module นี้เป็นพื้นฐานก่อนไป Module 03: Claude Code Fundamentals</li>
+  </ul>
+</section>
+
+<section>
+  <h2>ภาพรวมสถาปัตยกรรม</h2>
+  <div class="card-box">
+    <h4>Layer stack</h4>
+    <ol>
+      <li><strong>Profiles</strong> — แยก workspace ต่อบริบท (memory, skills, cron แยกกัน)</li>
+      <li><strong>MCP Tools layer</strong> — terminal, file I/O, browser, web_search, delegate_task, cronjob ฯลฯ</li>
+      <li><strong>Connectors</strong> — ช่องทางสื่อสารจริง: Discord, Telegram, Email</li>
+      <li><strong>Skills system</strong> — procedural knowledge ที่โหลดเฉพาะเมื่อ relevant</li>
+      <li><strong>Subagent orchestration</strong> — delegate_task สำหรับงานที่ต้อง isolate context</li>
+    </ol>
+  </div>
+</section>
+
+<section>
+  <h2>Profiles: แยก workspace ต่อบริบท</h2>
+  <div class="two-col">
+    <div>
+      <p>Profile คือ "ห้องทำงาน" แยกกันโดยสมบูรณ์:</p>
+      <ul>
+        <li>คนละ <strong>memory</strong></li>
+        <li>คนละ <strong>skills</strong></li>
+        <li>คนละ <strong>cron jobs</strong></li>
+      </ul>
+      <p>ตัวอย่าง: profile <code>tumps</code> สำหรับงานส่วนตัว แยกขาดจาก profile ของทีม KDX — ไม่มี data leak ข้ามบริบท</p>
+    </div>
+    <div class="card-box">
+      <h4>Path convention</h4>
+      <pre><code>/home/ubuntu/.hermes/profiles/&lt;name&gt;/
+  ├── skills/
+  ├── memories/
+  ├── cron/
+  └── plugins/ (ถ้ามี)
+
+# default profile (ไม่ระบุชื่อ):
+/home/ubuntu/.hermes/skills/
+/home/ubuntu/.hermes/memories/
+/home/ubuntu/.hermes/cron/</code></pre>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Memory vs Skills: ต่างกันตรงไหน</h2>
+  <table>
+    <tr><th>คุณสมบัติ</th><th>Memory</th><th>Skills</th></tr>
+    <tr><td>Inject เมื่อไร</td><td>ทุก turn (persistent)</td><td>เฉพาะเมื่อ relevant (on-demand)</td></tr>
+    <tr><td>เนื้อหา</td><td>Facts ข้าม session</td><td>Procedural knowledge / workflow</td></tr>
+    <tr><td>ข้อจำกัด</td><td>มี char limit ต้องจัดการเมื่อเต็ม</td><td>ไม่จำกัดจำนวน skill (โหลดทีละตัว)</td></tr>
+    <tr><td>ตัวอย่าง</td><td>"ชื่อโปรเจกต์คือ X", "user ชอบภาษาไทย"</td><td>"วิธี deploy บน ESXi", "วิธีใช้ xurl"</td></tr>
+  </table>
+  <div class="warn"><strong>ข้อควรระวัง:</strong> Memory เต็ม char limit ต้อง prune/summarize เอง — อย่าปล่อยให้ log สะสมจนล้น</div>
+</section>
+
+<section>
+  <h2>MCP Tools Layer</h2>
+  <p>Hermes ต่อกับเครื่องมือผ่าน <strong>Model Context Protocol (MCP)</strong></p>
+  <div class="two-col">
+    <div class="card-box">
+      <h4>Always-loaded tools</h4>
+      <ul>
+        <li>terminal</li>
+        <li>read_file / write_file / patch</li>
+        <li>search_files</li>
+        <li>web_search / web_extract</li>
+        <li>browser (navigate, click, snapshot)</li>
+      </ul>
+    </div>
+    <div class="card-box">
+      <h4>Orchestration tools</h4>
+      <ul>
+        <li><code>delegate_task</code> — spawn subagent</li>
+        <li><code>clarify</code> — ถามผู้ใช้กลับ</li>
+        <li><code>cronjob</code> — scheduled tasks</li>
+        <li><code>context_notes</code> — memory ops</li>
+        <li><code>skill_manage</code> — สร้าง/แก้ skill</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Pattern: tool_search + tool_describe + tool_call</h2>
+  <p>ปัญหา: มี MCP tools เยอะมาก ถ้าโหลด schema ทุกตัวทุก turn → context overhead สูง</p>
+  <pre><code>// 1. ค้นหา tool ที่ต้องการ (ยังไม่รู้ schema)
+tool_search({queries: ["send discord message", "read airtable record"]})
+
+// 2. โหลด full schema เฉพาะ tool ที่จะใช้จริง
+tool_describe({names: ["discord_send", "airtable_get"]})
+
+// 3. เรียกใช้งานจริง
+tool_call({calls: [{name: "discord_send", arguments: {...}}]})</code></pre>
+  <p>แนวคิด: tool ที่ไม่ค่อยได้ใช้ถูก "deferred" — โหลดตามต้องการ ไม่ inject schema ทุกตัวตลอดเวลา ลด token cost ต่อ turn</p>
+</section>
+
+<section>
+  <h2>Connectors: ช่องทางสื่อสารจริง</h2>
+  <ul>
+    <li>Hermes ไม่ได้ผูกกับ UI เดียว — เชื่อมกับ <strong>Discord</strong> (แบบที่ใช้คุยตอนนี้), <strong>Telegram</strong>, <strong>Email</strong> ฯลฯ</li>
+    <li><strong>Multi-user thread</strong> — หลายคนคุยใน channel เดียวกันได้ Hermes ต้องแยกแยะว่าใครพูด</li>
+    <li><strong>Sender prefix</strong> — ข้อความ inbound ถูก tag ด้วยชื่อผู้ส่ง เพื่อให้ agent ตอบถูกคน/บริบทถูก</li>
+    <li><strong>Home channel</strong> — concept ของช่องทางหลักที่ agent "รายงานกลับ" หรือส่ง notification โดยดีฟอลต์</li>
+  </ul>
+  <div class="card-box">
+    <h4>ตัวอย่างในคอร์สนี้</h4>
+    <p>คุณกำลังคุยกับ Claude Code ผ่าน Discord connector — ข้อความของคุณถูก route เข้า Hermes, ประมวลผลด้วย profile ที่กำหนด, แล้วตอบกลับผ่าน connector เดิม</p>
+  </div>
+</section>
+
+<section>
+  <h2>Skills System: โครงสร้าง SKILL.md</h2>
+  <pre><code>---
+name: my-skill-name
+description: Use when &lt;trigger condition&gt;. &lt;one-line behavior&gt;.
+version: 1.0
+---
+
+# My Skill Name
+
+## When to use
+...
+
+## Steps
+1. ...
+2. ...
+
+## Pitfalls
+- ...</code></pre>
+  <p>Frontmatter (YAML) + markdown body — <code>description</code> คือ trigger หลัก: ต้องขึ้นต้นด้วยวลีที่ self-contained ภายใน ~57 ตัวอักษรแรก เพื่อให้ระบบ keyword-match แล้วโหลด skill ได้ถูกต้อง</p>
+</section>
+
+<section>
+  <h2>Skills: linked_files &amp; keyword trigger</h2>
+  <div class="two-col">
+    <div>
+      <p><strong>Keyword-based trigger:</strong> agent เห็นรายชื่อ skill + description ทั้งหมดก่อน แล้วเลือกโหลด (skill_view) เฉพาะตัวที่ relevant กับ task ปัจจุบัน — ไม่ inject เนื้อหาเต็มทุก skill ทุก turn</p>
+    </div>
+    <div class="card-box">
+      <h4>linked_files structure</h4>
+      <pre><code>my-skill/
+  SKILL.md
+  references/   # เอกสารอ้างอิงยาว
+  templates/    # ไฟล์ template ให้ copy
+  scripts/      # helper scripts</code></pre>
+    </div>
+  </div>
+  <div class="warn"><strong>Write lessons, not logs:</strong> skill ควรบันทึก imperative rule + เหตุผล ("ทำแบบนี้เพราะ X") ไม่ใช่ log เหตุการณ์ ("วันที่ Y แก้ bug Z") — log ไม่ generalize ข้าม task ในอนาคต</div>
+</section>
+
+<section>
+  <h2>Subagent Orchestration: delegate_task</h2>
+  <ul>
+    <li>Subagent แต่ละตัวมี <strong>isolated context</strong> — ไม่เห็น conversation หลักของ parent agent</li>
+    <li>Parent ต้องส่ง context ที่จำเป็น <strong>ทั้งหมด</strong> เข้าไปใน task description เอง (path, spec, constraints)</li>
+    <li>ผลลัพธ์ที่ subagent ส่งกลับคือ <strong>self-report</strong> — ข้อความบรรยายว่าทำอะไรสำเร็จ</li>
+  </ul>
+  <div class="danger">
+    <strong>อย่าเชื่อ self-report เฉยๆ:</strong> ต้อง verify ด้วย evidence จริง เช่น เปิดไฟล์ดูเอง, เช็ค URL จริง, รัน command ตรวจสอบ — ไม่ใช่เชื่อคำอ้างของ subagent ว่า "ทำเสร็จแล้ว"
+  </div>
+</section>
+
+<section>
+  <h2>ตัวอย่าง delegate_task ในทางปฏิบัติ</h2>
+  <pre><code>delegate_task({
+  task: "Build slides.html และ lab.html สำหรับ module 02 ...",
+  context: "spec เต็ม + content brief + path ที่ต้องใช้ ...",
+  // subagent ไม่เห็น conversation ก่อนหน้า ต้องใส่ context ครบ
+})
+
+// หลัง subagent รายงานว่า "สร้างไฟล์เสร็จแล้ว":
+// → parent ต้อง read_file / ls -la ยืนยันเองเสมอ</code></pre>
+  <p>Pattern นี้เหมาะกับงานที่แยก context ได้ชัดเจน (เช่น build 1 module ต่อ subagent) เพื่อไม่ให้ context หลักบวมจากรายละเอียดที่ไม่เกี่ยว</p>
+</section>
+
+<section>
+  <h2>Hermes vs Claude Code</h2>
+  <table>
+    <tr><th></th><th>Hermes</th><th>Claude Code</th></tr>
+    <tr><td>Scope</td><td>General-purpose agent platform</td><td>Coding-focused CLI agent</td></tr>
+    <tr><td>Tools</td><td>Multi-tool (browser, email, calendar, ฯลฯ)</td><td>เน้น file/code/terminal/git</td></tr>
+    <tr><td>ช่องทาง</td><td>Multi-channel (Discord, Telegram, Email)</td><td>Terminal / IDE integration</td></tr>
+    <tr><td>ใช้ในคอร์สนี้</td><td>รัน course ทั้งหมด, ตอบคำถามผ่าน Discord</td><td>Subagent ที่ Hermes เรียกใช้เพื่อ coding task</td></tr>
+  </table>
+  <p style="margin-top:1em;">จุดสำคัญ: Claude Code สามารถถูกเรียกเป็น subagent จาก Hermes ได้ (เช่น เดโม่ที่เพิ่งเห็น) — รายละเอียดเชิงลึกของ Claude Code เองไปดูต่อใน Module 03</p>
+</section>
+
+<section>
+  <h2>สรุป Module 02</h2>
+  <ul>
+    <li>Profiles แยก workspace สมบูรณ์ต่อบริบท — memory/skills/cron คนละชุด</li>
+    <li>Memory = inject ทุก turn มี limit, Skills = โหลดตามต้องการ ไม่จำกัดจำนวน</li>
+    <li>MCP tools ใช้ pattern tool_search → tool_describe → tool_call เพื่อลด context overhead</li>
+    <li>Connectors เชื่อม Hermes กับช่องทางจริง (Discord/Telegram/Email) พร้อม multi-user thread</li>
+    <li>Skills เขียนแบบ "lessons not logs" + linked_files แยก references/templates/scripts</li>
+    <li>delegate_task = isolated subagent — ต้อง verify ผลลัพธ์ด้วย evidence เสมอ</li>
+  </ul>
+  <a class="lab-cta" href="lab.html">เริ่มทำ Lab →</a>
+</section>
+
+<section>
+  <h2>จบ Module 02</h2>
+  <p>ถัดไป: <strong>Module 03 — Claude Code Fundamentals</strong></p>
+  <a class="lab-cta" href="lab.html">เริ่มทำ Lab →</a>
+</section>
+
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    plugins: [RevealHighlight, RevealNotes],
+    slideNumber: true,
+    transition: 'slide'
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab · Module 05 — Prompt Engineering &amp; Context Management</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <div class="topnav">
+    <div class="brand"><span class="dot"></span> NTT · AI Agent Engineering Course</div>
+    <nav>
+      <a href="../../index.html">Home</a>
+      <a href="slides.html">Slides</a>
+    </nav>
+  </div>
+
+  <div class="wrap">
+    <div class="hero">
+      <span class="badge">Lab · Module 05</span>
+      <h1>Prompt Engineering &amp; Context Management</h1>
+      <p class="lead">
+        เขียน CLAUDE.md จริงจาก mini-project, ทดลอง <code>/context</code> และ <code>/compact</code>
+        ใน interactive session จริง แล้วเปรียบเทียบพฤติกรรม agent ก่อน/หลังใส่ CLAUDE.md ที่ดีกับที่แย่ —
+        วัดผลจากคุณภาพ output และจำนวน turn ที่ใช้จริง ไม่ใช่ความรู้สึก
+      </p>
+    </div>
+
+    <div class="lab-meta">
+      <span>⏱ 60–75 นาที</span>
+      <span>🖥 ต้องมี Claude Code CLI ติดตั้งและ login แล้ว</span>
+      <span>📦 ต้องมี tmux</span>
+      <span>📁 ใช้ repo/โปรเจกต์จาก Module 03 หรือสร้างใหม่ก็ได้</span>
+    </div>
+
+    <div class="prereq">
+      <h2>Prerequisites</h2>
+      <ul>
+        <li>ผ่าน Module 03 (Claude Code Fundamentals) — รู้จัก REPL, print mode, CLAUDE.md เบื้องต้น</li>
+        <li><code>claude --version</code> ต้องขึ้น v2.x ขึ้นไป และ <code>claude auth status</code> ต้อง login แล้ว</li>
+        <li>มี git repo หรือ folder โปรเจกต์เล็กๆ ที่มีโค้ดจริงอยู่บ้าง (ใช้ของ module ก่อนก็ได้ หรือ clone repo ตัวอย่างที่มีในเครื่อง)</li>
+        <li>ติดตั้ง <code>tmux</code> แล้ว (<code>tmux -V</code> เพื่อเช็ค)</li>
+      </ul>
+    </div>
+
+    <div class="objectives">
+      <h2>Objectives</h2>
+      <ul>
+        <li>เขียน CLAUDE.md ของโปรเจกต์จริงที่มี instruction แบบ specific ไม่ใช่ vague</li>
+        <li>ใช้ <code>/context</code> อ่านค่า context window usage และตีความ threshold ได้</li>
+        <li>ใช้ <code>/compact [focus]</code> บีบอัด context พร้อมยืนยันว่า CLAUDE.md ยังอยู่หลัง compact</li>
+        <li>เปรียบเทียบ agent output ก่อน/หลังมี CLAUDE.md ที่ดี ด้วย prompt เดียวกัน</li>
+        <li>ปรับปรุง prompt แย่ให้ดีขึ้นแล้ววัดผลต่างจริงจากจำนวน turn และคุณภาพ output</li>
+      </ul>
+    </div>
+
+    <!-- Step 1 -->
+    <div class="step">
+      <h3><span class="step-num">1</span>เตรียมโปรเจกต์ทดลอง</h3>
+      <p>ใช้โปรเจกต์เดิมจาก Module 03/04 หรือสร้างโฟลเดอร์เล็กๆ ใหม่ที่มีโค้ดจริงพอทดลองได้ — ต้องมีไฟล์โค้ดอย่างน้อย 2-3 ไฟล์ ไม่ใช่ folder ว่าง</p>
+      <pre><code class="language-bash">mkdir -p ~/lab05-project/src
+cd ~/lab05-project
+git init
+
+cat > src/api.py << 'EOF'
+def fetch_user(user_id):
+    # TODO: no error handling yet
+    response = requests.get(f"https://api.example.com/users/{user_id}")
+    return response.json()
+
+def create_order(items, user_id):
+    total = sum(item['price'] for item in items)
+    return {"user_id": user_id, "items": items, "total": total}
+EOF
+
+git add -A && git commit -m "init lab05 project"</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> <code>ls src/</code> ต้องเห็น <code>api.py</code> และ <code>git log --oneline</code> ต้องมี commit แรกแล้ว
+      </div>
+    </div>
+
+    <!-- Step 2: bad prompt baseline -->
+    <div class="step">
+      <h3><span class="step-num">2</span>Baseline: รัน prompt แย่ (vague) โดยไม่มี CLAUDE.md</h3>
+      <p>เปิด tmux session แล้วรัน Claude Code แบบ interactive — ยังไม่สร้าง CLAUDE.md ใดๆ ตอนนี้ ทดสอบ prompt ที่จงใจเขียนแบบคลุมเครือ</p>
+      <pre><code class="language-bash">tmux new-session -d -s lab05 -x 140 -y 40
+tmux send-keys -t lab05 'cd ~/lab05-project && claude' Enter
+sleep 4
+tmux send-keys -t lab05 Enter   # ยอมรับ workspace trust dialog ถ้าขึ้นมา</code></pre>
+      <p>ส่ง prompt แย่ตัวนี้เข้าไป (จงใจคลุมเครือ — นี่คือ "prompt แย่" ที่โจทย์ให้ปรับปรุงใน Step 5):</p>
+      <pre><code class="language-bash">tmux send-keys -t lab05 'Make the api.py file better' Enter
+sleep 20
+tmux capture-pane -t lab05 -p -S -80 > ~/lab05-project/run-A-baseline.txt
+cat ~/lab05-project/run-A-baseline.txt</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> เปิด <code>run-A-baseline.txt</code> แล้วบันทึก 2 ค่า — (1) จำนวน turn/tool-call ที่ agent ใช้ก่อนถามกลับหรือจบงาน (2) agent ตีความ "better" เป็นอะไรบ้าง (error handling? type hints? อื่นๆ) มักจะเดาไม่ตรงกับที่ทีมต้องการ เพราะ prompt ไม่ได้บอกเกณฑ์ชัดเจน
+      </div>
+      <div class="warn">
+        <strong>สังเกต:</strong> ถ้า agent ถามกลับเพื่อ clarify นั่นคือสัญญาณว่า prompt คลุมเครือเกินไปจนมันต้องเดา — นับเป็น 1 correction cycle ที่เสียเวลา
+      </div>
+    </div>
+
+    <!-- Step 3: write CLAUDE.md -->
+    <div class="step">
+      <h3><span class="step-num">3</span>เขียน CLAUDE.md ของโปรเจกต์นี้จริง</h3>
+      <p>ล้าง state ก่อน (<code>/clear</code>) แล้วรัน <code>/init</code> เพื่อให้ Claude generate CLAUDE.md เริ่มต้น จากนั้นแก้ไขให้ specific ตามหลัก Module นี้ — เน้นสิ่งที่วัดผลได้จริง ไม่ใช่คำคลุมๆ</p>
+      <pre><code class="language-bash">tmux send-keys -t lab05 '/clear' Enter
+sleep 2
+tmux send-keys -t lab05 '/init' Enter
+sleep 15
+tmux capture-pane -t lab05 -p -S -40</code></pre>
+      <p>เปิด CLAUDE.md ที่ถูกสร้างแล้วแก้ให้มีกฎที่ specific เพิ่มเข้าไป (แก้ไฟล์นี้นอก tmux ด้วย editor ปกติ หรือใช้ <code>/memory</code> ใน session):</p>
+      <pre><code class="language-markdown"># lab05-project
+
+## Code Standards
+- Python: 4-space indentation, type hints บน public function ทุกตัว
+- ทุก HTTP call ต้อง wrap ด้วย try/except และ raise ค่า error
+  ที่มี context (ห้าม bare `except:` และห้าม swallow exception เงียบๆ)
+- ฟังก์ชันห้ามยาวเกิน 40 บรรทัด — ถ้าเกินให้แตกฟังก์ชันย่อย
+
+## Testing
+- ทุกฟังก์ชันใน src/ ต้องมี unit test คู่กันใน tests/
+- รัน `pytest --cov=src` ก่อน commit — coverage ต้อง ≥ 80%
+
+## Git
+- Commit message ใช้ conventional commits: feat/fix/refactor/test</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> <code>cat ~/lab05-project/CLAUDE.md</code> ต้องมีกฎที่วัดผลได้จริง (ตัวเลข, ชื่อ tool, threshold ชัดเจน) ไม่ใช่ประโยคกว้างๆ แบบ "write good code"
+      </div>
+    </div>
+
+    <!-- Step 4: re-run same prompt with CLAUDE.md -->
+    <div class="step">
+      <h3><span class="step-num">4</span>รัน prompt เดิมซ้ำ พร้อม CLAUDE.md แล้ว</h3>
+      <p>reset git ให้ <code>api.py</code> กลับไปสภาพเดิม (undo การแก้จาก Step 2 ถ้ามี) แล้วเริ่ม session ใหม่ที่โหลด CLAUDE.md เข้ามาอัตโนมัติ ส่ง prompt แย่ตัวเดิมเป๊ะๆ</p>
+      <pre><code class="language-bash">cd ~/lab05-project
+git checkout -- src/api.py    # คืนไฟล์กลับสภาพ baseline
+
+tmux send-keys -t lab05 '/clear' Enter
+sleep 2
+tmux send-keys -t lab05 'Make the api.py file better' Enter
+sleep 25
+tmux capture-pane -t lab05 -p -S -100 > ~/lab05-project/run-B-with-claudemd.txt
+cat ~/lab05-project/run-B-with-claudemd.txt</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> เทียบ <code>run-A-baseline.txt</code> กับ <code>run-B-with-claudemd.txt</code> — Run B ควรมี error handling ตาม pattern ที่กำหนด, type hints, และไม่ต้องถามกลับเพราะ CLAUDE.md ให้เกณฑ์ชัดแล้ว นับจำนวน tool-call/turn ของทั้งสอง run เทียบกันจริง (ดูจากบรรทัดที่ agent เรียก tool ใน capture)
+      </div>
+    </div>
+
+    <!-- Step 5: before/after prompt exercise -->
+    <div class="step">
+      <h3><span class="step-num">5</span>Exercise: ปรับปรุง prompt แย่ด้วยตัวเอง</h3>
+      <p>ต่อไปนี้คือ prompt แย่อีกตัวหนึ่ง — เขียนใหม่ให้ specific ตามหลัก Module นี้ (ระบุเกณฑ์, ตัวเลข, tool ที่ใช้) แล้วรันเทียบทั้งสองแบบ</p>
+      <pre><code class="language-text">Prompt แย่ (ต้นฉบับ):
+"Add tests for create_order"</code></pre>
+      <p>ตัวอย่างการปรับปรุง (ห้ามลอกตรงๆ — ปรับให้เข้ากับโปรเจกต์จริงของคุณ):</p>
+      <pre><code class="language-text">Prompt ที่ปรับปรุงแล้ว:
+"Add pytest unit tests for create_order() in tests/test_api.py
+covering: (1) normal case with 2+ items, (2) empty items list,
+(3) items with float prices needing rounding. Use pytest fixtures,
+no mocking needed since create_order has no I/O. Run
+`pytest tests/test_api.py -v` after writing and paste the output."</code></pre>
+      <pre><code class="language-bash">tmux send-keys -t lab05 '/clear' Enter
+sleep 2
+# รันแบบ vague ก่อน แล้ว capture
+tmux send-keys -t lab05 'Add tests for create_order' Enter
+sleep 20
+tmux capture-pane -t lab05 -p -S -80 > ~/lab05-project/run-C-vague-prompt.txt
+
+tmux send-keys -t lab05 '/clear' Enter
+sleep 2
+# รันแบบ specific ที่ปรับปรุงแล้ว
+tmux send-keys -t lab05 'Add pytest unit tests for create_order() in tests/test_api.py covering: (1) normal case with 2+ items, (2) empty items list, (3) items with float prices needing rounding. Use pytest fixtures, no mocking needed. Run pytest -v after writing and paste the output.' Enter
+sleep 25
+tmux capture-pane -t lab05 -p -S -100 > ~/lab05-project/run-D-specific-prompt.txt</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> เทียบไฟล์ test ที่ได้จาก run C vs run D — run D ควรมี edge case ครบตามที่ระบุ (empty list, float rounding) ในขณะที่ run C มักจะได้แค่ happy-path test เดียว เพราะ prompt ไม่ได้บอก edge case ที่ต้องการ
+      </div>
+    </div>
+
+    <!-- Step 6: /context -->
+    <div class="step">
+      <h3><span class="step-num">6</span>ตรวจ context usage ด้วย <code>/context</code></h3>
+      <p>ณ จุดนี้ session ควรมีประวัติสะสมพอสมควรจากหลาย run — ลองรัน <code>/context</code> เพื่อดูค่าจริง</p>
+      <pre><code class="language-bash">tmux send-keys -t lab05 '/context' Enter
+sleep 3
+tmux capture-pane -t lab05 -p -S -40</code></pre>
+      <p>อ่านค่า usage % ที่ได้ แล้วจับคู่กับ threshold:</p>
+      <table>
+        <tr><th>ค่าที่เห็น</th><th>ความหมาย</th><th>ต้องทำอะไรไหม</th></tr>
+        <tr><td>&lt; 70%</td><td>Normal</td><td>ทำงานต่อได้ปกติ</td></tr>
+        <tr><td>70–85%</td><td>Warning</td><td>เริ่มพิจารณา <code>/compact</code></td></tr>
+        <tr><td>&gt; 85%</td><td>Danger</td><td>ควร <code>/compact</code> ก่อนสั่งงานต่อ</td></tr>
+      </table>
+      <div class="verify">
+        <strong>Verify:</strong> จดค่า % ที่เห็นจริงจากคำสั่ง <code>/context</code> — ถ้ายังต่ำกว่า 70% ให้รัน prompt เพิ่มอีก 2-3 รอบ (เช่นขอให้ agent อ่านไฟล์ใหญ่ๆ) เพื่อดันตัวเลขขึ้นแล้วรัน <code>/context</code> ซ้ำเพื่อเห็นความต่าง
+      </div>
+    </div>
+
+    <!-- Step 7: /compact -->
+    <div class="step">
+      <h3><span class="step-num">7</span>บีบอัดด้วย <code>/compact</code> และยืนยัน CLAUDE.md ยังอยู่</h3>
+      <pre><code class="language-bash">tmux send-keys -t lab05 '/compact focus on the CLAUDE.md rules and testing work' Enter
+sleep 15
+tmux capture-pane -t lab05 -p -S -60
+
+# หลัง compact เสร็จ ถามคำถามที่ต้องใช้กฎจาก CLAUDE.md เพื่อยืนยันว่ามันยังจำได้
+tmux send-keys -t lab05 'What indentation and coverage threshold does this project use, per CLAUDE.md?' Enter
+sleep 10
+tmux capture-pane -t lab05 -p -S -30</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> agent ต้องตอบ "4-space indentation" และ "coverage ≥ 80%" ถูกต้อง แม้ conversation history ก่อนหน้าจะถูกบีบอัดไปแล้ว — นี่คือหลักฐานว่า CLAUDE.md persist ผ่าน <code>/compact</code> จริง ไม่ใช่แค่ทฤษฎี
+      </div>
+      <div class="danger">
+        <strong>ถ้าตอบผิดหรือจำไม่ได้:</strong> เช็คว่า CLAUDE.md ยังอยู่ที่ root ของโปรเจกต์ (<code>cat CLAUDE.md</code>) และ session เปิดจาก working directory เดียวกับที่มีไฟล์นั้นจริง — CLAUDE.md ที่อยู่ผิด path จะไม่ถูก auto-load
+      </div>
+    </div>
+
+    <!-- Step 8: rules directory (optional bonus) -->
+    <div class="step">
+      <h3><span class="step-num">8</span>Bonus: แยก CLAUDE.md เป็น rules directory</h3>
+      <p>เมื่อ CLAUDE.md เริ่มยาวเกิน 1 หน้าจอ ลองแยกเป็น <code>.claude/rules/*.md</code> ตามหมวด</p>
+      <pre><code class="language-bash">mkdir -p ~/lab05-project/.claude/rules
+cat > ~/lab05-project/.claude/rules/testing.md << 'EOF'
+# Testing rules
+- ทุกฟังก์ชันใน src/ ต้องมี unit test คู่กันใน tests/
+- รัน `pytest --cov=src` ก่อน commit — coverage ต้อง >= 80%
+EOF
+
+cat > ~/lab05-project/.claude/rules/code-style.md << 'EOF'
+# Code style rules
+- Python: 4-space indentation, type hints บน public function ทุกตัว
+- ทุก HTTP call ต้อง wrap ด้วย try/except พร้อม context ใน error
+EOF
+
+tmux send-keys -t lab05 '/clear' Enter
+sleep 2
+tmux send-keys -t lab05 'What testing coverage threshold does this project require?' Enter
+sleep 10
+tmux capture-pane -t lab05 -p -S -30</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> agent ต้องตอบ "80%" ได้ถูกต้องแม้กฎนั้นย้ายไปอยู่ใน <code>.claude/rules/testing.md</code> แล้ว ไม่ได้อยู่ใน CLAUDE.md หลักโดยตรง — ยืนยันว่าไฟล์ใน rules directory ถูก auto-load เหมือนกัน
+      </div>
+    </div>
+
+    <details class="troubleshoot">
+      <summary>Troubleshoot: tmux capture-pane ว่างเปล่าหรือ Claude ไม่ตอบ</summary>
+      <p>สาเหตุที่พบบ่อย:</p>
+      <ul>
+        <li><strong>sleep สั้นเกินไป:</strong> agentic loop ที่มี tool call หลายรอบใช้เวลา 15-30 วินาทีขึ้นไป — เพิ่ม sleep แล้ว capture ใหม่</li>
+        <li><strong>ยังติด dialog:</strong> เช็คว่า workspace trust dialog หรือ permission prompt ค้างอยู่หรือไม่ ด้วย <code>tmux capture-pane -t lab05 -p -S -10</code> แล้วส่ง <code>Enter</code> เพิ่ม</li>
+        <li><strong>session ตาย:</strong> เช็คว่า session ยังอยู่ด้วย <code>tmux ls</code> — ถ้าไม่มี <code>lab05</code> แสดงว่า process crash ต้องเปิดใหม่</li>
+        <li><strong>claude ไม่ login:</strong> รัน <code>claude auth status</code> นอก tmux ก่อนเริ่ม lab เพื่อยืนยัน auth</li>
+      </ul>
+    </details>
+
+    <details class="troubleshoot">
+      <summary>Troubleshoot: <code>/compact</code> แล้ว agent ลืมกฎใน CLAUDE.md</summary>
+      <p>ปกติ CLAUDE.md ควร survive การ compact เพราะถูก re-inject เป็น system context ใหม่เสมอ ถ้าไม่รอด:</p>
+      <ul>
+        <li>เช็ค path — CLAUDE.md ต้องอยู่ที่ root ของ working directory ที่เปิด <code>claude</code> ขึ้นมา ไม่ใช่ subfolder</li>
+        <li>เช็คว่าไม่ได้เปิด session ด้วย <code>--bare</code> flag ซึ่งข้าม CLAUDE.md loading ไปเลย</li>
+        <li>ลอง <code>/memory</code> เพื่อเปิดดู CLAUDE.md ที่ agent เห็นจริง เทียบกับไฟล์บน disk</li>
+      </ul>
+    </details>
+
+    <div class="objectives">
+      <h2>สรุป &amp; ต่อยอด</h2>
+      <p>
+        Lab นี้พิสูจน์ด้วยมือว่า instruction ที่ specific ลด correction cycle ได้จริง (เทียบ run A vs B,
+        run C vs D) และ CLAUDE.md เป็นชั้น context ที่ persist ข้าม <code>/compact</code> ต่างจาก user prompt
+        รายรอบที่หายไปเมื่อ context ถูกบีบอัด — ส่วน rules directory pattern ช่วยให้ทีมที่มีกฎเยอะ scale ได้
+        โดยไม่ทำให้ CLAUDE.md กลายเป็นไฟล์ยักษ์ที่ merge conflict ตลอด
+      </p>
+      <p>
+        ต่อยอด: ลองเขียน skill จริงในรูปแบบ declarative lesson จาก bug หรือ pattern ที่เจอในงานจริงของทีมคุณ
+        แล้วเก็บไว้ใน <code>.claude/skills/</code> — Module 06 จะพาไปดูวิธี gate การทำงานของ agent ด้วย hooks
+        และต่อ MCP server เข้ากับระบบภายนอก ซึ่งเป็นจุดที่ prompt injection awareness จาก module นี้สำคัญมากขึ้นไปอีก
+        เพราะ agent จะเริ่มดึงข้อมูลจากแหล่งที่ควบคุมไม่ได้โดยตรง
+      </p>
+    </div>
+
+    <div class="pagefoot">
+      <a href="../04-engineering-workflows/lab.html">← Module 04: Engineering Workflows</a>
+      <a href="../06-hooks-permissions-mcp/lab.html">Module 06: Hooks, Permissions &amp; MCP →</a>
+    </div>
+
+    <div class="footer-note">
+      NTT DATA Internal Enablement — Module 05 Lab
+    </div>
+  </div>
+</body>
+</html>

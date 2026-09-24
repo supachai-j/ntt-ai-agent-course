@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab · Module 03 — Claude Code CLI Fundamentals</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <div class="topnav"><div class="brand"><span class="dot"></span> NTT · AI Agent Engineering Course</div>
+  <nav><a href="../../index.html">Home</a><a href="slides.html">Slides</a></nav></div>
+
+  <div class="wrap">
+    <div class="hero">
+      <span class="badge">Lab · Module 03</span>
+      <h1>Claude Code CLI — Fundamentals</h1>
+      <p class="lead">
+        ติดตั้ง Claude Code จริงบนเครื่อง, ยืนยัน auth, สร้างโปรเจกต์ทดลองพร้อม CLAUDE.md
+        แล้วรัน Claude Code ครั้งแรกกับ task จริง — ตรวจผลลัพธ์ด้วย <code>jq</code> ทุก step
+      </p>
+    </div>
+
+    <div class="lab-meta">
+      <span>⏱ 30-40 นาที</span>
+      <span>💻 ต้องมี node/npx ในเครื่อง</span>
+      <span>🌐 ต้องมี Claude Pro/Max subscription หรือ ANTHROPIC_API_KEY</span>
+      <span>🐚 Bash + jq</span>
+    </div>
+
+    <div class="prereq">
+      <h2>Prerequisites</h2>
+      <ul>
+        <li>☐ มี Node.js และ npm ติดตั้งแล้ว (เครื่อง lab นี้มี <code>node</code>/<code>npx</code> พร้อมใช้)</li>
+        <li>☐ มีสิทธิ์ npm global install (<code>npm install -g</code>) หรือใช้ npx แทนได้</li>
+        <li>☐ มี Claude.ai account (Pro/Max) สำหรับ OAuth login <strong>หรือ</strong> มี <code>ANTHROPIC_API_KEY</code></li>
+        <li>☐ ติดตั้ง <code>jq</code> สำหรับ parse JSON output (<code>jq --version</code> ตรวจสอบก่อน)</li>
+        <li>☐ ติดตั้ง git (ใช้ <code>git init</code> สร้างโปรเจกต์ทดลอง)</li>
+      </ul>
+    </div>
+
+    <div class="objectives">
+      <h2>Objectives</h2>
+      <ul>
+        <li>ติดตั้งและ verify การทำงานของ Claude Code CLI บนเครื่องจริง</li>
+        <li>เข้าใจความแตกต่างระหว่าง interactive mode กับ print mode ผ่านการรันจริง</li>
+        <li>เขียน CLAUDE.md ของตัวเองและเห็นผลว่า agent ใช้ context นั้นจริง</li>
+        <li>รัน print mode พร้อม <code>--output-format json</code> แล้ว parse ผลลัพธ์ด้วย jq</li>
+        <li>รู้วิธี diagnose ปัญหา auth เบื้องต้นเมื่อ Claude Code ใช้งานไม่ได้</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">1</span>ติดตั้ง Claude Code</h3>
+      <p>ติดตั้ง CLI แบบ global ผ่าน npm — เครื่อง lab นี้มี node/npx พร้อมใช้งานแล้ว</p>
+      <pre><code>npm install -g @anthropic-ai/claude-code</code></pre>
+      <p>ตรวจว่าติดตั้งสำเร็จและ path ถูกต้อง:</p>
+      <pre><code>claude --version</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> output ควรเป็นเลข version เช่น <code>2.1.281 (Claude Code)</code>
+        และ exit code เป็น <code>0</code> (เช็คด้วย <code>echo $?</code>)
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">2</span>ตรวจสุขภาพการติดตั้งด้วย claude doctor</h3>
+      <p><code>claude doctor</code> ตรวจ path ของ binary, การตั้งค่า auto-update, และเช็คว่ามีการติดตั้งซ้ำซ้อนหรือไม่</p>
+      <pre><code>claude doctor</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> ต้องเห็นบรรทัด <code>No installation issues found.</code> ใกล้ท้าย output —
+        ถ้าเจอ "Multiple installations found" ให้จดไว้ แต่ยังใช้งานต่อได้ถ้า <code>claude --version</code> ทำงานปกติ
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">3</span>ยืนยัน Authentication</h3>
+      <p>เลือกวิธี auth วิธีใดวิธีหนึ่ง แล้วยืนยันสถานะ:</p>
+      <pre><code># วิธี A: OAuth ผ่าน browser (ต้องมี Claude Pro/Max)
+claude
+# (รอบแรกจะเปิด browser ให้ login — หลัง login เสร็จกด Ctrl+C ออกจาก REPL ได้)
+
+# วิธี B: login แบบ console สำหรับ API billing
+claude auth login --console
+
+# วิธี C: ตั้ง API key ตรงๆ ผ่าน environment variable
+export ANTHROPIC_API_KEY="sk-ant-your-key-here"</code></pre>
+      <p>ไม่ว่าจะเลือกวิธีไหน ให้ตรวจสถานะด้วยคำสั่งนี้:</p>
+      <pre><code>claude auth status</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> output เป็น JSON ที่มี <code>"loggedIn": true</code> เช่น:
+<pre><code>{
+  "loggedIn": true,
+  "authMethod": "claude.ai",
+  "apiProvider": "firstParty",
+  "email": "you@example.com"
+}</code></pre>
+      </div>
+      <div class="warn">
+        <strong>หมายเหตุ:</strong> ถ้าตั้งทั้ง OAuth login และ <code>ANTHROPIC_API_KEY</code> พร้อมกัน
+        พฤติกรรมลำดับความสำคัญอาจต่างกันตาม version — ใช้ <code>claude auth status</code>
+        เพื่อดูว่าจริงๆ แล้วกำลังใช้ authMethod ไหนอยู่
+        (ตรวจสอบ syntax ล่าสุดกับ <code>--help</code> ก่อนใช้งานจริง)
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">4</span>สร้างโปรเจกต์ทดลอง</h3>
+      <p>สร้าง directory ใหม่ ใส่ git init และไฟล์ตัวอย่างเล็กๆ ให้ Claude Code มีอะไรให้สำรวจ</p>
+      <pre><code>mkdir -p ~/lab03-claude-code && cd ~/lab03-claude-code
+git init
+echo "print('hello world')" > app.py
+echo "# Lab 03 test project" > README.md
+git add -A
+git commit -m "init lab project"</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> <code>git log --oneline</code> ต้องแสดง commit "init lab project"
+        และ <code>git status</code> ต้องขึ้น <code>working tree clean</code>
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">5</span>เขียน CLAUDE.md ของตัวเอง</h3>
+      <p>สร้างไฟล์ project memory ที่ Claude Code จะ auto-load ทุกครั้งที่ทำงานใน directory นี้</p>
+      <pre><code>cat > CLAUDE.md << 'EOF'
+# Project: lab03-claude-code
+
+## Architecture
+Single-file Python demo project used for Claude Code lab exercises.
+
+## Key commands
+- Run: python app.py
+
+## Code standards
+- Keep it minimal, this is a lab sandbox
+EOF</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> <code>cat CLAUDE.md</code> ต้องแสดงเนื้อหาที่เขียนไว้ครบ
+        และ <code>wc -l CLAUDE.md</code> ควรได้ประมาณ 10 บรรทัด
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">6</span>รัน Claude Code ครั้งแรกด้วย Print Mode</h3>
+      <p>ใช้ <code>-p</code> (print mode) รัน task ง่ายๆ แบบ one-shot ไม่มี interactive dialog — จำกัดจำนวนรอบด้วย <code>--max-turns</code></p>
+      <pre><code>claude -p "list all files and explain the project structure" --max-turns 5</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> ต้องได้คำอธิบายโครงสร้างโปรเจกต์เป็นข้อความกลับมา (ไม่ใช่ error)
+        และ exit code เป็น <code>0</code>. Agent ควรพูดถึง <code>app.py</code>, <code>README.md</code>,
+        และ <code>CLAUDE.md</code> ที่สร้างไว้ในขั้นก่อนหน้า — พิสูจน์ว่า agent เห็นและใช้ context จริง
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">7</span>ตรวจผลลัพธ์แบบ JSON ด้วย jq</h3>
+      <p>รันซ้ำแต่ขอ output เป็น JSON เพื่อดึงข้อมูล metadata เช่น cost และ session ID — ใช้ได้ทั้งสำหรับ debug และ log ใน automation pipeline</p>
+      <pre><code>claude -p "list all files and explain the project structure" \
+  --output-format json --max-turns 5 > claude_output.json
+
+cat claude_output.json | jq -r '.result'
+cat claude_output.json | jq -r '.session_id, .total_cost_usd, .num_turns'</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> <code>jq -r '.session_id'</code> ต้องได้ UUID (เช่น <code>447dff69-0c56-4c89-...</code>),
+        <code>.total_cost_usd</code> ต้องเป็นตัวเลขทศนิยมเล็กๆ (เช่น <code>0.0799...</code>),
+        และ <code>jq empty claude_output.json</code> (ไม่ error) ยืนยันว่าเป็น valid JSON
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">8</span>ทดลอง Interactive Mode (เปรียบเทียบ)</h3>
+      <p>เปิด REPL แบบ interactive ใน directory เดียวกัน เพื่อเห็นความต่างจาก print mode — จะเจอ trust dialog เพราะเป็น directory ใหม่ที่ยังไม่เคย trust</p>
+      <pre><code>cd ~/lab03-claude-code
+claude
+# ตอบ trust dialog แรกที่ขึ้นมา (เลือก "Yes, proceed")
+# ลองพิมพ์: "what does this project do?"
+# ออกจาก session ด้วย Ctrl+C หรือพิมพ์ /exit</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> เห็น trust dialog ก่อนเข้า REPL (ต่างจาก print mode ที่ข้าม dialog นี้),
+        และ agent ตอบคำถามโดยอ้างอิงเนื้อหาจาก CLAUDE.md ที่เขียนไว้
+      </div>
+      <div class="danger">
+        <strong>Workspace safety:</strong> Trust dialog มีไว้ป้องกันการรันโค้ด/คำสั่งจาก directory
+        ที่ไม่รู้จักที่มาโดยไม่ตั้งใจ — อย่า trust directory ที่ไม่ใช่ของตัวเองหรือไม่ผ่านการตรวจสอบ
+      </div>
+    </div>
+
+    <details class="troubleshoot">
+      <summary>Troubleshoot: Auth ล้มเหลว / ANTHROPIC_API_KEY ไม่ถูกอ่าน</summary>
+      <p><strong>อาการ:</strong> <code>claude -p "..."</code> ค้างหรือ error เกี่ยวกับ authentication</p>
+      <ol>
+        <li>เช็คสถานะปัจจุบันก่อน: <code>claude auth status</code> — ดูว่า <code>loggedIn</code> เป็น <code>true</code> ไหม และ <code>authMethod</code> คืออะไร</li>
+        <li>ถ้าตั้งใจใช้ API key แต่ auth status ไม่แสดง ให้เช็คว่า env var ถูก export จริง:
+          <pre><code>echo $ANTHROPIC_API_KEY | head -c 10</code></pre>
+          (ควรเห็นตัวอักษรบางส่วนของ key ไม่ใช่บรรทัดว่าง)
+        </li>
+        <li>ถ้าใช้ OAuth แต่ browser ไม่เปิดอัตโนมัติ (เช่น รันบน remote/headless server)
+          ให้ลอง <code>claude auth login --console</code> แทน ซึ่งจะให้ copy ลิงก์ไปเปิดเองในเครื่องอื่น</li>
+        <li>Logout แล้ว login ใหม่ถ้าสถานะดู corrupt: <code>claude auth logout</code> ตามด้วย <code>claude auth login</code></li>
+        <li>ยืนยันด้วย <code>claude doctor</code> อีกครั้งว่าไม่มี installation issue ที่กระทบ auth</li>
+      </ol>
+      <p>(ตรวจสอบ syntax ล่าสุดกับ <code>claude auth --help</code> ก่อนใช้งานจริง เพราะ flag อาจเปลี่ยนตาม version)</p>
+    </details>
+
+    <div class="step">
+      <h3>สรุป & ต่อยอด</h3>
+      <p>
+        ตอนนี้ควรมี Claude Code ติดตั้งและ auth เรียบร้อยบนเครื่อง, เข้าใจความต่างระหว่าง interactive
+        กับ print mode จากการรันจริง, และเห็นแล้วว่า CLAUDE.md มีผลต่อคำตอบของ agent จริง
+        พร้อมทั้งรู้วิธีดึง metadata (cost, session id) จาก JSON output ด้วย jq
+      </p>
+      <ul>
+        <li>ลองปรับ CLAUDE.md ให้ละเอียดขึ้น (เพิ่ม code standards, key commands) แล้วดูว่าคำตอบของ agent เปลี่ยนไปอย่างไร</li>
+        <li>ลอง <code>--allowedTools</code> จำกัด tool ที่ agent ใช้ได้ในโปรเจกต์ทดลองนี้</li>
+        <li>ลอง <code>-c/--continue</code> เพื่อสานต่อบทสนทนาเดิมแทนที่จะเริ่มใหม่ทุกครั้ง</li>
+        <li>Module ถัดไป (04) จะพาไปลึกขึ้น: feature dev loop, PR review, TDD กับ Claude Code</li>
+      </ul>
+    </div>
+
+    <div class="pagefoot">
+      <a href="../02-hermes-architecture/lab.html">← Module 02: Hermes Architecture</a>
+      <a href="../04-engineering-workflows/lab.html">Module 04: Engineering Workflows →</a>
+    </div>
+
+    <div class="footer-note">NTT DATA Internal Enablement — Module 03 Lab</div>
+  </div>
+</body>
+</html>

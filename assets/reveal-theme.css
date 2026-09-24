@@ -1,0 +1,58 @@
+/* Custom reveal.js theme overrides — dark/technical, matches assets/style.css tokens */
+:root{
+  --r-bg:#0b0f17;
+  --r-accent:#00c2b8;
+  --r-accent-2:#5b8cff;
+  --r-text:#dbe4f0;
+  --r-text-dim:#8b9bb4;
+  --r-panel:#161f2e;
+  --r-border:#233047;
+}
+.reveal{
+  background:radial-gradient(circle at top left,#14213a 0%,var(--r-bg) 55%);
+  font-family:'Segoe UI','Noto Sans Thai',system-ui,sans-serif;
+  color:var(--r-text);
+}
+.reveal h1,.reveal h2,.reveal h3{color:#fff;font-weight:700;}
+.reveal h1{font-size:2.1em;}
+.reveal h2{font-size:1.55em;color:var(--r-accent);}
+.reveal h3{font-size:1.15em;color:var(--r-accent-2);}
+.reveal p, .reveal li{color:var(--r-text);font-size:0.85em;line-height:1.5;}
+.reveal ul, .reveal ol{display:block;margin-left:0.6em;}
+.reveal .subtitle{color:var(--r-text-dim);font-size:0.6em;letter-spacing:.04em;text-transform:uppercase;}
+.reveal section.title-slide{text-align:center;}
+.reveal .badge{
+  display:inline-block;padding:3px 12px;border-radius:999px;
+  background:rgba(0,194,184,0.12);color:var(--r-accent);
+  font-size:0.5em;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  border:1px solid rgba(0,194,184,0.4);margin-bottom:14px;
+}
+.reveal pre{
+  background:#0d1420;border:1px solid var(--r-border);border-radius:8px;
+  box-shadow:none;width:100%;
+}
+.reveal pre code{
+  color:#c9e9ff;max-height:520px;padding:14px 18px;font-size:0.62em;
+}
+.reveal code{color:#7ee8e0;}
+.reveal .two-col{display:grid;grid-template-columns:1fr 1fr;gap:2em;text-align:left;}
+.reveal .card-box{
+  background:var(--r-panel);border:1px solid var(--r-border);border-radius:10px;
+  padding:0.8em 1.1em;margin:0.5em 0;text-align:left;font-size:0.7em;
+}
+.reveal .card-box h4{margin:0 0 6px;color:var(--r-accent-2);font-size:1.1em;}
+.reveal .lab-cta{
+  display:inline-block;margin-top:1em;padding:0.5em 1.2em;border-radius:8px;
+  background:var(--r-accent);color:#04211f;font-weight:700;text-decoration:none;font-size:0.7em;
+}
+.reveal .step-num{
+  display:inline-block;width:1.3em;height:1.3em;line-height:1.3em;text-align:center;
+  background:var(--r-accent-2);color:#031222;border-radius:50%;font-size:0.6em;font-weight:700;margin-right:0.4em;
+}
+.reveal table{font-size:0.65em;border-collapse:collapse;width:100%;}
+.reveal th,.reveal td{border:1px solid var(--r-border);padding:6px 10px;text-align:left;}
+.reveal th{background:var(--r-panel);color:var(--r-accent);}
+.reveal .progress{color:var(--r-accent);}
+.reveal .controls{color:var(--r-accent-2);}
+.reveal a{color:var(--r-accent-2);}
+.reveal small, .reveal .footnote{color:var(--r-text-dim);font-size:0.5em;}

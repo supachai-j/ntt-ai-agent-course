@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module 07 · Multi-Agent Orchestration — NTT AI Agent Engineering Course</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css">
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="../../assets/reveal-theme.css">
+</head>
+<body>
+<div class="reveal">
+  <div class="slides">
+
+    <section class="title-slide">
+      <span class="badge">Module 07 · Scale</span>
+      <h1>Multi-Agent Orchestration</h1>
+      <p class="subtitle">Subagents · Parallel Delegation · Verify Before Trust</p>
+    </section>
+
+    <section>
+      <h2>เมื่อไหร่ต้องใช้ Multi-Agent</h2>
+      <div class="two-col">
+        <div class="card-box">
+          <h4>Single agent พอ</h4>
+          <ul>
+            <li>งาน sequential เดียว context เล็ก</li>
+            <li>งานที่ต้อง maintain state ต่อเนื่อง</li>
+            <li>Debug/fix เฉพาะจุดในไฟล์เดียว</li>
+          </ul>
+        </div>
+        <div class="card-box">
+          <h4>ต้องแตกเป็น Multi-Agent</h4>
+          <ul>
+            <li>Context ใหญ่เกินจะยัดใน context window เดียว</li>
+            <li>งาน independent ที่รันขนานได้ (parallelizable)</li>
+            <li>ต้องการ specialist role แยก — security reviewer, test writer, docs writer</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>สามสัญญาณหลักที่บอกว่าถึงเวลาแตก Agent</h2>
+      <p><span class="step-num">1</span> <strong>Context overflow</strong> — งานมีไฟล์/สเปกเยอะจนโมเดลลืม instruction ต้นๆ หรือ performance ตกเมื่อ context ยาว</p>
+      <p><span class="step-num">2</span> <strong>Parallelizable independent tasks</strong> — งาน A ไม่ต้องรอผล B เช่น เขียน README กับเขียน test คนละไฟล์ ไม่ share state</p>
+      <p><span class="step-num">3</span> <strong>Role specialization</strong> — อยากได้ persona/system prompt ที่ focus แคบ เช่น "review เฉพาะ security" แทนที่จะให้ agent ตัวเดียวสวมหลายหมวก</p>
+    </section>
+
+    <section>
+      <h2>Claude Code Custom Subagents</h2>
+      <p>สร้าง subagent เป็นไฟล์ Markdown ที่มี YAML frontmatter ใน <code>.claude/agents/*.md</code></p>
+      <pre><code class="language-yaml">---
+name: reviewer
+description: Reviews code for security issues, bad practices, and style violations. Use proactively after writing or editing code.
+model: sonnet
+tools: Read, Grep, Glob
+---
+
+You are a senior security-focused code reviewer.
+Review the diff or files given for:
+- Injection risks (SQL, command, template)
+- Secrets/credentials committed in plaintext
+- Missing input validation
+- Unsafe deserialization
+
+Report findings as a list with severity (critical/high/medium/low),
+file:line reference, and a concrete fix suggestion. Do not modify files.
+</code></pre>
+    </section>
+
+    <section>
+      <h2>เรียกใช้ Subagent</h2>
+      <div class="two-col">
+        <div class="card-box">
+          <h4>Static agent (ไฟล์ .md)</h4>
+          <pre><code>› @reviewer check this diff for security issues</code></pre>
+          <p>Claude Code จะโหลด system prompt + tools ที่ระบุใน frontmatter แล้วรันเป็น subagent แยก context</p>
+        </div>
+        <div class="card-box">
+          <h4>Dynamic agent (CLI flag)</h4>
+          <pre><code class="language-bash">claude -p "review auth.py" \
+  --agents '{"reviewer":{"description":"security reviewer","prompt":"You are a security reviewer...","tools":["Read","Grep"]}}'</code></pre>
+          <p>กำหนด agent ชั่วคราวตอนรัน CLI โดยไม่ต้องสร้างไฟล์ — เหมาะกับ automation/CI</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Subagent Frontmatter Fields</h2>
+      <table>
+        <tr><th>Field</th><th>ความหมาย</th></tr>
+        <tr><td><code>name</code></td><td>ชื่อที่ใช้เรียกด้วย <code>@name</code></td></tr>
+        <tr><td><code>description</code></td><td>บอก Claude Code ว่า agent นี้ทำอะไร ใช้ตอนไหน (auto-delegation)</td></tr>
+        <tr><td><code>model</code></td><td>โมเดลที่ subagent นี้ใช้ (เช่น sonnet, opus) — เลือกให้เหมาะกับงาน/cost</td></tr>
+        <tr><td><code>tools</code></td><td>จำกัด tool ที่ subagent เข้าถึงได้ — ตัด write access ถ้าไม่ต้องใช้</td></tr>
+      </table>
+    </section>
+
+    <section>
+      <h2>Parallel Claude Instances ผ่าน tmux</h2>
+      <p>รันหลาย independent task พร้อมกัน — แต่ละ task แยก tmux session ของตัวเอง</p>
+      <pre><code class="language-bash"># สร้าง session แยกสำหรับแต่ละงาน
+tmux new-session -d -s task-readme "claude -p 'write README.md for this repo' > out-readme.log"
+tmux new-session -d -s task-tests  "claude -p 'write unit tests for utils.py' > out-tests.log"
+
+# monitor ผลแบบ loop
+for s in task-readme task-tests; do
+  echo "=== $s ==="
+  tmux capture-pane -t "$s" -p | tail -20
+done
+
+# เช็คว่า session จบหรือยัง แล้ว kill session ที่ค้าง
+tmux list-sessions
+tmux kill-session -t task-readme</code></pre>
+    </section>
+
+    <section>
+      <h2>Anti-pattern: Dependency Race Condition</h2>
+      <div class="card-box" style="border-color:var(--accent-danger, #ff5d5d);">
+        <h4>❌ อย่าทำ</h4>
+        <p>รัน "เขียน API endpoint" กับ "เขียน integration test ที่เรียก endpoint นั้น" แบบขนานกัน — task B อาจ generate test ก่อน task A สร้าง endpoint จริง ผลคือ test อ้าง signature ที่ยังไม่มี หรือ mock ผิดจากของจริง</p>
+      </div>
+      <div class="card-box" style="border-color:var(--accent, #00c2b8);">
+        <h4>✅ ทำแบบนี้</h4>
+        <p>งานที่มี dependency ต้องรัน sequential (A เสร็จก่อนจึงเริ่ม B) หรือให้ agent เดียวทำทั้งคู่เพื่อรักษา context ต่อเนื่อง เฉพาะงานที่ independent จริง (ไม่ share state/interface) ถึงรันขนานได้</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Hermes delegate_task Pattern</h2>
+      <p>หลักการเดียวกับ Claude Code subagents — เทียบจาก Module 02:</p>
+      <ul>
+        <li><strong>Isolated context</strong> — subagent ไม่เห็น conversation history ของ parent agent</li>
+        <li><strong>ต้องส่ง context ที่จำเป็นทั้งหมด</strong> — path, spec, constraint ต้องระบุชัดใน task prompt เพราะ subagent ไม่ได้ "จำ" อะไรมาก่อน</li>
+        <li><strong>ผลลัพธ์เป็น self-report</strong> — subagent สรุปว่า "ทำสำเร็จ" แต่นั่นคือคำบอกเล่า ไม่ใช่หลักฐาน</li>
+      </ul>
+      <div class="card-box">
+        <h4>หลักการร่วม: Verify ก่อนเชื่อ</h4>
+        <p>ไม่ว่าจะเป็น Claude Code subagent หรือ Hermes subagent — parent agent ต้องตรวจ evidence จริง (ไฟล์ที่มีอยู่จริง, test ที่รันผ่านจริง, output ที่ diff ได้) ก่อนถือว่างานเสร็จ</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>ทำไมต้อง Verify เสมอ</h2>
+      <table>
+        <tr><th>พฤติกรรมเสี่ยง</th><th>ทำไมอันตราย</th></tr>
+        <tr><td>เชื่อ log "Done" จาก subagent ทันที</td><td>Subagent อาจ hallucinate ว่าทำสำเร็จ ทั้งที่ error หรือไฟล์ไม่ถูกสร้าง</td></tr>
+        <tr><td>ไม่เปิดไฟล์ output จริง</td><td>เนื้อหาอาจไม่ตรงสเปก หรือ syntax ผิดที่ log ไม่ได้บอก</td></tr>
+        <tr><td>ไม่รัน test/lint หลัง subagent เสร็จ</td><td>Code compile ไม่ผ่าน แต่ subagent รายงานว่าเขียนเสร็จแล้ว</td></tr>
+      </table>
+    </section>
+
+    <section>
+      <h2>Agent Teams (Advanced)</h2>
+      <p>Claude Code รองรับโหมด multi-agent แบบ collaborative ผ่าน flag ระดับ advanced:</p>
+      <pre><code class="language-bash">claude --teammate-mode --brief "coordinate with other agents on this refactor"</code></pre>
+      <ul>
+        <li><code>--teammate-mode</code> — เปิดโหมดให้ agent ทำงานร่วมกันเป็นทีม แชร์สถานะระหว่างกัน</li>
+        <li><code>--brief</code> — ข้อความสั้นสำหรับ SendUserMessage ที่ agent อื่นในทีมเห็นได้</li>
+      </ul>
+      <p style="color:var(--r-text-dim, #8b9bb4);">เป็น feature ขั้นสูง เหมาะกับ workflow ที่ต้องประสาน agent หลายตัวจริงๆ — เริ่มจาก subagent เดี่ยว + parallel tmux ให้คล่องก่อน</p>
+    </section>
+
+    <section>
+      <h2>สรุป: เลือก Pattern ให้ถูกงาน</h2>
+      <table>
+        <tr><th>สถานการณ์</th><th>Pattern</th></tr>
+        <tr><td>งาน specialist เดียว เรียกซ้ำได้</td><td>Custom subagent (<code>.claude/agents/*.md</code>)</td></tr>
+        <tr><td>งานชั่วคราว ไม่อยากสร้างไฟล์</td><td><code>--agents</code> flag แบบ dynamic</td></tr>
+        <tr><td>หลายงาน independent รันพร้อมกัน</td><td>tmux session แยกต่องาน</td></tr>
+        <tr><td>งานมี dependency ระหว่างกัน</td><td>Sequential เดียว — ห้ามขนาน</td></tr>
+      </table>
+      <a class="lab-cta" href="lab.html">ไปที่ Lab: สร้าง Subagent + รัน Parallel Task →</a>
+    </section>
+
+    <section class="title-slide">
+      <h2>Lab 07</h2>
+      <p class="subtitle">สร้าง @reviewer subagent จริง + รัน 2 print-mode task ขนานผ่าน background terminal แล้ว verify ผลด้วยหลักฐานจริง</p>
+      <a class="lab-cta" href="lab.html">เริ่ม Lab →</a>
+    </section>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    controls: true,
+    progress: true,
+    center: false,
+    transition: 'slide',
+    width: 1100,
+    height: 700,
+    margin: 0.08
+  });
+</script>
+</body>
+</html>

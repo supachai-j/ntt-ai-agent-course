@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module 06 · Hooks, Permissions &amp; MCP Integration — Slides</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/dist/theme/black.css">
+<link rel="stylesheet" href="../../assets/style.css">
+<link rel="stylesheet" href="../../assets/reveal-theme.css">
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+  <section class="title-slide">
+    <span class="badge">Module 06 · Engineering</span>
+    <h1>Hooks, Permissions &amp; MCP Integration</h1>
+    <p class="subtitle">การควบคุม agent อย่างปลอดภัย และเชื่อมต่อกับระบบภายนอกจริง</p>
+  </section>
+
+  <section>
+    <h2>ทำไมต้องคุม Claude Code</h2>
+    <p>Agent ที่รัน tool ได้เองมีพลังมาก แต่ก็เสี่ยงมาก — รัน command ผิด, แก้ไฟล์ผิด,
+       หรือ push โค้ดที่ยังไม่ผ่าน review ได้เหมือนกัน</p>
+    <div class="card-box">
+      <h4>สามชั้นการควบคุม</h4>
+      <ul>
+        <li><strong>Permissions</strong> — กำหนดว่า tool ไหนใช้ได้/ห้ามใช้/ต้องถาม</li>
+        <li><strong>Hooks</strong> — จุดแทรก script ที่ intercept และ block การกระทำได้จริง (deterministic, ไม่ใช่แค่ prompt)</li>
+        <li><strong>MCP</strong> — มาตรฐานเชื่อม agent เข้ากับ tool/data source ภายนอกอย่างเป็นระบบ</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Permission Modes</h2>
+    <table>
+      <tr><th>Mode</th><th>พฤติกรรม</th></tr>
+      <tr><td><code>default</code></td><td>ถามยืนยันทุก tool call ที่มีผลกระทบ (write, bash, ฯลฯ)</td></tr>
+      <tr><td><code>acceptEdits</code></td><td>ยอมรับ file edit อัตโนมัติ แต่ยังถาม bash/tool อันตรายอื่น</td></tr>
+      <tr><td><code>plan</code></td><td>วางแผนอย่างเดียว ห้าม execute ใดๆ จนกว่าจะออกจากโหมด</td></tr>
+      <tr><td><code>bypassPermissions</code></td><td>ข้ามการถามทั้งหมด (เทียบเท่า <code>--dangerously-skip-permissions</code>) — ใช้เฉพาะ sandbox/CI ที่ควบคุมแล้ว</td></tr>
+    </table>
+    <p>เลือกโหมดผ่าน flag <code>--permission-mode</code> หรือกด <code>Shift+Tab</code> ใน interactive session</p>
+  </section>
+
+  <section>
+    <h2>--allowedTools / --disallowedTools</h2>
+    <pre><code># อนุญาตเฉพาะ Bash และ Read เท่านั้น ที่เหลือถามก่อนเสมอ
+claude -p "run the test suite" --allowedTools "Bash,Read"
+
+# ห้ามใช้ WebFetch และ Bash rm โดยเด็ดขาด
+claude --disallowedTools "WebFetch" -p "review this PR"
+
+# allow เจาะจงถึงระดับ command pattern
+claude --allowedTools "Bash(git diff:*)" "Bash(git log:*)"</code></pre>
+    <p>รูปแบบ <code>Tool(pattern:*)</code> ให้ควบคุมละเอียดกว่าการ allow ทั้ง tool</p>
+  </section>
+
+  <section>
+    <h2>settings.json Hierarchy</h2>
+    <div class="two-col">
+      <div>
+        <div class="card-box">
+          <h4>ลำดับการอ่านค่า (สูง→ต่ำ)</h4>
+          <ol>
+            <li><code>.claude/settings.local.json</code> — ส่วนตัว ไม่ commit</li>
+            <li><code>.claude/settings.json</code> — project, commit เข้า repo</li>
+            <li><code>~/.claude/settings.json</code> — user-level, ทุกโปรเจกต์</li>
+            <li>Enterprise managed policy (บังคับ, override ไม่ได้)</li>
+          </ol>
+        </div>
+      </div>
+      <div>
+        <p>ค่าที่ scope แคบกว่าจะ merge ทับ scope กว้างกว่า — เหมาะกับทีมที่ต้องการ baseline
+           security ระดับ org แต่ยังให้ dev ปรับ local ได้บางส่วน</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>ตัวอย่าง permissions ใน settings.json</h2>
+    <pre><code>{
+  "permissions": {
+    "allow": [
+      "Bash(git diff:*)",
+      "Bash(git status)",
+      "Read(*)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Edit(*)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(**/*.pem)",
+      "Bash(rm -rf *)"
+    ]
+  }
+}</code></pre>
+    <p><code>deny</code> ชนะทุกกรณี — แม้ user จะ allow เองใน local ก็ override ไม่ได้ถ้า deny มาจาก scope สูงกว่า</p>
+  </section>
+
+  <section>
+    <h2>Hooks คืออะไร</h2>
+    <p>Hook คือ shell command ที่ Claude Code เรียกอัตโนมัติที่ event จุดต่างๆ ของ lifecycle —
+       รับ JSON ทาง stdin, ตอบกลับผ่าน exit code / JSON ทาง stdout</p>
+    <div class="card-box">
+      <h4>8 ประเภท hook</h4>
+      <table>
+        <tr><td><code>UserPromptSubmit</code></td><td>ก่อน prompt ถูกส่งเข้า model</td></tr>
+        <tr><td><code>PreToolUse</code></td><td>ก่อน tool ถูกเรียก — <strong>block ได้จริง</strong></td></tr>
+        <tr><td><code>PostToolUse</code></td><td>หลัง tool รันเสร็จ</td></tr>
+        <tr><td><code>Notification</code></td><td>เมื่อ agent ต้องการแจ้ง user</td></tr>
+        <tr><td><code>Stop</code></td><td>เมื่อ main agent หยุดตอบ</td></tr>
+        <tr><td><code>SubagentStop</code></td><td>เมื่อ subagent หยุดตอบ</td></tr>
+        <tr><td><code>PreCompact</code></td><td>ก่อน context ถูก compact</td></tr>
+        <tr><td><code>SessionStart</code></td><td>เมื่อ session เริ่มต้น/resume</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>PreToolUse: Security Gate ตัวจริง</h2>
+    <p>ต่างจาก permission ask/deny (config ปกติ) — <code>PreToolUse</code> hook คือ <strong>code ที่รันจริง</strong>
+       ตรวจ input แบบไหนก็ได้ (regex, call API, เช็ค policy server) ก่อนตัดสินใจ block</p>
+    <div class="card-box">
+      <h4>Contract</h4>
+      <ul>
+        <li>รับ JSON <code>{tool_name, tool_input, ...}</code> ทาง stdin</li>
+        <li><code>exit 0</code> → อนุญาตให้ tool รันต่อ</li>
+        <li><code>exit 2</code> → <strong>block</strong> tool call, stderr ถูกส่งกลับให้ agent เห็นเป็นเหตุผล</li>
+        <li>exit code อื่น → error, ถือว่า non-blocking แต่ log ไว้</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>ตัวอย่าง Hook: บล็อก rm -rf / force push</h2>
+    <pre><code>#!/usr/bin/env bash
+# .claude/hooks/guard-bash.sh
+input=$(cat)
+tool_name=$(echo "$input" | jq -r '.tool_name')
+command=$(echo "$input" | jq -r '.tool_input.command // empty')
+
+[ "$tool_name" != "Bash" ] && exit 0
+
+if echo "$command" | grep -Eiq 'rm[[:space:]]+-rf[[:space:]]+(/|\*|~)'; then
+  echo "BLOCKED: destructive rm -rf detected: $command" >&2
+  exit 2
+fi
+
+if echo "$command" | grep -Eiq 'git[[:space:]]+push[[:space:]].*--force'; then
+  echo "BLOCKED: force push not allowed by policy" >&2
+  exit 2
+fi
+
+exit 0</code></pre>
+  </section>
+
+  <section>
+    <h2>ผูก Hook เข้ากับ settings.json</h2>
+    <pre><code>{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/guard-bash.sh"
+          }
+        ]
+      }
+    ]
+  }
+}</code></pre>
+    <p><code>matcher</code> กรองว่า hook นี้ทำงานกับ tool ไหน — ในที่นี้ทำงานเฉพาะตอนเรียก <code>Bash</code>
+       เท่านั้น hook ตัวอื่นจะไม่ถูกเรียก</p>
+  </section>
+
+  <section>
+    <h2>MCP คืออะไร</h2>
+    <p><strong>Model Context Protocol</strong> — มาตรฐานเปิดสำหรับเชื่อม AI agent เข้ากับ
+       external tool และ data source (database, API, internal system) แบบไม่ต้องเขียน integration
+       เฉพาะทุกครั้ง</p>
+    <div class="two-col">
+      <div class="card-box">
+        <h4>Transport</h4>
+        <ul>
+          <li><code>stdio</code> — subprocess local, สื่อสารผ่าน stdin/stdout</li>
+          <li><code>http</code> — remote server ผ่าน HTTP request/response</li>
+          <li><code>sse</code> — Server-Sent Events สำหรับ streaming จาก remote server</li>
+        </ul>
+      </div>
+      <div>
+        <p>MCP server ประกาศ "tools", "resources", "prompts" ของตัวเอง — Claude Code
+           discover แล้วนำมาต่อเข้ากับ tool list ที่ agent เรียกใช้ได้ เหมือนเป็น plugin มาตรฐาน</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>เพิ่ม MCP Server จริง</h2>
+    <pre><code># stdio server (subprocess) — postgres MCP
+claude mcp add postgres -s project -- npx -y @modelcontextprotocol/server-postgres \
+  "postgresql://user:pass@localhost/db"
+
+# HTTP/remote server — GitHub MCP
+claude mcp add --transport http github https://api.githubcopilot.com/mcp \
+  --header "Authorization: Bearer $GITHUB_TOKEN"
+
+# ตรวจสอบว่าติดตั้งและเชื่อมต่อสำเร็จ
+claude mcp list
+claude mcp get postgres</code></pre>
+    <p>Scope: <code>-s user</code> (ทุกโปรเจกต์ของ user), <code>-s project</code> (commit ใน <code>.mcp.json</code> แชร์ทีม),
+       <code>-s local</code> (เฉพาะเครื่อง ไม่ commit)</p>
+    <pre><code># ใช้ MCP resource ตรงๆ ใน chat ด้วย URI scheme &lt;server-name&gt;:&lt;resource-path&gt;
+คุณ: สรุป @github:issue://123 ให้หน่อย แล้วเสนอ fix</code></pre>
+    <p>Resource reference (<code>@server:type://id</code>) ทำให้ agent ดึงข้อมูล live จาก external
+       system เข้ามาเป็น context ได้ทันทีในบทสนทนา ไม่ต้อง copy-paste เอง</p>
+  </section>
+
+  <section>
+    <h2>MCP ใน CI / Bare Mode</h2>
+    <pre><code># รันแบบ headless ใน CI, ไม่มี interactive session, ใช้ MCP config ที่ pin ไว้
+claude --bare -p "run migration check against staging db" \
+  --mcp-config ./ci-mcp.json \
+  --strict-mcp-config
+
+# จำกัด output ของ MCP tool กัน context ถูก flood
+export MAX_MCP_OUTPUT_TOKENS=8000</code></pre>
+    <div class="card-box">
+      <h4>ทำไมต้องเข้มงวดใน CI</h4>
+      <ul>
+        <li><code>--strict-mcp-config</code> — ใช้เฉพาะ server ใน config file ที่ระบุ ไม่ไป merge กับ user/project settings ที่อาจไม่ reproducible</li>
+        <li><code>MAX_MCP_OUTPUT_TOKENS</code> — MCP tool บาง server (เช่น query DB) คืนข้อมูลก้อนใหญ่ได้ ต้องตัดเพื่อกัน context window ล้น</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>เชื่อมโยงกลับ Hermes (Module 02)</h2>
+    <p>Concept เดียวกันทั้งคู่ — Hermes เองก็ไม่ได้ผูก tool ไว้ตายตัวใน code แต่ใช้ MCP เป็น
+       "tool layer" มาตรฐานเหมือนกัน</p>
+    <div class="card-box">
+      <h4>ตัวอย่างใน Hermes</h4>
+      <ul>
+        <li><code>terminal</code>, <code>browser_*</code>, <code>web_search</code> — ล้วนเป็น MCP tool ที่ profile ผูกเข้ามา</li>
+        <li>เพิ่ม/ตัด tool ให้ agent ได้โดยไม่ต้องแก้ core — เหมือนที่ Claude Code เพิ่ม MCP server ใหม่</li>
+        <li>permission model ของ Hermes (approval, allow/deny) ก็อิงหลักการเดียวกับ Claude Code permissions/hooks</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>สรุป</h2>
+    <ul>
+      <li>Permission modes + <code>allow/ask/deny</code> คุมว่า agent "ทำอะไรได้บ้าง" แบบ declarative</li>
+      <li>Hooks คุมแบบ "code จริง" — <code>PreToolUse</code> + exit code 2 คือ security gate ที่ bypass ไม่ได้ด้วย prompt</li>
+      <li>MCP คือมาตรฐานเชื่อมต่อ tool/data ภายนอก — เพิ่ม server ใหม่โดยไม่ต้องแก้ agent core</li>
+      <li>ใน CI ต้องใช้ <code>--strict-mcp-config</code> + จำกัด output token เพื่อความ reproducible และปลอดภัย</li>
+    </ul>
+    <a class="lab-cta" href="lab.html">ไปที่ Lab: เขียน Hook จริง + เพิ่ม MCP Server →</a>
+  </section>
+
+  <section>
+    <h2>จบ Module 06</h2>
+    <p class="subtitle">ต่อไป: Module 07 — Multi-Agent Orchestration</p>
+    <a class="lab-cta" href="lab.html">เริ่ม Lab</a>
+  </section>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/dist/reveal.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: true,
+    transition: 'slide',
+    width: 1100,
+    height: 720,
+  });
+</script>
+</body>
+</html>

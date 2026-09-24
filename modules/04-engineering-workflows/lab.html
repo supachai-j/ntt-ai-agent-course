@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab · Module 04 — Engineering Workflows with Claude Code</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <div class="topnav">
+    <div class="brand"><span class="dot"></span> NTT · AI Agent Engineering Course</div>
+    <nav>
+      <a href="../../index.html">Home</a>
+      <a href="slides.html">Slides</a>
+    </nav>
+  </div>
+
+  <div class="wrap">
+    <div class="hero">
+      <span class="badge">Lab · Module 04</span>
+      <h1>Engineering Workflows with Claude Code</h1>
+      <p class="lead">
+        สร้าง mini-repo จริงที่มี bug ฝังไว้ ใช้ Claude Code print mode หา + แก้ bug,
+        verify ด้วย pytest จริง, ทำ PR review pattern กับ diff จริง แล้วปิดท้ายด้วย
+        TDD mini-exercise ที่คุณเขียน failing test เองแล้วให้ agent implement จนผ่าน
+      </p>
+    </div>
+
+    <div class="lab-meta">
+      <span>⏱ ~50-70 นาที</span>
+      <span>🖥 ต้องมี claude, git, python3, tmux ติดตั้งแล้ว</span>
+      <span>📁 working dir แนะนำ: <code>~/module04-lab</code></span>
+    </div>
+
+    <div class="prereq">
+      <h2>Prerequisites</h2>
+      <ul>
+        <li>ผ่าน Module 03 (ติดตั้ง Claude Code, auth สำเร็จ, รู้จัก print mode vs interactive)</li>
+        <li><code>claude --version</code> รันได้ (แนะนำ v2.x ขึ้นไป)</li>
+        <li><code>git</code>, <code>python3</code> (แนะนำ 3.9+), และ <code>tmux</code> ติดตั้งแล้วบนเครื่อง</li>
+        <li>รู้จัก <code>git diff</code>, <code>git branch</code>, <code>git commit</code> พื้นฐาน</li>
+      </ul>
+    </div>
+
+    <div class="objectives">
+      <h2>Objectives</h2>
+      <ul>
+        <li>สร้าง feature branch แล้วให้ Claude Code หา + แก้ bug ด้วย print mode พร้อม <code>--allowedTools</code> และ <code>--max-turns</code></li>
+        <li>Verify การแก้ไขด้วย <code>pytest</code> จริง (exit code 0)</li>
+        <li>ทำ PR review pattern: pipe <code>git diff</code> เข้า <code>claude -p</code> เพื่อ review อัตโนมัติ</li>
+        <li>ฝึกวินัย TDD กับ agent — เขียน failing test เองก่อน แล้วให้ agent implement จนผ่าน (RED-GREEN)</li>
+        <li>เข้าใจว่าทำไมต้อง set <code>--max-turns</code>/<code>--allowedTools</code> เสมอในงาน automation</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">1</span>สร้าง mini-repo พร้อม bug ที่ตั้งใจใส่ไว้</h3>
+      <p>สร้างโปรเจกต์ Python เล็ก ๆ ที่มี pricing utility และ test suite —
+      ฟังก์ชัน <code>apply_discount()</code> จะมี bug ฝังอยู่โดยตั้งใจ</p>
+      <pre><code class="language-bash">mkdir -p ~/module04-lab/src ~/module04-lab/tests
+cd ~/module04-lab
+
+python3 -m venv .venv
+.venv/bin/pip install -q --upgrade pip
+.venv/bin/pip install -q pytest</code></pre>
+      <p>สร้าง <code>src/pricing.py</code>:</p>
+      <pre><code class="language-python"># src/pricing.py
+"""Small pricing utility with a small intentional bug for Module 04 lab."""
+
+
+def apply_discount(price: float, percent: float) -> float:
+    """Apply a percentage discount to a price.
+
+    Bug: uses `price - percent` instead of `price - (price * percent / 100)`.
+    """
+    return price - percent
+
+
+def total_with_tax(price: float, tax_rate: float = 0.07) -> float:
+    """Return price with tax applied. Correct implementation."""
+    return round(price * (1 + tax_rate), 2)</code></pre>
+      <p>สร้าง <code>tests/test_pricing.py</code>:</p>
+      <pre><code class="language-python"># tests/test_pricing.py
+from src.pricing import apply_discount, total_with_tax
+
+
+def test_apply_discount_10_percent():
+    assert apply_discount(200, 10) == 180
+
+
+def test_apply_discount_50_percent():
+    assert apply_discount(80, 50) == 40
+
+
+def test_total_with_tax_default_rate():
+    assert total_with_tax(100) == 107.0</code></pre>
+      <pre><code class="language-bash">cd ~/module04-lab
+git init -q
+git config user.email "you@example.com"
+git config user.name "Your Name"
+git add -A
+git commit -q -m "Initial pricing module with seeded bug"
+git branch -M main</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> รัน <code>.venv/bin/python -m pytest tests/ -q</code> —
+        ต้องเห็น <strong>2 failed, 1 passed</strong> (exit code 1) เพราะ <code>apply_discount()</code>
+        ยังมี bug อยู่ ถ้าเห็นผลนี้แปลว่า setup ถูกต้อง
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">2</span>สร้าง feature branch แล้วให้ Claude Code หา + แก้ bug</h3>
+      <p>สร้าง branch แยกสำหรับงานนี้ แล้วสั่ง Claude Code ใน print mode ให้อ่าน test ที่ fail
+      แล้วแก้โค้ดจนผ่าน โดยจำกัดสิทธิ์ให้แก้ได้แค่ไฟล์ source (ห้ามแตะ test)</p>
+      <pre><code class="language-bash">cd ~/module04-lab
+git checkout -b fix/discount-bug
+
+claude -p 'The tests in tests/test_pricing.py are failing for apply_discount() \
+  in src/pricing.py. Fix the bug in apply_discount() so all tests pass. \
+  Do not modify the test file.' \
+  --allowedTools 'Read,Edit' \
+  --max-turns 8 \
+  --output-format json > /tmp/fix_result.json
+
+python3 -c "import json; d=json.load(open('/tmp/fix_result.json')); print('subtype:', d['subtype']); print(d['result'])"</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> <code>subtype</code> ต้องเป็น <code>success</code> และ
+        <code>git diff</code> ต้องแสดงการแก้ไขใน <code>src/pricing.py</code> เท่านั้น —
+        ตรวจด้วย <code>git diff --stat</code> ว่ามีแค่ <code>src/pricing.py</code> เปลี่ยน
+      </div>
+      <div class="warn">
+        <strong>ข้อควรระวัง:</strong> <code>--allowedTools 'Read,Edit'</code> ไม่รวม <code>Bash</code>
+        ดังนั้น Claude จะแก้ไฟล์ได้แต่รัน pytest เองไม่ได้ — ผลลัพธ์ text มักบอกว่า "ต้องการรัน
+        test เพื่อยืนยัน" นั่นคือพฤติกรรมที่ถูกต้อง เราจะ verify เองในขั้นตอนถัดไป
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">3</span>Verify การแก้ไขด้วย pytest จริง</h3>
+      <p>อย่า trust ผลลัพธ์จาก agent เฉย ๆ — รัน test เองเพื่อยืนยัน</p>
+      <pre><code class="language-bash">.venv/bin/python -m pytest tests/ -q
+echo "exit code: $?"</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> ต้องเห็น <strong>3 passed</strong> และ <code>exit code: 0</code> —
+        ถ้ายัง fail อยู่ อ่าน error แล้วกลับไป iterate รอบสองด้วยคำสั่ง
+        <code>claude -p '...' --continue --max-turns 5</code> (ดู step 8: Troubleshoot)
+      </div>
+      <p>Commit การแก้ไข:</p>
+      <pre><code class="language-bash">git add -A
+git commit -q -m "Fix apply_discount to compute percentage correctly"</code></pre>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">4</span>PR Review Pattern: pipe diff เข้า Claude Code</h3>
+      <p>ก่อนเปิด PR จริง ใช้ Claude Code เป็น first-pass reviewer — pipe
+      <code>git diff</code> ระหว่าง branch เข้าไปตรง ๆ</p>
+      <pre><code class="language-bash">git diff main...fix/discount-bug | claude -p \
+  'Review this diff for bugs, security issues, style' \
+  --max-turns 3 \
+  --output-format json > /tmp/review_result.json
+
+python3 -c "import json; d=json.load(open('/tmp/review_result.json')); print(d['result'])"</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> <code>result</code> ต้องมีข้อความ review จริง (ไม่ใช่ <code>null</code>)
+        และควรกล่าวถึงว่า fix ถูกต้อง (subtract percentage แทน flat amount)
+      </div>
+      <div class="warn">
+        <strong>ข้อสังเกตจากการทดสอบจริง:</strong> <code>--max-turns 1</code> มักไม่พอสำหรับ
+        review pattern นี้ — Claude มักขอใช้ tool หนึ่งครั้งก่อนตอบ (เช่นอ่าน context เพิ่ม)
+        ทำให้ error <code>error_max_turns</code> ตั้งแต่ turn แรก ให้ตั้งอย่างน้อย
+        <code>--max-turns 2-3</code> สำหรับ pattern นี้ในทางปฏิบัติ
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">5</span>Interactive Refactor ผ่าน tmux (human-in-the-loop)</h3>
+      <p>เมื่อ task ต้องการ feedback หลายรอบ ให้ใช้ interactive mode ผ่าน tmux แทน print mode</p>
+      <pre><code class="language-bash">tmux new-session -d -s lab-refactor -x 140 -y 40 -c ~/module04-lab
+tmux send-keys -t lab-refactor 'claude' Enter
+sleep 4</code></pre>
+      <p>รอบแรกที่เข้าไดเรกทอรีนี้ Claude Code จะถาม workspace trust — default ของ dialog
+      คือ <strong>"No, exit"</strong> ต้องกด Down แล้ว Enter เพื่อเลือก "Yes, I trust this folder":</p>
+      <pre><code class="language-bash">tmux send-keys -t lab-refactor Down
+sleep 0.3
+tmux send-keys -t lab-refactor Enter
+sleep 3</code></pre>
+      <p>ส่ง task แรกแล้วตรวจ progress:</p>
+      <pre><code class="language-bash">tmux send-keys -t lab-refactor \
+  'Explain in one sentence what apply_discount does in src/pricing.py, do not edit anything' Enter
+sleep 10
+tmux capture-pane -t lab-refactor -p -S -40</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> <code>capture-pane</code> ต้องแสดงคำอธิบายจาก Claude เกี่ยวกับ
+        <code>apply_discount</code> ในหน้าจอ — ถ้ายังไม่มีคำตอบ ให้ sleep เพิ่มแล้ว capture ใหม่
+        (ดูวิธี detect ว่า Claude ตอบเสร็จหรือยังใน step 8)
+      </div>
+      <p>ปิดท้าย session เมื่อจบงาน:</p>
+      <pre><code class="language-bash">tmux send-keys -t lab-refactor '/exit' Enter
+sleep 2
+tmux kill-session -t lab-refactor</code></pre>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">6</span>TDD Mini-Exercise: RED — เขียน failing test เอง</h3>
+      <p>วินัยสำคัญที่สุดของ workflow นี้: <strong>เขียน test ก่อนเสมอ ห้ามให้ agent
+      เขียนโค้ด production โดยไม่มี test คุมทิศทาง</strong></p>
+      <p>สร้าง <code>tests/test_bulk_discount.py</code> — test ฟังก์ชันใหม่ที่ยังไม่มีอยู่จริง:</p>
+      <pre><code class="language-python"># tests/test_bulk_discount.py
+from src.pricing import apply_bulk_discount
+
+
+def test_bulk_discount_under_threshold_no_discount():
+    # Fewer than 10 units: no bulk discount applies
+    assert apply_bulk_discount(unit_price=20, quantity=5) == 100
+
+
+def test_bulk_discount_at_threshold_applies_10_percent():
+    # 10 or more units: 10% off the total
+    assert apply_bulk_discount(unit_price=20, quantity=10) == 180
+
+
+def test_bulk_discount_above_threshold_applies_10_percent():
+    assert apply_bulk_discount(unit_price=15, quantity=20) == 270</code></pre>
+      <pre><code class="language-bash">.venv/bin/python -m pytest tests/test_bulk_discount.py -q
+echo "exit code: $?"</code></pre>
+      <div class="verify">
+        <strong>Verify (RED):</strong> ต้องเห็น <code>ImportError: cannot import name
+        'apply_bulk_discount'</code> และ <code>exit code: 2</code> — นี่คือ RED state ที่ถูกต้อง
+        เพราะฟังก์ชันยังไม่มีอยู่จริง
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">7</span>TDD Mini-Exercise: GREEN — ให้ Claude Code implement จนผ่าน</h3>
+      <pre><code class="language-bash">claude -p 'There is a failing test file tests/test_bulk_discount.py that imports \
+  apply_bulk_discount from src/pricing.py, but that function does not exist yet. \
+  Read the test file to understand the expected behavior, then implement \
+  apply_bulk_discount(unit_price, quantity) in src/pricing.py so that \
+  tests/test_bulk_discount.py passes. Do not modify any test file.' \
+  --allowedTools 'Read,Edit' \
+  --max-turns 8 \
+  --output-format json > /tmp/tdd_result.json
+
+python3 -c "import json; d=json.load(open('/tmp/tdd_result.json')); print('subtype:', d['subtype'])"
+
+.venv/bin/python -m pytest tests/test_bulk_discount.py -q
+echo "exit code: $?"</code></pre>
+      <div class="verify">
+        <strong>Verify (GREEN):</strong> ต้องเห็น <strong>3 passed</strong> และ <code>exit code: 0</code>
+        — และ <code>git diff tests/test_bulk_discount.py</code> ต้อง <strong>ว่างเปล่า</strong>
+        (agent ไม่ได้แก้ test file เลย) ยืนยันด้วย:
+        <pre><code class="language-bash">git diff --stat tests/test_bulk_discount.py
+# ต้องไม่มี output ใด ๆ ถ้า agent ไม่แตะไฟล์นี้</code></pre>
+      </div>
+      <div class="danger">
+        <strong>กฎเหล็ก:</strong> ถ้า <code>--allowedTools</code> รวมสิทธิ์แก้ไฟล์ test เข้าไปด้วย
+        agent อาจ "แก้ test ให้ผ่านง่าย ๆ" แทนที่จะแก้ implementation จริง — นี่คือ false green
+        ที่อันตรายมาก ต้องจำกัดสิทธิ์ให้ agent แก้ได้แค่ <code>src/</code> เท่านั้นในรอบ GREEN
+      </div>
+      <p>เมื่อผ่านแล้ว commit:</p>
+      <pre><code class="language-bash">git add -A
+git commit -q -m "Add apply_bulk_discount via TDD (test-first)"</code></pre>
+    </div>
+
+    <details class="troubleshoot">
+      <summary>Troubleshoot: Agent แก้ผิดจุด หรือ timeout จาก max-turns ไม่พอ</summary>
+      <p><strong>อาการ 1 — <code>subtype: error_max_turns</code>:</strong>
+      agent ใช้ turn หมดก่อนตอบเสร็จ (มักเกิดกับ <code>--max-turns 1</code> ที่ต่ำเกินไป
+      หรือ task ที่ต้องอ่านหลายไฟล์) แก้โดยเพิ่ม <code>--max-turns</code> แล้วรันใหม่ หรือ
+      สาน context เดิมด้วย <code>--continue</code>:</p>
+      <pre><code class="language-bash">claude -p 'Continue fixing the bug, you ran out of turns last time' \
+  --continue --max-turns 10</code></pre>
+      <p><strong>อาการ 2 — agent แก้ไฟล์ผิด (เช่นแก้ <code>total_with_tax</code>
+      แทนที่จะแก้ <code>apply_discount</code>):</strong> เกิดจาก prompt ที่ไม่เจาะจงพอ
+      แก้โดย revert แล้ว prompt ใหม่ให้ระบุชื่อฟังก์ชัน/บรรทัดที่ต้องแก้ชัดเจนขึ้น:</p>
+      <pre><code class="language-bash">git checkout -- src/pricing.py
+claude -p 'In src/pricing.py, the function apply_discount() at line ~4 has a bug: \
+  it does `return price - percent` but should compute `price - (price * percent / 100)`. \
+  Fix ONLY this function.' \
+  --allowedTools 'Read,Edit' --max-turns 5</code></pre>
+      <p><strong>อาการ 3 — ไม่แน่ใจว่า Claude ตอบเสร็จหรือยังใน tmux session:</strong>
+      ตรวจหาบรรทัดที่ขึ้นต้นด้วย <code>❯</code> ที่ด้านล่างของ pane (แปลว่า Claude รอ input
+      ใหม่ = ตอบเสร็จแล้ว) เทียบกับบรรทัดที่ขึ้นต้นด้วย <code>●</code> หรือ
+      <code>Worked for Ns</code> (แปลว่ากำลังทำงานอยู่) — ถ้ายังไม่แน่ใจให้
+      <code>sleep</code> เพิ่มแล้ว <code>capture-pane</code> ซ้ำ</p>
+      <pre><code class="language-bash">tmux capture-pane -t lab-refactor -p -S -30 | tail -5</code></pre>
+      <p><strong>อาการ 4 — <code>--allowedTools</code> บล็อกจนงานไม่คืบ:</strong> ถ้าจำกัดสิทธิ์
+      แน่นเกินไป (เช่นไม่ให้ <code>Bash</code> เลยแต่ task ต้องรัน pytest) agent จะทำได้แค่
+      แก้ไฟล์แล้วรอ — เพิ่มสิทธิ์เท่าที่จำเป็นจริง เช่น <code>--allowedTools 'Read,Edit,Bash(pytest*)'</code>
+      เพื่อให้ agent รัน test เองได้ในขอบเขตที่ควบคุมได้</p>
+    </details>
+
+    <div class="objectives">
+      <h2>สรุป &amp; ต่อยอด</h2>
+      <p>ใน lab นี้คุณได้ฝึก workflow วิศวกรรมหลักที่ใช้ Claude Code เป็น pair-programmer จริง:</p>
+      <ul>
+        <li>Feature loop มาตรฐาน — branch → prompt → review diff → verify ด้วย test จริง → commit</li>
+        <li>PR review pattern — pipe diff เข้า <code>claude -p</code> เป็น first-pass reviewer
+        ก่อนส่ง human review</li>
+        <li>Interactive refactor ผ่าน tmux สำหรับงานที่ต้องมี human-in-the-loop หลายรอบ</li>
+        <li>TDD discipline — RED (เขียน test เอง) → GREEN (ให้ agent implement) โดยจำกัดสิทธิ์
+        ไม่ให้ agent แตะไฟล์ test</li>
+      </ul>
+      <p><strong>ต่อยอด:</strong> ลองเพิ่ม <code>--max-budget-usd</code> ให้ทุกคำสั่ง
+      <code>claude -p</code> ที่ใช้ในวันนี้ (เช่น <code>--max-budget-usd 0.50</code>)
+      แล้วสังเกตว่า flag นี้เปลี่ยนพฤติกรรมยังไงเมื่อ budget ใกล้หมด — และลองเปลี่ยน
+      <code>--effort</code> ระหว่าง <code>low</code> กับ <code>high</code> ใน step 2 (แก้ bug)
+      เทียบ <code>num_turns</code>/<code>total_cost_usd</code> ที่ได้จาก
+      <code>--output-format json</code> ว่าต่างกันแค่ไหน</p>
+    </div>
+
+    <div class="pagefoot">
+      <a href="../03-claude-code-fundamentals/lab.html">← Module 03: Claude Code Fundamentals</a>
+      <a href="../05-prompt-context/lab.html">Module 05: Prompt &amp; Context →</a>
+    </div>
+
+    <div class="footer-note">
+      NTT DATA Internal Enablement — Module 04 Lab
+    </div>
+  </div>
+</body>
+</html>

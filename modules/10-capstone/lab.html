@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab — Module 10: Capstone Project — NTT AI Agent Engineering Course</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <div class="topnav">
+    <div class="brand"><span class="dot"></span> NTT · AI Agent Engineering Course</div>
+    <nav>
+      <a href="../../index.html">Home</a>
+      <a href="slides.html">Slides</a>
+    </nav>
+  </div>
+
+  <div class="wrap">
+    <div class="hero">
+      <span class="badge">Lab · Module 10</span>
+      <h1>Capstone Project — สร้าง Agent จริงตั้งแต่ต้นจนจบ</h1>
+      <p class="lead">
+        Lab นี้ไม่มีคำตอบสำเร็จรูป — คุณจะเลือกโจทย์เอง, สร้าง repo จริง, ใช้ Claude Code
+        สร้าง core feature จริง, ใส่ hook ป้องกันความเสี่ยงจริง, test จริง และ ship
+        เป็น artifact ที่ demo ได้จริงในเวลาจำกัด ทุก phase ต้องมีหลักฐาน (evidence) ที่จับต้องได้
+      </p>
+    </div>
+
+    <div class="lab-meta">
+      <span>⏱ ระยะเวลา: 1 sprint (แนะนำ 5–7 วัน ทำงานจริง) / ในคลาส: 3–4 ชม.</span>
+      <span>🎯 ระดับ: รวมทุก module 01–09</span>
+      <span>🖥 เครื่องมือ: Claude Code CLI, git, terminal, editor</span>
+    </div>
+
+    <div class="prereq">
+      <h2>Prerequisites</h2>
+      <ul>
+        <li>เรียนจบ module 01–09 ของคอร์สนี้ (หรืออย่างน้อยอ่าน slides ของทุก module ผ่านมาแล้ว)</li>
+        <li>ติดตั้ง Claude Code CLI และ login สำเร็จแล้ว (module 03)</li>
+        <li>มี git และ terminal ใช้งานได้ในเครื่อง</li>
+        <li>เข้าใจพื้นฐาน hooks/permissions (module 06) และ governance checklist (module 08)</li>
+      </ul>
+    </div>
+
+    <div class="objectives">
+      <h2>Learning Objectives</h2>
+      <ul>
+        <li>เลือกและ scope โจทย์ capstone ให้ทำเสร็จได้จริงในเวลาที่มี</li>
+        <li>ตั้งค่าโปรเจกต์ agent จริงพร้อม CLAUDE.md และ permissions ที่เหมาะสม</li>
+        <li>ใช้ Claude Code สร้าง core agentic loop ของ use case ที่เลือก</li>
+        <li>เพิ่ม hook ป้องกันความเสี่ยงและพิสูจน์ว่ามันทำงานจริง</li>
+        <li>ผลิต evidence (test output, README, demo) ที่ครบตาม rubric ของคอร์ส</li>
+      </ul>
+    </div>
+
+    <!-- Phase 1 -->
+    <div class="step">
+      <h3><span class="step-num">1</span>Phase 1: เลือกโจทย์ + เขียน spec สั้น</h3>
+      <p>
+        เลือกโจทย์หนึ่งข้อจาก 4 ตัวอย่างใน slides (presale proposal generator,
+        automated PR reviewer, internal doc/runbook agent, monitoring/alert agent)
+        หรือเสนอโจทย์ของทีมตัวเองที่ scope ใกล้เคียงกัน — สำคัญคือต้อง <strong>เล็กพอทำเสร็จได้จริงใน 1 sprint</strong>
+        เขียน spec เป็นไฟล์ markdown ก่อนแตะโค้ดแม้แต่บรรทัดเดียว
+      </p>
+      <pre><code>mkdir capstone-agent && cd capstone-agent
+touch spec.md</code></pre>
+      <p>เนื้อหาขั้นต่ำใน <code>spec.md</code>:</p>
+      <pre><code># Capstone Spec: PR Review Agent
+
+## Problem
+ทีม backend มี PR เฉลี่ย 15 ใบ/สัปดาห์ reviewer คนเดียวดู coding
+standard + security pattern ไม่ทัน อยากได้ automated first-pass reviewer
+
+## Users
+Backend engineer ที่เปิด PR, tech lead ที่ approve
+
+## Core agentic loop
+1. Observe: อ่าน diff ของ PR ผ่าน `gh pr diff`
+2. Plan: เทียบกับ coding standard ใน CLAUDE.md
+3. Act: comment กลับใน PR ผ่าน `gh pr comment`
+4. Verify: เช็คว่า comment โพสต์สำเร็จ, log ผลไว้
+
+## Out of scope
+ไม่ auto-merge, ไม่แก้โค้ดเอง, ไม่ review infra/Terraform</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> มีไฟล์ <code>spec.md</code> ที่มีหัวข้อครบ 4 หัวข้อ
+        (Problem / Users / Core agentic loop / Out of scope) และ core loop
+        เขียนเป็น observe → plan → act → verify ชัดเจน อ่านแล้วคนอื่นเข้าใจโจทย์ได้ภายใน 1 นาที
+      </div>
+      <details class="troubleshoot">
+        <summary>Troubleshoot: เลือกโจทย์แล้วรู้สึกว่ากว้างเกินไป ทำไม่ทันแน่ ๆ</summary>
+        <p>
+          ตัดขอบเขตลงเหลือ "1 use case, 1 data source, 1 output channel" เช่นแทนที่จะทำ
+          "PR reviewer ที่เช็คทุกอย่าง" ให้ทำ "PR reviewer ที่เช็คแค่ secret leak กับ
+          missing test" ก่อน — เขียนใน spec.md ว่าอะไรคือ v2 ที่ตั้งใจไม่ทำรอบนี้
+          scope เล็กแต่ทำงานจริงดีกว่า scope ใหญ่แต่ demo ไม่ได้
+        </p>
+      </details>
+    </div>
+
+    <!-- Phase 2 -->
+    <div class="step">
+      <h3><span class="step-num">2</span>Phase 2: Setup Project + CLAUDE.md + Permissions</h3>
+      <p>
+        Init git repo จริง เขียน <code>CLAUDE.md</code> ที่อธิบายบริบทโปรเจกต์ให้ Claude Code
+        เข้าใจ แล้วตั้งค่า <code>.claude/settings.json</code> จำกัด tool ที่ agent ใช้ได้
+        ตามหลัก least-privilege (module 06)
+      </p>
+      <pre><code>git init
+git add spec.md
+git commit -m "docs: capstone spec"
+
+mkdir -p .claude
+touch CLAUDE.md</code></pre>
+      <p><code>CLAUDE.md</code> ตัวอย่าง:</p>
+      <pre><code># CLAUDE.md — PR Review Agent
+
+## What this project does
+Automated first-pass PR reviewer: อ่าน diff, เช็ค secret leak
+กับ missing test, comment กลับใน PR ผ่าน gh CLI
+
+## Coding standard to enforce
+- ห้าม commit secret/API key (เช็คด้วย regex pattern ใน checklist.md)
+- ทุก PR ที่แก้ src/ ต้องมี test แนบมาด้วย
+- ใช้ conventional commits
+
+## Constraints
+- ห้าม auto-merge หรือแก้โค้ดในนามผู้ใช้อื่น
+- ทำงานกับ repo นี้เท่านั้น ห้ามแตะ repo อื่น</code></pre>
+      <p><code>.claude/settings.json</code>:</p>
+      <pre><code>{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Bash(gh pr diff:*)",
+      "Bash(gh pr comment:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force*)",
+      "Bash(curl *)"
+    ]
+  }
+}</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> รัน <code>git log --oneline</code> ต้องเห็น commit อย่างน้อย
+        1 อัน, ไฟล์ <code>CLAUDE.md</code> มีอยู่จริงและไม่ว่างเปล่า, ไฟล์
+        <code>.claude/settings.json</code> เป็น JSON ที่ valid (เช็คด้วย
+        <code>python3 -m json.tool .claude/settings.json</code>) และมีทั้ง allow กับ deny list
+      </div>
+    </div>
+
+    <!-- Phase 3 -->
+    <div class="step">
+      <h3><span class="step-num">3</span>Phase 3: Build Core Agentic Loop ด้วย Claude Code จริง</h3>
+      <p>
+        ใช้ Claude Code print mode (<code>claude -p</code>) สั่งสร้าง core feature ตาม spec
+        จริง ไม่ใช่เขียนมือทั้งหมด — นี่คือจุดที่เอา module 03/04 มาใช้ตรง ๆ
+      </p>
+      <pre><code>claude -p "read spec.md and CLAUDE.md, then implement
+the core agentic loop: a Python script review_pr.py that
+takes a PR number, runs 'gh pr diff', checks for hardcoded
+secrets and missing tests, then posts a summary comment
+via 'gh pr comment'. Follow the allowed tools in
+.claude/settings.json. Write a basic test file too." \
+  --allowedTools "Read,Write,Edit,Bash(gh pr diff:*)"</code></pre>
+      <p>ตรวจว่าไฟล์ที่ generate มาทำงานได้จริง:</p>
+      <pre><code>python3 review_pr.py --help
+git add -A
+git commit -m "feat: core PR review loop (observe/plan/act/verify)"</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> มีไฟล์ source code จริง (เช่น <code>review_pr.py</code>)
+        ที่ถูก generate โดย Claude Code, รันแล้วไม่ error ทันที (อย่างน้อย
+        <code>--help</code> หรือ dry-run ผ่าน), และมี commit history ใน git
+        ที่แสดงว่า core loop ถูกสร้างขึ้นเป็นขั้นเป็นตอน (ไม่ใช่ commit เดียวยัดทุกอย่าง)
+      </div>
+      <details class="troubleshoot">
+        <summary>Troubleshoot: Claude Code สร้างโค้ดที่พยายามเรียก tool นอก allowedTools</summary>
+        <p>
+          นี่คือพฤติกรรมที่ถูกต้อง — permission system (module 06) จะ block และถาม
+          confirm หรือ deny ตาม settings.json ถ้า agent ต้องการ tool เพิ่ม ให้พิจารณาว่า
+          จำเป็นจริงไหม ถ้าจำเป็นให้เพิ่มเข้า allow list อย่างเจาะจง (เช่น
+          <code>Bash(gh pr comment:*)</code> ไม่ใช่ <code>Bash(*)</code>) แล้วรันใหม่
+          อย่าเปิด permission กว้างเกินเพื่อความสะดวก
+        </p>
+      </details>
+    </div>
+
+    <!-- Phase 4 -->
+    <div class="step">
+      <h3><span class="step-num">4</span>Phase 4: เพิ่ม Hook ป้องกันความเสี่ยง</h3>
+      <p>
+        อ้างอิง pattern จาก module 06 (hooks) และ module 08 (governance) — เพิ่ม
+        <code>PreToolUse</code> hook ที่ block คำสั่งอันตรายก่อนที่ agent จะรันจริง
+        เช่น ป้องกันการ commit secret หรือรันคำสั่ง destructive
+      </p>
+      <pre><code>mkdir -p .claude/hooks
+touch .claude/hooks/block-secrets.sh
+chmod +x .claude/hooks/block-secrets.sh</code></pre>
+      <p><code>.claude/hooks/block-secrets.sh</code>:</p>
+      <pre><code>#!/usr/bin/env bash
+# PreToolUse hook: block Bash commands that look like they
+# would commit a secret or run a destructive git operation
+INPUT=$(cat)
+CMD=$(echo "$INPUT" | python3 -c "import json,sys; print(json.load(sys.stdin).get('tool_input',{}).get('command',''))")
+
+if echo "$CMD" | grep -qE "(AKIA[0-9A-Z]{16}|api[_-]?key\s*=|push --force)"; then
+  echo '{"decision":"block","reason":"blocked: potential secret leak or force-push detected"}'
+  exit 0
+fi
+
+echo '{"decision":"approve"}'</code></pre>
+      <p>ผูก hook ใน <code>.claude/settings.json</code>:</p>
+      <pre><code>{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/block-secrets.sh" }
+        ]
+      }
+    ]
+  }
+}</code></pre>
+      <p>พิสูจน์ว่า hook block จริง ด้วยการจงใจสั่งคำสั่งเสี่ยง:</p>
+      <pre><code>claude -p "run this exact bash command: git push --force origin main"
+# ต้องเห็น hook แจ้ง block ไม่ใช่รันจริง</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> ไฟล์ <code>.claude/hooks/block-secrets.sh</code>
+        มีสิทธิ์ executable (<code>ls -l</code> ต้องมี <code>x</code>) และเมื่อสั่ง Claude Code
+        รันคำสั่งเสี่ยง (เช่น <code>git push --force</code>) ต้อง capture log/screenshot
+        ที่แสดงว่า hook สั่ง block คำสั่งนั้นจริง ไม่ใช่แค่บอกว่า "hook มีอยู่"
+      </div>
+      <div class="warn">
+        <strong>ข้อควรระวัง:</strong> hook แบบ regex block ได้แค่ pattern ที่คาดเดาได้
+        ไม่ใช่ security boundary ที่สมบูรณ์ — ของจริงควรมี secret scanning tool
+        (เช่น gitleaks) รันใน CI ด้วย (module 09) ไม่ใช่พึ่ง hook อย่างเดียว
+      </div>
+    </div>
+
+    <!-- Phase 5 -->
+    <div class="step">
+      <h3><span class="step-num">5</span>Phase 5: Test + Verify จริงด้วย Evidence</h3>
+      <p>
+        รัน test suite จริง capture output เป็นไฟล์ log ไม่ใช่แค่บอกว่า "test ผ่านแล้ว"
+        — evidence ต้องจับต้องได้และตรวจสอบย้อนหลังได้
+      </p>
+      <pre><code>pip install pytest
+pytest -v tests/ 2>&1 | tee test-output.log</code></pre>
+      <p>ตัวอย่าง output ที่ต้องมีจริงในไฟล์ log (ตัวอย่างรูปแบบ ไม่ใช่ fabricated):</p>
+      <pre><code>tests/test_review_pr.py::test_detects_hardcoded_secret PASSED
+tests/test_review_pr.py::test_flags_missing_test_file PASSED
+tests/test_review_pr.py::test_comment_format_valid PASSED
+
+3 passed in 0.42s</code></pre>
+      <p>commit evidence เข้า repo:</p>
+      <pre><code>git add test-output.log
+git commit -m "test: capture pytest evidence for core loop"</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> มีไฟล์ <code>test-output.log</code> (หรือเทียบเท่า) ที่เป็น
+        output จริงจากการรัน test ครั้งล่าสุด แสดงจำนวน test ที่ผ่าน/ไม่ผ่าน และไฟล์นี้
+        ถูก commit เข้า git แล้ว — ห้ามพิมพ์ log มือหรือ mock ผลลัพธ์
+      </div>
+      <details class="troubleshoot">
+        <summary>Troubleshoot: ไม่มีเวลาเขียน test ครบทุก edge case</summary>
+        <p>
+          ไม่ต้องครบ 100% — สำหรับ capstone ขอแค่ test ที่ cover "happy path" หลัก 1 เส้น
+          และ "risk path" อย่างน้อย 1 เส้น (เช่น เจอ secret แล้วต้อง flag ได้จริง)
+          เขียนใน README ว่า edge case ไหนยังไม่ cover เพื่อความโปร่งใส ดีกว่าไม่เขียน test เลย
+        </p>
+      </details>
+    </div>
+
+    <!-- Phase 6 -->
+    <div class="step">
+      <h3><span class="step-num">6</span>Phase 6: Deploy/Demo + เขียน README สรุป</h3>
+      <p>
+        เขียน <code>README.md</code> ที่มี output จริงที่ copy มาจากการรันคำสั่งจริง (ไม่ใช่
+        ตัวอย่างสมมติ) แล้วเตรียม demo สด — ถ้าเป็นไปได้ ให้ automate การรันผ่าน CI
+        (module 09) เป็นขั้นบวก
+      </p>
+      <pre><code>touch README.md</code></pre>
+      <p>โครงสร้าง README ขั้นต่ำ:</p>
+      <pre><code># PR Review Agent — Capstone Project
+
+## What it does
+Automated first-pass PR reviewer built with Claude Code.
+เช็ค hardcoded secret และ missing test ก่อน human reviewer จะดู
+
+## Setup
+\`\`\`
+git clone <repo>
+cd capstone-agent
+pip install -r requirements.txt
+\`\`\`
+
+## Usage
+\`\`\`
+$ python3 review_pr.py --pr 142
+Fetching diff for PR #142...
+Checking for secrets... none found
+Checking for missing tests... src/auth.py changed, no test found
+Posted review comment on PR #142
+\`\`\`
+
+## Safety
+- PreToolUse hook blocks force-push and hardcoded-secret patterns
+  (see .claude/hooks/block-secrets.sh)
+- Tool permissions scoped to gh pr diff/comment only (see .claude/settings.json)
+
+## Test evidence
+See test-output.log — 3 passed in 0.42s (last run: Phase 5)
+
+## Known limitations
+- Regex-based secret detection, not a full secret scanner
+- Does not auto-merge or modify code</code></pre>
+      <p>ถ้าจะ automate เพิ่ม (ทางเลือก) ผูกเข้า GitHub Actions ตาม pattern module 09:</p>
+      <pre><code># .github/workflows/pr-review.yml (ตัวอย่างแนวคิด)
+on: pull_request
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: claude -p "run review_pr.py against this PR" \
+          --allowedTools "Bash(python3 review_pr.py:*)"</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> มีไฟล์ <code>README.md</code> ที่มี section Setup/Usage/Safety/Test
+        evidence/Known limitations ครบ และ "Usage" section แปะ output จริงที่ copy มาจากการรัน
+        คำสั่งจริงในเครื่อง (ไม่ใช่ตัวอย่างที่แต่งขึ้น) — พร้อม demo สดได้ภายใน 5–10 นาที
+        โดยไม่ต้องเปิด slide อธิบายก่อน
+      </div>
+    </div>
+
+    <div class="objectives" style="margin-top:36px;">
+      <h2>สรุป &amp; ต่อยอด</h2>
+      <p>
+        🎉 <strong>ยินดีด้วย — คุณเรียนจบคอร์ส "Hermes Agent Platform &amp; Claude Code" แล้ว!</strong>
+        ตลอด 10 module ที่ผ่านมา คุณไม่ได้แค่อ่านทฤษฎี agentic loop เฉย ๆ
+        แต่ได้ลงมือสร้าง permission system, hook, multi-agent workflow, governance
+        checklist, CI/CD pipeline และตอนนี้คือ capstone project ที่รวมทุกอย่างเป็น
+        artifact เดียวที่ demo ได้จริง — นี่คือความแตกต่างระหว่าง "รู้จัก AI agent"
+        กับ "สร้าง AI agent ที่ใช้งานจริงในงานได้"
+      </p>
+      <p>
+        สิ่งที่คุณควรมีอยู่ในมือตอนนี้: repo git ที่มี commit history เป็นขั้นเป็นตอน,
+        <code>CLAUDE.md</code> ที่อธิบาย context ของโปรเจกต์, <code>.claude/settings.json</code>
+        พร้อม permission และ hook ที่พิสูจน์แล้วว่า block คำสั่งเสี่ยงได้จริง, test evidence
+        ที่จับต้องได้ และ README ที่คนอื่นอ่านแล้ว setup ต่อได้โดยไม่ต้องถามคุณ
+      </p>
+      <p><strong>Next steps ที่แนะนำหลังจบคอร์ส:</strong></p>
+      <ul>
+        <li><strong>ขอ feedback จากทีม:</strong> เอา demo ไปให้ tech lead หรือเพื่อนร่วมทีมดูจริง
+        ถามเจาะจงว่า "ถ้าจะเอาไปใช้ในงานจริง ยังขาดอะไร" — feedback จากคนที่จะใช้จริง
+        สำคัญกว่าการขัด demo ให้สวยเอง</li>
+        <li><strong>Scale จาก prototype ไปงานจริง:</strong> ก่อน rollout ให้ทีมอื่นใช้ ต้องผ่าน
+        governance review เต็มรูปแบบ (module 08) — เพิ่ม observability/logging,
+        error handling ที่ครอบคลุมกว่า happy path, และ cost tracking ถ้าเรียก API บ่อย</li>
+        <li><strong>อ่าน resource เพิ่มเติม:</strong> ติดตาม Claude Code documentation และ
+        Anthropic engineering blog สำหรับ pattern ใหม่ ๆ, สำรวจ Hermes skill/plugin
+        ecosystem เพื่อ reuse งานที่ทีมอื่นเคยทำไว้แล้ว แทนที่จะเริ่มจากศูนย์ทุกครั้ง</li>
+        <li><strong>เก็บ capstone นี้ไว้ใน git ของทีม</strong> (ไม่ใช่แค่ local) พร้อม README
+        ที่ชัดเจน เพื่อให้คนอื่นต่อยอดได้ — นี่คือจุดเริ่มต้นของ internal tool ที่มีคนใช้จริง
+        ไม่ใช่แค่ side project ที่ทำแล้วทิ้ง</li>
+        <li><strong>ทบทวน module ไหนก็ได้ที่ยังไม่มั่นใจ:</strong> ทุก slide/lab ยังอยู่ใน
+        <a href="../../index.html">course home</a> — กลับไปดูซ้ำได้ตลอด โดยเฉพาะ module 06
+        (hooks/permissions) และ module 08 (governance) ก่อนเอา agent ไปใช้กับงาน client จริง</li>
+      </ul>
+      <p>
+        ขอบคุณที่ใช้เวลาเรียนคอร์สนี้จนจบ — ตอนนี้ถึงเวลาเอา agent ที่สร้างไว้ไปใช้งานจริง
+        แล้วแบ่งปันสิ่งที่เรียนรู้ต่อให้ทีมของคุณ 🚀
+      </p>
+    </div>
+
+    <div class="pagefoot">
+      <a href="../09-cicd-automation/lab.html">← Module 09: CI/CD & Automation</a>
+      <a href="../../index.html">กลับหน้า Course Home →</a>
+    </div>
+
+    <div class="footer-note">
+      NTT DATA Internal Enablement — Module 10 Lab
+    </div>
+  </div>
+</body>
+</html>

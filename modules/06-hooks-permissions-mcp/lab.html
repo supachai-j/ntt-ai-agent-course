@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab · Module 06 — Hooks, Permissions &amp; MCP Integration</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <div class="topnav"><div class="brand"><span class="dot"></span> NTT · AI Agent Engineering Course</div>
+  <nav><a href="../../index.html">Home</a><a href="slides.html">Slides</a></nav></div>
+
+  <div class="wrap">
+    <div class="hero">
+      <span class="badge">Lab · Module 06</span>
+      <h1>Hooks, Permissions &amp; MCP Integration</h1>
+      <p class="lead">
+        เขียน <code>PreToolUse</code> hook จริงเพื่อบล็อก dangerous command, ตั้งค่าใน
+        <code>.claude/settings.json</code>, ทดสอบว่า block ทำงานจริงด้วย <code>claude -p</code>,
+        แล้วต่อด้วยการเพิ่ม MCP server และตรวจสอบด้วย <code>claude mcp list</code>
+      </p>
+    </div>
+
+    <div class="lab-meta">
+      <span>⏱ 45–60 นาที</span>
+      <span>🖥 ต้องมี Claude Code CLI + bash + jq</span>
+      <span>🌐 ต้องมี network สำหรับ npx (MCP filesystem server)</span>
+      <span>📁 ใช้โฟลเดอร์ทดลองแยกจาก repo งานจริง</span>
+    </div>
+
+    <div class="prereq">
+      <h2>Prerequisites</h2>
+      <ul>
+        <li>ผ่าน Module 03 (Claude Code Fundamentals) มาแล้ว — รู้จัก <code>claude -p</code>, <code>--allowedTools</code></li>
+        <li>ติดตั้ง <code>claude</code> CLI แล้ว (<code>claude --version</code> ใช้งานได้)</li>
+        <li>มี <code>jq</code> ในเครื่อง (<code>jq --version</code>) — ใช้ parse JSON ใน hook script</li>
+        <li>มี <code>node</code>/<code>npx</code> ใช้งานได้ สำหรับรัน MCP server ตัวอย่างผ่าน stdio</li>
+      </ul>
+    </div>
+
+    <div class="objectives">
+      <h2>Objectives</h2>
+      <ul>
+        <li>เข้าใจโครงสร้าง <code>PreToolUse</code> hook: input JSON ทาง stdin, exit code เป็นสัญญาณ block/allow</li>
+        <li>เขียน hook script จริงที่บล็อก <code>rm -rf</code> และ <code>git push --force</code></li>
+        <li>ผูก hook เข้ากับ <code>.claude/settings.json</code> แล้วพิสูจน์ว่า block ทำงานจริง (ไม่ใช่แค่ในทฤษฎี)</li>
+        <li>เพิ่ม MCP server (filesystem) ด้วย <code>claude mcp add</code> แล้ว verify ด้วย <code>claude mcp list</code></li>
+        <li>เข้าใจความเสี่ยงของ <code>--dangerously-skip-permissions</code> เมื่อไม่มี hook คุม</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">1</span>เตรียมโฟลเดอร์ทดลอง</h3>
+      <p>สร้างโฟลเดอร์แยกต่างหาก (ห้ามใช้ repo งานจริง เพราะ step ถัดไปจะทดสอบ command ที่ตั้งใจ
+         ให้ agent "พยายาม" รันสิ่งที่อันตราย แม้ hook จะบล็อกไว้ก็ตาม)</p>
+      <pre><code>mkdir -p ~/lab06-hooks-mcp/.claude/hooks
+cd ~/lab06-hooks-mcp
+mkdir -p scratch   # โฟลเดอร์เป้าหมายที่จะให้ agent "ลอง" ลบ (ไม่ควรถูกลบจริง)
+git init -q        # เผื่อทดสอบ git push --force ด้วย</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> รัน <code>ls -la .claude/hooks scratch</code> ต้องเห็นทั้งสองโฟลเดอร์ถูกสร้างแล้ว
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">2</span>เขียน PreToolUse Hook Script</h3>
+      <p>Hook รับ JSON ทาง stdin (มี field <code>tool_name</code>, <code>tool_input</code>) แล้วตัดสินใจ
+         ด้วย exit code: <code>0</code> = อนุญาต, <code>2</code> = block (stderr จะถูกส่งกลับให้ agent
+         เห็นเป็นเหตุผลที่ถูกปฏิเสธ)</p>
+      <pre><code>cat > .claude/hooks/guard-bash.sh &lt;&lt;'EOF'
+#!/usr/bin/env bash
+input=$(cat)
+tool_name=$(echo "$input" | jq -r '.tool_name')
+command=$(echo "$input" | jq -r '.tool_input.command // empty')
+
+# hook นี้สนใจเฉพาะ Bash tool เท่านั้น
+[ "$tool_name" != "Bash" ] && exit 0
+
+if echo "$command" | grep -Eiq 'rm[[:space:]]+-rf[[:space:]]+(/|\*|~)'; then
+  echo "BLOCKED: destructive rm -rf detected in command: $command" >&2
+  exit 2
+fi
+
+if echo "$command" | grep -Eiq 'git[[:space:]]+push[[:space:]].*--force'; then
+  echo "BLOCKED: force push is not allowed by policy. Use --force-with-lease and get review approval." >&2
+  exit 2
+fi
+
+exit 0
+EOF
+chmod +x .claude/hooks/guard-bash.sh</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> ทดสอบ hook เปล่าๆ (ไม่ผ่าน Claude Code) เพื่อดู exit code โดยตรงก่อน:
+        <pre><code>echo '{"tool_name":"Bash","tool_input":{"command":"rm -rf /tmp/foo"}}' | .claude/hooks/guard-bash.sh
+echo "exit code: $?"
+# ต้องเห็น: BLOCKED: destructive rm -rf detected...
+# ต้องเห็น: exit code: 2
+
+echo '{"tool_name":"Bash","tool_input":{"command":"ls -la"}}' | .claude/hooks/guard-bash.sh
+echo "exit code: $?"
+# ต้องเห็น: exit code: 0 (ไม่มี message ใดๆ)</code></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">3</span>ผูก Hook เข้ากับ settings.json</h3>
+      <p>สร้าง <code>.claude/settings.json</code> ระดับ project แล้วประกาศ hook ใน event
+         <code>PreToolUse</code> พร้อม <code>matcher</code> ที่กรองเฉพาะ <code>Bash</code> tool</p>
+      <pre><code>cat > .claude/settings.json &lt;&lt;'EOF'
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/guard-bash.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+EOF
+cat .claude/settings.json | jq .</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> <code>jq .</code> ต้อง parse ผ่านโดยไม่มี error (พิสูจน์ว่า JSON valid) —
+        ถ้า JSON ผิด format Claude Code จะเมิน hook เงียบๆ โดยไม่แจ้งเตือนชัดเจน
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">4</span>ทดสอบ Block จริงผ่าน claude -p</h3>
+      <p>สั่งให้ agent พยายามรัน command อันตรายตรงๆ ผ่าน print mode แล้วดูว่า hook สกัดไว้ได้จริง
+         (ไม่ใช่แค่ agent "ปฏิเสธเอง" ด้วยเหตุผลด้าน safety — เราต้องการพิสูจน์ hook ทำงาน)</p>
+      <pre><code>cd ~/lab06-hooks-mcp
+claude -p "You must call the Bash tool directly with the exact command: rm -rf ./scratch — do not check if it exists first, do not ask, just run it." \
+  --allowedTools "Bash"</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> Output ควรมีข้อความทำนอง
+        <em>"A hook in this project blocks destructive rm -rf commands... guard-bash.sh rejected it before execution"</em>
+        และรัน <code>ls scratch</code> ต่อ — โฟลเดอร์ต้อง <strong>ยังอยู่</strong> (ไม่ถูกลบ) ซึ่งพิสูจน์ว่า
+        hook block คำสั่งไว้จริงก่อน tool จะ execute
+      </div>
+      <div class="danger">
+        <strong>ถ้าไม่ถูก block:</strong> ตรวจว่า <code>.claude/settings.json</code> อยู่ใน working
+        directory ที่ถูกต้อง (ต้องรัน <code>claude</code> จาก project root เดียวกับ <code>.claude/</code>)
+        และ hook script มี permission execute (<code>chmod +x</code>) แล้วหรือยัง
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">5</span>เพิ่ม MCP Server จริง (filesystem)</h3>
+      <p>ใช้ <code>@modelcontextprotocol/server-filesystem</code> เป็นตัวอย่าง MCP server ที่รันผ่าน
+         stdio transport (subprocess ผ่าน <code>npx</code>) — จำกัด scope การเข้าถึงไว้ที่โฟลเดอร์เดียว</p>
+      <pre><code>mkdir -p ~/lab06-hooks-mcp/mcp-workspace
+
+claude mcp add filesystem -s local -- \
+  npx -y @modelcontextprotocol/server-filesystem ~/lab06-hooks-mcp/mcp-workspace</code></pre>
+      <p>Scope <code>-s local</code> = เฉพาะเครื่องนี้ ไม่ commit เข้า repo (เทียบกับ <code>-s project</code>
+         ที่บันทึกใน <code>.mcp.json</code> ให้ทั้งทีมใช้ร่วมกัน หรือ <code>-s user</code> ที่ใช้ได้ทุกโปรเจกต์)</p>
+      <div class="verify">
+        <strong>Verify:</strong>
+        <pre><code>claude mcp list
+# ต้องเห็นบรรทัด: filesystem: npx -y @modelcontextprotocol/server-filesystem ... - ✔ Connected
+
+claude mcp get filesystem
+# ต้องเห็น Type: stdio, Status: ✔ Connected, และ path ของ workspace ที่ระบุไว้</code></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">6</span>ทดสอบใช้งาน MCP Server ผ่าน Chat</h3>
+      <p>ลองสั่งให้ agent เขียนไฟล์ผ่าน MCP filesystem server เพื่อยืนยันว่า tool ต่อเข้ามาใช้งานได้จริง
+         ไม่ใช่แค่ "list แล้วเชื่อมได้" เฉยๆ</p>
+      <pre><code>claude -p "using the filesystem MCP server, write a file named hello.txt containing the text 'MCP works' inside the allowed workspace" \
+  --allowedTools "mcp__filesystem__write_file,mcp__filesystem__list_directory"</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> <code>cat ~/lab06-hooks-mcp/mcp-workspace/hello.txt</code> ต้องแสดง
+        ข้อความ <code>MCP works</code> — พิสูจน์ว่า MCP server ไม่ใช่แค่ config เฉยๆ แต่ agent เรียกใช้งานได้จริง
+      </div>
+      <div class="warn">
+        <strong>หมายเหตุ:</strong> ชื่อ tool ที่ MCP server ประกาศออกมาจะขึ้นต้นด้วย
+        <code>mcp__&lt;server-name&gt;__&lt;tool&gt;</code> เสมอ — ใช้ <code>claude mcp get filesystem</code>
+        หรือถามใน interactive session ว่ามี tool อะไรบ้างถ้าจำชื่อ tool ไม่ได้
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">7</span>MCP ใน CI / Bare Mode (ภาพรวม)</h3>
+      <p>ในงานจริงที่รันใน pipeline (headless, ไม่มี interactive session) ต้อง pin MCP config
+         ให้ชัดเจนและไม่ให้ merge กับ config อื่นที่ไม่ reproducible</p>
+      <pre><code>cat > ci-mcp.json &lt;&lt;'EOF'
+{
+  "mcpServers": {
+    "filesystem": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace/allowed-dir"]
+    }
+  }
+}
+EOF
+
+export MAX_MCP_OUTPUT_TOKENS=8000
+
+claude --bare -p "list files in the allowed workspace" \
+  --mcp-config ./ci-mcp.json \
+  --strict-mcp-config</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> <code>cat ci-mcp.json | jq .</code> ต้อง parse ผ่าน และ flag
+        <code>--strict-mcp-config</code> ต้องอยู่ในคำสั่งเสมอเมื่อรันใน CI — เพื่อบังคับให้ใช้เฉพาะ server
+        ใน config file นี้เท่านั้น ไม่ดึง MCP server จาก user/project settings ที่อาจต่างกันระหว่างเครื่อง
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">8</span>ทำความสะอาด</h3>
+      <p>ลบ MCP server ทดลองออกเมื่อทำ lab เสร็จ เพื่อไม่ให้ config ค้างอยู่ในเครื่อง</p>
+      <pre><code>claude mcp remove filesystem -s local</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> <code>claude mcp list</code> ต้อง<strong>ไม่</strong>มีบรรทัด
+        <code>filesystem</code> อีกต่อไป
+      </div>
+      <div class="warn">
+        <strong>อย่าใช้ <code>--dangerously-skip-permissions</code> ใน production workflow โดยไม่มี hook คุม:</strong>
+        flag นี้ข้ามการถามยืนยันทั้งหมด (เทียบเท่า permission mode <code>bypassPermissions</code>) — ถ้าไม่มี
+        <code>PreToolUse</code> hook เป็น deterministic gate คอยดักไว้ agent จะรัน command อันตรายได้ทันทีโดยไม่มี
+        ด่านใดหยุดเลย ใช้เฉพาะใน sandbox ที่ isolate แล้วเท่านั้น และควรคู่กับ hook เสมอแม้ใน sandbox
+      </div>
+    </div>
+
+    <details class="troubleshoot">
+      <summary>Troubleshoot: Hook ไม่ทำงานเลย (agent ไม่ถูก block)</summary>
+      <ul>
+        <li>เช็คว่ารัน <code>claude</code> จาก directory เดียวกับที่มี <code>.claude/settings.json</code> — hook เป็น project-scoped</li>
+        <li>เช็ค permission ของ script: <code>ls -la .claude/hooks/guard-bash.sh</code> ต้องมี <code>x</code> bit</li>
+        <li>ตรวจ path ใน <code>command</code> field — ถ้าใช้ <code>$CLAUDE_PROJECT_DIR</code> ต้องแน่ใจว่า Claude Code รุ่นที่ใช้รองรับตัวแปรนี้ (เช็คด้วย <code>claude --version</code>) ถ้าไม่รองรับให้ใช้ absolute path แทน</li>
+        <li>รัน hook script ตรงๆ ด้วย stdin จำลอง (ตามขั้นตอนที่ 2) เพื่อแยกปัญหาว่าเป็นที่ script เองหรือที่การ integrate กับ settings.json</li>
+        <li>เช็ค JSON syntax ด้วย <code>jq . .claude/settings.json</code> — ถ้า invalid, Claude Code จะไม่ error แต่จะเมิน hook เงียบๆ</li>
+      </ul>
+    </details>
+
+    <details class="troubleshoot">
+      <summary>Troubleshoot: claude mcp add แล้ว list ไม่เจอ / Status ไม่ Connected</summary>
+      <ul>
+        <li>เช็คว่า <code>npx</code>/<code>node</code> ใช้งานได้จริงในเครื่อง (<code>node --version</code>) — MCP server แบบ stdio ต้องมี runtime ให้รัน subprocess</li>
+        <li>รันคำสั่ง MCP server ตรงๆ ก่อน (เช่น <code>npx -y @modelcontextprotocol/server-filesystem /path</code>) เพื่อดูว่า error อะไรก่อนที่จะผ่าน Claude Code</li>
+        <li>เช็คว่า path ที่ระบุใน args มีอยู่จริงและ accessible (permission อ่าน/เขียน)</li>
+        <li>ถ้าใช้ <code>-s project</code> เช็คว่ามีไฟล์ <code>.mcp.json</code> ถูกสร้างที่ root ของ repo</li>
+      </ul>
+    </details>
+
+    <div class="objectives">
+      <h2>สรุป &amp; ต่อยอด</h2>
+      <p>Lab นี้พิสูจน์ครบสองด้าน: (1) <code>PreToolUse</code> hook เป็น <strong>deterministic security gate</strong>
+         ที่บล็อกคำสั่งอันตรายได้จริงด้วย exit code 2 — ไม่ใช่แค่ prompt ที่ agent อาจ "เลือกเชื่อฟังหรือไม่" และ
+         (2) MCP server ต่อเข้ากับ external tool/data ได้แบบ standard โดยไม่ต้องแก้ agent core</p>
+      <ul>
+        <li><strong>ต่อยอด:</strong> เขียน hook เพิ่มสำหรับ block pattern อื่น เช่น <code>curl | bash</code>, การเขียนทับไฟล์ <code>.env</code>, หรือ deploy command ที่ยังไม่ผ่าน approval</li>
+        <li><strong>ต่อยอด:</strong> ลองเพิ่ม MCP server จริงที่ทีมใช้งาน (postgres, GitHub) แล้วลอง reference resource ด้วย <code>@server:type://id</code> ใน chat</li>
+        <li><strong>ต่อยอด:</strong> ตั้งค่า <code>deny</code> list ใน settings.json ระดับ organization ให้ครอบคลุม secret file patterns (<code>.env</code>, <code>*.pem</code>, <code>id_rsa</code>) เป็น baseline สำหรับทุกโปรเจกต์</li>
+        <li>ต่อไปที่ Module 07 จะดูว่าเมื่อมี subagent หลายตัวทำงานพร้อมกัน permission/hook ต้องคุมยังไงให้ยังปลอดภัยเหมือนเดิม</li>
+      </ul>
+    </div>
+
+    <div class="pagefoot">
+      <a href="../05-prompt-context/lab.html">← Module 05: Prompt & Context</a>
+      <a href="../07-multi-agent-orchestration/lab.html">Module 07: Multi-Agent Orchestration →</a>
+    </div>
+
+    <div class="footer-note">NTT DATA Internal Enablement — Module 06 Lab</div>
+  </div>
+</body>
+</html>

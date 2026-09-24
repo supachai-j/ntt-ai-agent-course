@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab · Module 09 — CI/CD &amp; Automation Integration</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+
+<div class="topnav"><div class="brand"><span class="dot"></span> NTT · AI Agent Engineering Course</div>
+<nav><a href="../../index.html">Home</a><a href="slides.html">Slides</a></nav></div>
+
+<div class="wrap">
+
+<div class="hero">
+  <span class="badge">Lab · Module 09</span>
+  <h1>CI/CD &amp; Automation Integration</h1>
+  <p class="lead">เขียน GitHub Actions workflow ที่รัน Claude Code แบบ headless review PR จริง แล้วฝึก deploy static site ขึ้น GitHub Pages ผ่าน <code>gh api</code> พร้อม verify HTTP 200 ด้วยตัวเอง — ไม่เชื่อ CI log อย่างเดียว</p>
+</div>
+
+<div class="lab-meta">
+  <span>⏱ ~60-75 นาที</span>
+  <span>🖥 ต้องมี gh CLI + git + repo บน GitHub</span>
+  <span>🔑 ต้องมี ANTHROPIC_API_KEY</span>
+  <span>📦 Module 09 / 10</span>
+</div>
+
+<div class="prereq">
+  <h2>Prerequisite</h2>
+  <ul>
+    <li>ติดตั้ง <a href="https://cli.github.com/" target="_blank">gh CLI</a> และรัน <code>gh auth login</code> แล้ว (เช็คด้วย <code>gh auth status</code>)</li>
+    <li>มี repository บน GitHub ที่ push ได้ (ใช้ repo ทดสอบใหม่ก็ได้ เพื่อไม่กระทบของจริง)</li>
+    <li>ตั้ง secret <code>ANTHROPIC_API_KEY</code> ใน repo settings → Secrets and variables → Actions</li>
+    <li>มี Python 3 หรือ <code>pip install pyyaml</code> สำหรับ validate YAML syntax (หรือใช้ <code>actionlint</code> ถ้ามี)</li>
+    <li>เข้าใจพื้นฐาน git branch/PR workflow จาก Module 03-04 มาแล้ว</li>
+  </ul>
+</div>
+
+<div class="objectives">
+  <h2>Objectives</h2>
+  <ul>
+    <li>เขียนและ validate syntax ของ GitHub Actions workflow ที่รัน Claude Code แบบ headless</li>
+    <li>เข้าใจ flag คุมต้นทุนและ tool permission ของ headless mode</li>
+    <li>เปิดใช้งาน GitHub Pages ผ่าน <code>gh api</code> แทน porcelain command</li>
+    <li>Poll สถานะ build และ verify ด้วย <code>curl</code> จริงก่อนประกาศว่า deploy สำเร็จ</li>
+    <li>ฝึกวินัย "never trust green CI without checking yourself"</li>
+  </ul>
+</div>
+
+<div class="step">
+  <h3><span class="step-num">1</span>เตรียม repo และ branch ทดสอบ</h3>
+  <p>สร้างหรือใช้ repo ที่มีอยู่แล้ว สร้าง branch แยกไว้ทดลอง จะได้ไม่กระทบ main โดยตรง</p>
+  <pre><code class="language-bash">cd /home/ubuntu
+mkdir -p cicd-lab-demo && cd cicd-lab-demo
+git init
+git checkout -b setup-cicd
+echo "# CI/CD Lab Demo" > README.md
+git add README.md
+git commit -m "init: cicd lab demo"
+
+# สร้าง repo บน GitHub ผ่าน gh (private ไว้ก่อน)
+gh repo create cicd-lab-demo --private --source=. --remote=origin --push
+</code></pre>
+  <div class="verify">
+    <strong>Verify:</strong> เช็คว่า repo ถูกสร้างจริงบน GitHub
+    <pre><code class="language-bash">gh repo view --web=false --json url,visibility</code></pre>
+    ต้องเห็น <code>url</code> ชี้ไปที่ repo ของคุณ และ <code>visibility: PRIVATE</code>
+  </div>
+</div>
+
+<div class="step">
+  <h3><span class="step-num">2</span>เขียน workflow file สำหรับ headless PR review</h3>
+  <p>สร้างโฟลเดอร์ <code>.github/workflows/</code> แล้วเขียนไฟล์ <code>claude-review.yml</code> ที่รัน Claude Code แบบ headless เมื่อมี PR event</p>
+  <pre><code class="language-bash">mkdir -p .github/workflows
+cat > .github/workflows/claude-review.yml << 'EOF'
+name: claude-review
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Generate PR diff
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1
+          git diff origin/${{ github.base_ref }}...HEAD > pr.diff
+
+      - name: Run headless review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          claude --bare \
+            -p "Review the changes in pr.diff for bugs, security issues, and style problems. Output a concise markdown list of findings." \
+            --allowedTools 'Read,Bash' \
+            --max-turns 8 \
+            --max-budget-usd 0.50 \
+            --fallback-model claude-3-5-haiku-20241022 \
+            > review.md
+
+      - name: Post comment to PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr comment ${{ github.event.pull_request.number }} --body-file review.md
+EOF
+</code></pre>
+  <div class="verify">
+    <strong>Verify:</strong> ไฟล์ต้องมีอยู่จริงและมีเนื้อหาครบ
+    <pre><code class="language-bash">cat .github/workflows/claude-review.yml | wc -l
+# ควรได้ >= 30 บรรทัด</code></pre>
+  </div>
+</div>
+
+<div class="step">
+  <h3><span class="step-num">3</span>Validate YAML syntax จริง — ห้ามอ่านตาเปล่าแล้วเชื่อ</h3>
+  <p>Syntax error ใน workflow file จะทำให้ GitHub เงียบๆ ไม่รัน job เลย (บางกรณี fail แบบไม่มี log ชัดเจน) ต้อง parse จริงก่อน push</p>
+  <pre><code class="language-bash">python3 - << 'EOF'
+import yaml, sys
+with open(".github/workflows/claude-review.yml") as f:
+    doc = yaml.safe_load(f)
+print("YAML parses OK")
+print("Job keys:", list(doc["jobs"].keys()))
+assert "review" in doc["jobs"], "missing review job"
+assert doc["jobs"]["review"]["permissions"]["pull-requests"] == "write"
+print("permissions check OK")
+EOF
+</code></pre>
+  <div class="verify">
+    <strong>Verify:</strong> ต้องเห็น <code>YAML parses OK</code> และ <code>permissions check OK</code> พิมพ์ออกมาจริง ถ้า python บ่น traceback แปลว่า syntax ผิด ต้องแก้ก่อนไปต่อ
+  </div>
+  <div class="warn">
+    <strong>ถ้าไม่มี pyyaml:</strong> รัน <code>pip install --user pyyaml</code> หรือใช้ <code>actionlint .github/workflows/claude-review.yml</code> ถ้าติดตั้งไว้แล้ว — อย่าข้าม step นี้เด็ดขาด เพราะ indentation ผิดใน YAML คือสาเหตุ workflow พังอันดับหนึ่ง
+  </div>
+</div>
+
+<div class="step">
+  <h3><span class="step-num">4</span>Commit และ push workflow เข้า repo</h3>
+  <pre><code class="language-bash">git add .github/workflows/claude-review.yml
+git commit -m "ci: add headless claude code review workflow"
+git checkout main 2>/dev/null || git checkout -b main
+git merge setup-cicd
+git push -u origin main
+</code></pre>
+  <div class="verify">
+    <strong>Verify:</strong> ตรวจว่า GitHub เห็น workflow แล้วจริง (ไม่ใช่แค่ push สำเร็จ)
+    <pre><code class="language-bash">gh workflow list</code></pre>
+    ต้องเห็น <code>claude-review</code> อยู่ในลิสต์ สถานะ <code>active</code>
+  </div>
+</div>
+
+<div class="step">
+  <h3><span class="step-num">5</span>สร้าง static page เล็กๆ สำหรับ deploy</h3>
+  <p>สร้างหน้า HTML เดียวไว้เป็นเป้าหมาย deploy ขึ้น GitHub Pages</p>
+  <pre><code class="language-bash">mkdir -p site
+cat > site/index.html << 'EOF'
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;&lt;head&gt;&lt;title&gt;CI/CD Lab Demo&lt;/title&gt;&lt;/head&gt;
+&lt;body&gt;&lt;h1&gt;Module 09 Lab — deployed via gh api&lt;/h1&gt;&lt;/body&gt;&lt;/html&gt;
+EOF
+git add site/index.html
+git commit -m "add static page for pages deploy demo"
+git push
+</code></pre>
+  <div class="verify">
+    <strong>Verify:</strong> <code>git log --oneline -1</code> ต้องแสดง commit ล่าสุดที่เพิ่ง push
+  </div>
+</div>
+
+<div class="step">
+  <h3><span class="step-num">6</span>เปิดใช้งาน GitHub Pages ผ่าน <code>gh api</code></h3>
+  <p><code>gh</code> porcelain ไม่มี subcommand สำหรับตั้งค่า Pages โดยตรง ต้องเรียก REST API ผ่าน <code>gh api</code></p>
+  <pre><code class="language-bash">OWNER=$(gh repo view --json owner -q .owner.login)
+REPO=$(gh repo view --json name -q .name)
+
+gh api repos/$OWNER/$REPO/pages -X POST \
+  -f "source[branch]=main" -f "source[path]=/site" \
+  || echo "อาจจะมี Pages เปิดอยู่แล้ว ลองใช้ PUT แทน POST"
+</code></pre>
+  <div class="verify">
+    <strong>Verify:</strong> เรียก GET ทันทีเพื่อดูสถานะที่ registered
+    <pre><code class="language-bash">gh api repos/$OWNER/$REPO/pages</code></pre>
+    ต้องเห็น field <code>html_url</code> และ <code>status</code> ในผลลัพธ์ (status ตอนนี้อาจยังเป็น <code>null</code> หรือ <code>building</code>)
+  </div>
+</div>
+
+<div class="step">
+  <h3><span class="step-num">7</span>Poll สถานะ build จนกว่าจะ <code>built</code></h3>
+  <p>การเปิด Pages เป็น async — API ตอบกลับ success ทันทีไม่ได้แปลว่าเว็บ build เสร็จแล้ว ต้อง poll</p>
+  <pre><code class="language-bash">for i in $(seq 1 20); do
+  STATUS=$(gh api repos/$OWNER/$REPO/pages -q .status 2>/dev/null)
+  echo "attempt $i: status=$STATUS"
+  if [ "$STATUS" = "built" ]; then
+    echo "Pages build complete"
+    break
+  fi
+  sleep 15
+done
+</code></pre>
+  <div class="verify">
+    <strong>Verify:</strong> loop ต้องพิมพ์ <code>status=built</code> ก่อนจบ ถ้าวนครบ 20 รอบ (~5 นาที) แล้วยังไม่ built ให้เช็คว่า path <code>/site</code> ถูกต้องหรือ branch ที่ set ตรงกับที่ push จริงหรือไม่
+  </div>
+</div>
+
+<div class="step">
+  <h3><span class="step-num">8</span>Verify ด้วย curl จริง — ห้ามเชื่อ API response อย่างเดียว</h3>
+  <p>แม้ <code>status</code> จะเป็น <code>built</code> แล้ว ก็ต้องยิง HTTP request จริงเพื่อยืนยันว่าหน้าเว็บเปิดได้จริง</p>
+  <pre><code class="language-bash">PAGES_URL=$(gh api repos/$OWNER/$REPO/pages -q .html_url)
+echo "checking: $PAGES_URL"
+
+HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' "$PAGES_URL")
+echo "HTTP status: $HTTP_CODE"
+
+if [ "$HTTP_CODE" = "200" ]; then
+  echo "LIVE: $PAGES_URL"
+else
+  echo "NOT LIVE YET (got $HTTP_CODE) — build อาจยังไม่เสร็จ propagate, ลองใหม่ใน 30-60 วินาที"
+fi
+</code></pre>
+  <div class="danger">
+    <strong>ห้ามทำ:</strong> ห้ามประกาศว่า "deploy สำเร็จ" จาก <code>gh api</code> ตอบ 201/204 อย่างเดียว ต้องเห็น <code>HTTP status: 200</code> จาก curl จริงก่อนถึงจะยืนยันได้ว่า live
+  </div>
+  <div class="verify">
+    <strong>Verify:</strong> รัน curl command ซ้ำจนกว่าจะได้ <code>200</code> จริง — เก็บ output เป็นหลักฐานว่า verify แล้ว ไม่ใช่แค่สันนิษฐาน
+  </div>
+</div>
+
+<details class="troubleshoot">
+  <summary>Troubleshoot: gh api ตอบสำเร็จแต่ curl ได้ 404</summary>
+  <p>นี่คือพฤติกรรมปกติในช่วงแรกหลังเปิด Pages — POST/GET ต่อ <code>/pages</code> endpoint ยืนยันแค่ว่า "การตั้งค่า" ถูกบันทึกแล้ว แต่กระบวนการ build ไฟล์จริงเป็น asynchronous job ที่รันแยกต่างหาก มักใช้เวลา 30 วินาที ถึง 2-3 นาที</p>
+  <ul>
+    <li>เช็ค <code>status</code> field จาก <code>gh api repos/OWNER/REPO/pages</code> ต้องเป็น <code>built</code> ก่อน ไม่ใช่ <code>null</code> หรือ <code>building</code></li>
+    <li>ถ้า poll เกิน 5 นาทีแล้วยัง <code>building</code> ตลอด ให้เช็ค Actions tab ของ repo — Pages ใช้ internal workflow ชื่อ "pages build and deployment" ดู log ตรงนั้นว่า build fail หรือเปล่า</li>
+    <li>ถ้า path ที่ตั้งใน <code>source[path]</code> ไม่มี <code>index.html</code> อยู่จริง Pages จะ build "สำเร็จ" แต่ได้หน้า 404 ของ GitHub เอง — เช็ค path ให้ตรงกับที่ push จริง</li>
+    <li>บาง org/repo ต้องเปิด Pages ผ่าน Settings UI ครั้งแรกก่อน API ถึงจะยอมให้ POST ได้ (permission ของ token ไม่พอ) — เช็ค error message จาก <code>gh api</code> ให้ดี ไม่ใช่แค่ดู exit code</li>
+  </ul>
+</details>
+
+<details class="troubleshoot">
+  <summary>Troubleshoot: claude --bare รันแล้ว error "authentication failed"</summary>
+  <p>Bare mode ข้าม OAuth device flow ไปเลย ดังนั้นถ้าไม่มี <code>ANTHROPIC_API_KEY</code> อยู่ใน environment มันจะ fail ทันที ไม่ fallback ไป login flow ให้</p>
+  <ul>
+    <li>เช็คว่า secret ชื่อตรงกับที่ workflow อ้างถึง (<code>ANTHROPIC_API_KEY</code>) ใน repo Settings → Secrets and variables → Actions</li>
+    <li>ใน workflow ต้องมี <code>env: ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}</code> อยู่ที่ step ที่เรียก <code>claude</code> จริงๆ ไม่ใช่แค่ประกาศไว้ที่ job level เฉยๆ แล้วลืม pass ต่อ</li>
+    <li>ทดสอบ local ก่อน push: <code>export ANTHROPIC_API_KEY=sk-ant-... && claude --bare -p "hello" --max-turns 1</code></li>
+  </ul>
+</details>
+
+<div class="objectives">
+  <h2>สรุป &amp; ต่อยอด</h2>
+  <p>ตอนนี้คุณมี pipeline ที่รัน Claude Code แบบ headless เพื่อ review PR อัตโนมัติ พร้อม cost guard (<code>--max-turns</code>, <code>--max-budget-usd</code>, <code>--fallback-model</code>) และรู้วิธี deploy static site ขึ้น GitHub Pages ผ่าน <code>gh api</code> แบบที่ verify ผลจริงทุกขั้นตอนแทนการเชื่อ response เฉยๆ</p>
+  <ul>
+    <li>ลองเปิด PR จริงในโปรเจกต์ทดสอบ แล้วดู comment ที่ claude-review workflow โพสต์กลับมา</li>
+    <li>เพิ่ม job แยกสำหรับรัน test suite ก่อนค่อยเรียก Claude Code review เพื่อประหยัด budget เมื่อ test พังอยู่แล้ว</li>
+    <li>ลองตั้ง <code>--fallback-model</code> เป็นโมเดลอื่นแล้วเทียบคุณภาพ review กับต้นทุนที่ประหยัดได้</li>
+    <li>Module 10 (Capstone) จะรวม pattern จาก Module 01-09 ทั้งหมดเข้าเป็นโปรเจกต์เดียว รวมถึง pipeline นี้ด้วย</li>
+  </ul>
+</div>
+
+<div class="pagefoot">
+  <a href="../08-enterprise-governance/lab.html">← Module 08: Enterprise Governance</a>
+  <a href="../10-capstone/lab.html">Module 10: Capstone Project →</a>
+</div>
+
+<div class="footer-note">NTT DATA Internal Enablement — Module 09 Lab</div>
+
+</div>
+</body>
+</html>

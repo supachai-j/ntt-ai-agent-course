@@ -1,0 +1,162 @@
+/* ============================================================
+   NTT — Hermes & Claude Code Internal Course
+   Shared stylesheet for index + lab pages (dark, technical theme)
+   ============================================================ */
+:root{
+  --bg:#0b0f17;
+  --bg-alt:#111826;
+  --panel:#161f2e;
+  --panel-border:#233047;
+  --text:#dbe4f0;
+  --text-dim:#8b9bb4;
+  --accent:#00c2b8;
+  --accent-2:#5b8cff;
+  --accent-warn:#ffb454;
+  --accent-danger:#ff5d5d;
+  --code-bg:#0d1420;
+  --radius:10px;
+  --maxw:1080px;
+  font-family: 'Segoe UI', 'Noto Sans Thai', system-ui, -apple-system, sans-serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(circle at top left, #14213a 0%, var(--bg) 45%);
+  color:var(--text);
+  line-height:1.65;
+  min-height:100vh;
+}
+a{color:var(--accent-2);text-decoration:none;}
+a:hover{text-decoration:underline;}
+h1,h2,h3,h4{line-height:1.25;color:#fff;}
+code, pre{
+  font-family:'Cascadia Code','Fira Code',Consolas,monospace;
+}
+code{
+  background:var(--code-bg);
+  border:1px solid var(--panel-border);
+  border-radius:4px;
+  padding:0.1em 0.4em;
+  font-size:0.92em;
+  color:#7ee8e0;
+}
+pre{
+  background:var(--code-bg);
+  border:1px solid var(--panel-border);
+  border-radius:var(--radius);
+  padding:16px 18px;
+  overflow-x:auto;
+  font-size:0.88em;
+}
+pre code{background:none;border:none;padding:0;color:#c9e9ff;}
+
+/* ---------- Top nav ---------- */
+.topnav{
+  position:sticky;top:0;z-index:50;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:16px;
+  padding:12px 28px;
+  background:rgba(11,15,23,0.92);
+  backdrop-filter:blur(6px);
+  border-bottom:1px solid var(--panel-border);
+}
+.topnav .brand{display:flex;align-items:center;gap:10px;font-weight:700;color:#fff;}
+.topnav .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);}
+.topnav nav{display:flex;gap:18px;flex-wrap:wrap;font-size:0.92em;}
+.topnav nav a{color:var(--text-dim);}
+.topnav nav a.active,.topnav nav a:hover{color:var(--accent);}
+
+/* ---------- Layout ---------- */
+.wrap{max-width:var(--maxw);margin:0 auto;padding:36px 24px 90px;}
+.hero{padding:56px 0 24px;text-align:center;}
+.hero h1{font-size:2.3em;margin-bottom:10px;}
+.hero p.lead{color:var(--text-dim);font-size:1.1em;max-width:720px;margin:0 auto;}
+.badge{
+  display:inline-block;padding:3px 10px;border-radius:999px;
+  background:rgba(0,194,184,0.12);color:var(--accent);
+  font-size:0.75em;font-weight:600;letter-spacing:.03em;text-transform:uppercase;
+  border:1px solid rgba(0,194,184,0.35);
+}
+
+/* ---------- Module grid (index) ---------- */
+.track-label{margin:38px 0 14px;color:var(--accent);font-size:0.85em;text-transform:uppercase;letter-spacing:.08em;font-weight:700;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;}
+.card{
+  background:var(--panel);border:1px solid var(--panel-border);border-radius:var(--radius);
+  padding:20px 22px;display:flex;flex-direction:column;gap:10px;
+  transition:transform .15s ease, border-color .15s ease;
+}
+.card:hover{transform:translateY(-3px);border-color:var(--accent);}
+.card .num{font-size:0.78em;color:var(--text-dim);font-weight:700;letter-spacing:.06em;}
+.card h3{margin:0;font-size:1.15em;}
+.card p{margin:0;color:var(--text-dim);font-size:0.92em;flex:1;}
+.card .links{display:flex;gap:10px;margin-top:6px;font-size:0.88em;}
+.card .links a{
+  border:1px solid var(--panel-border);border-radius:6px;padding:5px 11px;color:var(--text);
+}
+.card .links a.slides{border-color:var(--accent-2);}
+.card .links a.lab{border-color:var(--accent);}
+.card .links a:hover{background:rgba(255,255,255,0.05);text-decoration:none;}
+
+/* ---------- Lab page ---------- */
+.lab-meta{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 28px;}
+.lab-meta span{
+  background:var(--panel);border:1px solid var(--panel-border);border-radius:6px;
+  padding:5px 12px;font-size:0.85em;color:var(--text-dim);
+}
+.objectives, .prereq{
+  background:var(--panel);border:1px solid var(--panel-border);border-radius:var(--radius);
+  padding:18px 22px;margin-bottom:24px;
+}
+.objectives h2, .prereq h2{margin-top:0;font-size:1.05em;color:var(--accent);}
+.step{
+  border-left:3px solid var(--accent-2);
+  padding:4px 0 4px 20px;margin:28px 0;
+}
+.step h3{margin:0 0 8px;font-size:1.15em;}
+.step h3 .step-num{
+  display:inline-block;width:26px;height:26px;line-height:26px;text-align:center;
+  background:var(--accent-2);color:#031222;border-radius:50%;font-size:0.8em;font-weight:700;margin-right:8px;
+}
+.verify{
+  background:rgba(0,194,184,0.08);border:1px dashed var(--accent);border-radius:8px;
+  padding:12px 16px;margin-top:10px;font-size:0.92em;
+}
+.verify strong{color:var(--accent);}
+.warn{
+  background:rgba(255,180,84,0.08);border:1px dashed var(--accent-warn);border-radius:8px;
+  padding:12px 16px;margin-top:10px;font-size:0.92em;
+}
+.warn strong{color:var(--accent-warn);}
+.danger{
+  background:rgba(255,93,93,0.08);border:1px dashed var(--accent-danger);border-radius:8px;
+  padding:12px 16px;margin-top:10px;font-size:0.92em;
+}
+.danger strong{color:var(--accent-danger);}
+.troubleshoot summary{cursor:pointer;color:var(--accent-2);font-weight:600;margin:6px 0;}
+.troubleshoot{background:var(--panel);border:1px solid var(--panel-border);border-radius:8px;padding:12px 18px;margin:10px 0;}
+table{border-collapse:collapse;width:100%;margin:14px 0;font-size:0.92em;}
+th,td{border:1px solid var(--panel-border);padding:8px 12px;text-align:left;}
+th{background:var(--panel);color:var(--accent);}
+
+.pagefoot{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-top:56px;padding-top:20px;border-top:1px solid var(--panel-border);
+  font-size:0.9em;color:var(--text-dim);
+}
+.pagefoot a{border:1px solid var(--panel-border);border-radius:6px;padding:8px 14px;color:var(--text);}
+.pagefoot a:hover{border-color:var(--accent);text-decoration:none;}
+
+.footer-note{margin-top:60px;padding-top:20px;border-top:1px solid var(--panel-border);color:var(--text-dim);font-size:0.85em;text-align:center;}
+
+.slides-cta{
+  display:flex;gap:14px;justify-content:center;margin:26px 0 10px;flex-wrap:wrap;
+}
+.slides-cta a{
+  padding:12px 22px;border-radius:8px;font-weight:600;font-size:0.95em;
+}
+.slides-cta a.primary{background:var(--accent);color:#04211f;}
+.slides-cta a.secondary{border:1px solid var(--panel-border);color:var(--text);}
+.slides-cta a.primary:hover, .slides-cta a.secondary:hover{text-decoration:none;filter:brightness(1.1);}
+
+ul li, ol li{margin:4px 0;}
