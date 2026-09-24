@@ -1,5 +1,5 @@
 /* ============================================================
-   NTT Course — Light/Dark theme toggle
+   Course — Light/Dark theme toggle
    Works on plain pages (index/lab) and reveal.js slide pages.
    Applies data-theme attribute on <html>, persists to localStorage.
    Anti-FOUC: this script is loaded with `defer` is NOT enough on its
@@ -9,7 +9,7 @@
    up the toggle button's click behavior + icon state after DOM load.
    ============================================================ */
 (function () {
-  var STORAGE_KEY = 'ntt-course-theme';
+  var STORAGE_KEY = 'course-theme';
 
   function getTheme() {
     try {

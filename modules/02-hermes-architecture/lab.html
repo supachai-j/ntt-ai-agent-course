@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<script>(function(){try{var t=localStorage.getItem('ntt-course-theme')||(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<script>(function(){try{var t=localStorage.getItem('course-theme')||(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lab — Module 02: Hermes Agent Platform Architecture</title>
 <link rel="stylesheet" href="../../assets/style.css">
@@ -11,7 +11,7 @@
 <button class="theme-toggle-btn" type="button" aria-label="สลับธีม Light/Dark">☀️</button>
 
 <div class="topnav">
-  <div class="brand"><span class="dot"></span> NTT · AI Agent Engineering Course</div>
+  <div class="brand"><span class="dot"></span> AI Agent Engineering Course</div>
   <nav><a href="../../index.html">Home</a><a href="slides.html">Slides</a></nav>
 </div>
 
@@ -97,7 +97,7 @@ nano ~/.hermes/profiles/&lt;profile&gt;/skills/&lt;skill-name&gt;/SKILL.md</code
     <p>เลือก use case จริงจากงาน presale หรือ engineering ของคุณเอง (เช่น "การเตรียม proposal", "การ deploy ESXi lab", "การเขียน incident report") แล้วออกแบบ skill ตาม template ด้านล่าง:</p>
     <pre><code>---
 name: my-presale-proposal-skill
-description: Use when preparing a customer proposal for NTT presales engagements. Structures scope, pricing tiers, and technical assumptions consistently.
+description: Use when preparing a customer proposal for presales engagements. Structures scope, pricing tiers, and technical assumptions consistently.
 version: 1.0
 ---
 
@@ -105,7 +105,7 @@ version: 1.0
 
 ## When to use
 Use this skill when a presale engineer needs to draft a customer-facing
-technical proposal that must follow NTT's standard structure.
+technical proposal that must follow the team's standard structure.
 
 ## Routing table
 | Situation                          | Action                          |
@@ -225,7 +225,7 @@ print(fm)
     <a href="../03-claude-code-fundamentals/lab.html">Module 03: Claude Code Fundamentals →</a>
   </div>
 
-  <div class="footer-note">NTT DATA Internal Enablement — Module 02 Lab</div>
+  <div class="footer-note">Internal Enablement — Module 02 Lab</div>
 
 </div>
 <script src="../../assets/theme.js" defer></script>
