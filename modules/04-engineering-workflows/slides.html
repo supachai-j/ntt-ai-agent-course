@@ -2,6 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem('ntt-course-theme')||(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Module 04 · Engineering Workflows with Claude Code</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
@@ -9,6 +10,7 @@
 <link rel="stylesheet" href="../../assets/reveal-theme.css">
 </head>
 <body>
+<button class="theme-toggle-btn" type="button" aria-label="สลับธีม Light/Dark">☀️</button>
 <div class="reveal">
   <div class="slides">
 
@@ -268,5 +270,6 @@ claude -p 'Implement the rate limiter per docs/rate-limit-spec.md' \
     transition: 'slide'
   });
 </script>
+<script src="../../assets/theme.js" defer></script>
 </body>
 </html>

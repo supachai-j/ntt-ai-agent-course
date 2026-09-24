@@ -18,6 +18,30 @@
   --maxw:1080px;
   font-family: 'Segoe UI', 'Noto Sans Thai', system-ui, -apple-system, sans-serif;
 }
+/* ---------- Light theme override ---------- */
+[data-theme="light"]{
+  --bg:#f3f5fa;
+  --bg-alt:#ffffff;
+  --panel:#ffffff;
+  --panel-border:#d9e0ea;
+  --text:#1b2436;
+  --text-dim:#5c6a80;
+  --accent:#00958c;
+  --accent-2:#2d5fd0;
+  --accent-warn:#b8720a;
+  --accent-danger:#d6392f;
+  /* code blocks intentionally stay dark (VS Code style) in both themes for readability */
+}
+[data-theme="light"] body{
+  background:radial-gradient(circle at top left, #e6ebf7 0%, var(--bg) 45%);
+}
+[data-theme="light"] .topnav{
+  background:rgba(255,255,255,0.92);
+}
+[data-theme="light"] code{
+  color:#0a7a72;
+}
+
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body{
@@ -25,10 +49,24 @@ body{
   color:var(--text);
   line-height:1.65;
   min-height:100vh;
+  transition:background .2s ease, color .2s ease;
 }
+
+/* ---------- Theme toggle button (fixed, works standalone on any page) ---------- */
+.theme-toggle-btn{
+  position:fixed;top:14px;right:18px;z-index:200;
+  width:38px;height:38px;border-radius:50%;
+  background:var(--panel);border:1px solid var(--panel-border);
+  color:var(--text);font-size:1.05em;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,0.25);
+  transition:transform .15s ease, border-color .15s ease;
+}
+.theme-toggle-btn:hover{transform:scale(1.08);border-color:var(--accent);}
 a{color:var(--accent-2);text-decoration:none;}
 a:hover{text-decoration:underline;}
 h1,h2,h3,h4{line-height:1.25;color:#fff;}
+[data-theme="light"] h1,[data-theme="light"] h2,[data-theme="light"] h3,[data-theme="light"] h4{color:#0f1830;}
 code, pre{
   font-family:'Cascadia Code','Fira Code',Consolas,monospace;
 }
@@ -60,7 +98,7 @@ pre code{background:none;border:none;padding:0;color:#c9e9ff;}
   backdrop-filter:blur(6px);
   border-bottom:1px solid var(--panel-border);
 }
-.topnav .brand{display:flex;align-items:center;gap:10px;font-weight:700;color:#fff;}
+.topnav .brand{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--text);}
 .topnav .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);}
 .topnav nav{display:flex;gap:18px;flex-wrap:wrap;font-size:0.92em;}
 .topnav nav a{color:var(--text-dim);}

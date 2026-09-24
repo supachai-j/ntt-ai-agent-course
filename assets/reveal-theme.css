@@ -56,3 +56,25 @@
 .reveal .controls{color:var(--r-accent-2);}
 .reveal a{color:var(--r-accent-2);}
 .reveal small, .reveal .footnote{color:var(--r-text-dim);font-size:0.5em;}
+
+/* ---------- Light theme override (reveal.js) ---------- */
+[data-theme="light"] .reveal{
+  --r-bg:#f3f5fa;
+  --r-accent:#00958c;
+  --r-accent-2:#2d5fd0;
+  --r-text:#1b2436;
+  --r-text-dim:#5c6a80;
+  --r-panel:#ffffff;
+  --r-border:#d9e0ea;
+  background:radial-gradient(circle at top left,#e6ebf7 0%,var(--r-bg) 55%);
+}
+[data-theme="light"] .reveal h1,
+[data-theme="light"] .reveal h3{color:#0f1830;}
+[data-theme="light"] .reveal h2{color:var(--r-accent);}
+/* Code blocks intentionally stay dark (VS Code style) in both themes for readability */
+[data-theme="light"] .reveal pre{border-color:var(--r-border);}
+[data-theme="light"] .reveal .lab-cta{color:#04211f;}
+[data-theme="light"] .reveal .step-num{color:#04211f;}
+
+/* Theme toggle button needs to sit above reveal.js's own controls/progress bar */
+.reveal ~ .theme-toggle-btn, .theme-toggle-btn{ z-index:400; }

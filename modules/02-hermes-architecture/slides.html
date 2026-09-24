@@ -2,6 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem('ntt-course-theme')||(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Module 02 — Hermes Agent Platform: Architecture</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
@@ -9,6 +10,7 @@
 <link rel="stylesheet" href="../../assets/reveal-theme.css">
 </head>
 <body>
+<button class="theme-toggle-btn" type="button" aria-label="สลับธีม Light/Dark">☀️</button>
 <div class="reveal">
 <div class="slides">
 
@@ -40,6 +42,12 @@
       <li><strong>Subagent orchestration</strong> — delegate_task สำหรับงานที่ต้อง isolate context</li>
     </ol>
   </div>
+</section>
+
+<section>
+  <h2>Diagram: TumEzZ Hermes System (ภาพรวมจริง)</h2>
+  <img src="../../assets/images/hermes-architecture-overview.png" alt="TumEzZ Hermes System architecture diagram — AI Agent Platform for Knowledge, Automation and Operations" style="max-width:92%;max-height:520px;border-radius:10px;border:1px solid var(--r-border);box-shadow:0 8px 30px rgba(0,0,0,0.4);">
+  <p style="font-size:0.5em;color:var(--r-text-dim);margin-top:0.8em;">ตัวอย่าง deployment จริง: Users &amp; Channels (LINE/Discord) → Hermes Agent (Claude Sonnet + MCP) → Knowledge Layer (Google OKF/Local Files/Notion) + CI Pipeline (GitHub Actions) — รันบน Tailscale mesh เชื่อม Home/IDC ESXi</p>
 </section>
 
 <section>
@@ -246,5 +254,6 @@ version: 1.0
     transition: 'slide'
   });
 </script>
+<script src="../../assets/theme.js" defer></script>
 </body>
 </html>
