@@ -184,6 +184,51 @@ Step 3: tool_call({calls: [{name: "discord_send", arguments: {...}}]})
     <div class="danger"><strong>ข้อควรระวัง:</strong> อย่าสมมุติชื่อ parameter ของ tool เอง — เรียก tool_describe เพื่อดู schema จริงก่อนเรียก tool_call เสมอ ชื่อ parameter ที่เดาผิดจะทำให้ call fail</div>
   </div>
 
+  <div class="step">
+    <h3><span class="step-num">8</span> Mapping Integration Tools ของ Hermes deployment จริง</h3>
+    <p>ย้อนกลับไปดู diagram ใน hero section ด้านบนของหน้านี้ (TumEzZ Hermes System) แล้วจับคู่แต่ละ integration กับ 3 กลุ่มที่เรียนใน slides — เขียนคำตอบลงไฟล์ markdown:</p>
+    <pre><code>mkdir -p ~/agent-course-lab02
+nano ~/agent-course-lab02/integration-mapping.md</code></pre>
+    <p>กรอก template นี้โดยดู diagram ประกอบ:</p>
+    <pre><code># Integration Tools Mapping — Hermes Deployment
+
+## กลุ่มที่ 1: Skills & Tools (MCP)
+จาก diagram เห็น capability อะไรบ้างใน box "Skills & Tools (MCP)"?
+(เช่น Search, Summarize, Analyze, Code, Operate, Manage, Integrate)
+[เขียนคำตอบของคุณ]
+
+## กลุ่มที่ 2: Knowledge Layer
+diagram แสดง 3 แหล่งข้อมูล — แต่ละแหล่งเหมาะกับข้อมูลประเภทไหน?
+- Google OKF: [เหมาะกับ...]
+- Local Files: [เหมาะกับ...]
+- Notion: [เหมาะกับ...]
+
+## กลุ่มที่ 3: Channels & CI Pipeline
+- Channel ที่ user คุยกับ agent ได้มีอะไรบ้าง: [...]
+- CI Pipeline มีกี่ขั้นตอน อะไรบ้าง (ดู box "CI Pipeline (GitHub)"): [...]
+- ทำไม knowledge base ถึงต้องผ่าน CI validate ก่อน deploy จริง: [...]
+
+## ถ้าจะออกแบบ integration ใหม่ให้ทีมตัวเอง
+สมมติทีมคุณอยากเพิ่ม channel หรือ knowledge source ใหม่ 1 อย่าง
+ที่ไม่มีใน diagram — จะเป็นอะไร และเชื่อมเข้ากับกลุ่มไหนใน 3 กลุ่มนี้?
+[เขียนคำตอบของคุณ]</code></pre>
+    <div class="verify">
+      <strong>Verify:</strong> ไฟล์ <code>integration-mapping.md</code> ต้องตอบครบทั้ง 3 กลุ่ม (Skills&amp;Tools / Knowledge Layer / Channels&amp;CI) และมีข้อเสนอ integration ใหม่อย่างน้อย 1 อย่างพร้อมเหตุผลว่าทำไมควรอยู่กลุ่มนั้น — ไม่ใช่แค่ copy คำจาก diagram โดยไม่คิดต่อ
+    </div>
+    <div class="warn"><strong>ข้อควรระวัง:</strong> Diagram นี้คือตัวอย่าง production deployment จริงหนึ่งชุด ไม่ใช่ spec ตายตัวของ Hermes — Hermes รองรับ MCP connector อื่นนอกเหนือจากที่แสดงในภาพได้ (เช่น Airtable, Box, Slack) ให้เข้าใจ "รูปแบบ" (3 กลุ่ม) มากกว่าจำชื่อ tool เฉพาะเจาะจง</div>
+  </div>
+
+  <details class="troubleshoot">
+    <summary>Troubleshoot: ไม่แน่ใจว่า integration ใหม่ที่เสนอควรอยู่กลุ่มไหน</summary>
+    <p>ใช้คำถามนี้ช่วยตัดสิน:</p>
+    <ul>
+      <li>ถ้ามันเป็น "ความสามารถ" ที่ agent ใช้ทำงาน (ดึงข้อมูล, รันคำสั่ง, วิเคราะห์) → กลุ่ม 1 Skills &amp; Tools</li>
+      <li>ถ้ามันเป็น "แหล่งข้อมูล" ที่ agent อ่าน/เขียนเพื่อจำสิ่งที่รู้ → กลุ่ม 2 Knowledge Layer</li>
+      <li>ถ้ามันเป็น "ทางเข้า-ออก" ที่ human คุยกับ agent หรือ pipeline ที่ deploy ความรู้ → กลุ่ม 3 Channels &amp; CI Pipeline</li>
+      <li>บาง integration คาบเกี่ยวมากกว่า 1 กลุ่มได้ — เขียนเหตุผลว่าทำไมเลือกกลุ่มหลัก ไม่มีคำตอบผิดถ้ามีเหตุผลรองรับ</li>
+    </ul>
+  </details>
+
   <details class="troubleshoot">
     <summary>Troubleshooting: find ~/.hermes ไม่เจออะไรเลย / permission denied</summary>
     <p>สาเหตุที่เป็นไปได้:</p>

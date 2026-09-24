@@ -51,6 +51,90 @@
 </section>
 
 <section>
+  <h2>Integration Tools: 3 กลุ่มหลักจาก diagram</h2>
+  <p>Diagram ก่อนหน้าแสดง integration จริงที่ deploy ใช้งาน — แบ่งได้เป็น 3 กลุ่มที่จะลงรายละเอียดต่อในสไลด์ถัดไป:</p>
+  <div class="two-col">
+    <div class="card-box">
+      <h4>1. Skills &amp; Tools (MCP)</h4>
+      <p>ความสามารถของ agent เอง: Search, Summarize, Analyze, Code, Operate, Manage, Integrate</p>
+    </div>
+    <div class="card-box">
+      <h4>2. Knowledge Layer</h4>
+      <p>แหล่งข้อมูลที่ agent อ่าน/เขียนได้: Google OKF, Local Files, Notion (optional)</p>
+    </div>
+  </div>
+  <div class="card-box" style="margin-top:0.6em;">
+    <h4>3. Channels &amp; CI Pipeline</h4>
+    <p>ทางเข้า-ออกของ agent กับโลกภายนอก: LINE, Discord (user-facing) + GitHub Actions (automated commit → validate → deploy)</p>
+  </div>
+</section>
+
+<section>
+  <h2>1. Skills &amp; Tools (MCP) — Capability Categories</h2>
+  <table>
+    <tr><th>Category</th><th>ตัวอย่าง MCP tool จริง</th><th>ใช้ทำอะไร</th></tr>
+    <tr><td>Search</td><td><code>web_search</code>, <code>search_files</code></td><td>ค้นเว็บ / ค้นไฟล์ในเครื่อง</td></tr>
+    <tr><td>Summarize / Analyze</td><td><code>web_extract</code>, <code>read_file</code></td><td>ดึงเนื้อหา อ่าน/สรุปเอกสาร</td></tr>
+    <tr><td>Code</td><td><code>terminal</code>, <code>patch</code>, <code>write_file</code></td><td>รันคำสั่ง แก้ไฟล์ เขียนโค้ด</td></tr>
+    <tr><td>Operate</td><td><code>browser_*</code>, <code>cronjob_manage</code></td><td>ควบคุม browser, ตั้งเวลา automation</td></tr>
+    <tr><td>Manage / Integrate</td><td><code>tool_search</code> + <code>tool_call</code> (deferred connectors)</td><td>ต่อ third-party service ตามต้องการ ไม่ preload ทุกตัว</td></tr>
+  </table>
+  <div class="warn"><strong>ข้อควรระวัง:</strong> ไม่ใช่ทุก MCP tool ถูก preload ตลอดเวลา — บาง connector (เช่น Notion, Airtable, Google Workspace) เป็น "deferred tool" ต้องเรียกผ่าน <code>tool_search</code> ก่อนจึงจะ <code>tool_describe</code>/<code>tool_call</code> ได้ (ย้อนดู slide pattern tool_search ก่อนหน้า)</div>
+</section>
+
+<section>
+  <h2>2. Knowledge Layer — แหล่งข้อมูลที่ agent เข้าถึงได้</h2>
+  <div class="two-col">
+    <div class="card-box">
+      <h4>Google OKF (Team Knowledge Base)</h4>
+      <ul>
+        <li>Structured knowledge, team documentation</li>
+        <li>Search &amp; retrieval แบบ semantic</li>
+        <li>Version controlled — เห็น history การแก้ไข</li>
+      </ul>
+    </div>
+    <div class="card-box">
+      <h4>Local Files (on Hermes host)</h4>
+      <ul>
+        <li>Configs, scripts, logs, reports</li>
+        <li>เข้าถึงตรงผ่าน <code>read_file</code>/<code>write_file</code>/<code>search_files</code></li>
+        <li>เร็วที่สุด — ไม่มี network round-trip</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card-box" style="margin-top:0.6em;">
+    <h4>Notion (Optional)</h4>
+    <p>Team wiki / project docs — sync ผ่าน MCP connector, ใช้เก็บ knowledge ที่ non-technical stakeholder ต้องอ่านง่าย (เช่น presale proposal notes)</p>
+  </div>
+  <p style="margin-top:0.8em;font-size:0.85em;">หลักการเลือกแหล่งข้อมูล: <strong>Local Files</strong> สำหรับ code/config ที่ agent แก้บ่อย, <strong>Google OKF</strong> สำหรับ knowledge ที่ทีมต้อง search ย้อนหลัง, <strong>Notion</strong> สำหรับเอกสารที่ non-engineer ต้องอ่าน/แก้ร่วม</p>
+</section>
+
+<section>
+  <h2>3. Channels &amp; CI Pipeline</h2>
+  <div class="two-col">
+    <div class="card-box">
+      <h4>User-facing Channels</h4>
+      <ul>
+        <li><strong>Discord</strong> — team collaboration, multiple servers, bot commands (แบบที่ใช้คุยตอนนี้)</li>
+        <li><strong>LINE</strong> — chat กับ Hermes, ask/request, get notification (เหมาะกับ non-technical user ในองค์กรไทย)</li>
+      </ul>
+    </div>
+    <div class="card-box">
+      <h4>CI Pipeline (GitHub Actions)</h4>
+      <ol>
+        <li>Commit changes — update docs/configs/prompts</li>
+        <li>GitHub Actions — validate &amp; test, build knowledge package</li>
+        <li>Deploy/Sync — update Google OKF, sync ไป OneDrive/local, notify Hermes agent</li>
+      </ol>
+    </div>
+  </div>
+  <div class="card-box" style="margin-top:0.6em;">
+    <h4>ทำไม CI pipeline ถึงสำคัญสำหรับ knowledge base</h4>
+    <p>Knowledge base ที่ agent อ้างอิง (Google OKF) ควรผ่าน version control + validation เหมือน code — กัน "แก้ผิดแล้ว agent ตอบผิดตาม" ได้ audit trail และ rollback ได้ถ้า sync พัง (โยงกับหลักการ verify evidence จาก Module 08)</p>
+  </div>
+</section>
+
+<section>
   <h2>Profiles: แยก workspace ต่อบริบท</h2>
   <div class="two-col">
     <div>
