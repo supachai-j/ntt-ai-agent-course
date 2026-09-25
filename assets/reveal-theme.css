@@ -29,6 +29,11 @@
 .reveal ul, .reveal ol{display:block;margin-left:0.6em;}
 .reveal .subtitle{color:var(--r-text-dim);font-size:0.6em;letter-spacing:.04em;text-transform:uppercase;}
 .reveal section.title-slide{text-align:center;}
+/* Safety net: if a slide's content is ever taller than the nominal slide
+   height (e.g. many icon-cards wrapping to multiple rows), allow the
+   viewer to scroll WITHIN that slide via mouse wheel/trackpad/touch
+   instead of content silently clipping off-screen with no way to reach it. */
+.reveal .slides section{max-height:100%;overflow-y:auto;overflow-x:hidden;}
 .reveal .badge{
   display:inline-block;padding:4px 14px;border-radius:999px;
   background:var(--r-pink);color:#0a0a0a;
