@@ -258,8 +258,9 @@
 .reveal .icon-grid{display:grid;width:100%;box-sizing:border-box;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:1em 0;}
 .reveal .icon-card{
   background:var(--r-panel);border:3px solid var(--r-border);border-radius:16px;
-  padding:1em 0.8em;text-align:center;box-shadow:3px 3px 0 var(--r-pink);
+  box-sizing:border-box;padding:0.7em 0.35em;text-align:center;box-shadow:3px 3px 0 var(--r-pink);
+  min-width:0;overflow-wrap:break-word;word-break:break-word;
 }
-.reveal .icon-card .icon{font-size:2.2em;display:block;margin-bottom:6px;}
-.reveal .icon-card .title{font-weight:800;font-size:0.72em;color:var(--r-text);}
-.reveal .icon-card .desc{font-size:0.6em;color:var(--r-text-dim);margin-top:4px;}
+.reveal .icon-card .icon{font-size:2em;display:block;margin-bottom:6px;}
+.reveal .icon-card .title{font-weight:800;font-size:0.62em;color:var(--r-text);overflow-wrap:break-word;word-break:break-word;line-height:1.25;}
+.reveal .icon-card .desc{font-size:0.52em;color:var(--r-text-dim);margin-top:4px;overflow-wrap:break-word;word-break:break-word;line-height:1.3;}
