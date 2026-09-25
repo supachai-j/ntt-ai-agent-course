@@ -186,6 +186,90 @@ gh api repos/OWNER/REPO/pages -X POST \
 </section>
 
 <section>
+  <h2>วัดผลว่า pipeline "ดีขึ้นจริง" หรือแค่รู้สึกว่าดีขึ้น</h2>
+  <p>ก่อนแก้ prompt/config ของ headless job ใน pipeline ต้องรู้ก่อนว่า
+  <strong>ความแปรปรวนระหว่างการรันสองครั้งของงานเดียวกัน มักใหญ่กว่าผลของการแก้ prompt</strong>
+  ที่เพิ่งทำ — รันงานเดิมซ้ำ ๆ ได้ diff คนละแบบได้ แม้ไม่แตะ prompt เลย เพราะลำดับ tool-call,
+  ผลลัพธ์ tool, และบริบทที่สะสมไม่เหมือนเดิมทุกรอบ</p>
+  <div class="danger">
+    <strong>กฎข้อ 1:</strong> n=1 คือเกร็ดเล่าสู่กันฟัง ไม่ใช่ผลการวัด — ก่อนเชื่อว่า
+    "แก้แบบนี้แล้วดีขึ้น" ต้องรันซ้ำอย่างน้อย 5 ครั้งทั้งก่อน/หลัง แล้วดู<strong>ช่วง</strong>ของผล
+    ไม่ใช่ค่าเดียว
+  </div>
+  <p style="font-size:0.75em;color:var(--r-text-dim);">อ้างอิงเนื้อหาจาก
+  <a href="https://supachai-j.github.io/ai-sdlc/m12-evals.html" target="_blank">ai-sdlc — M12 Evals</a>
+  (คอร์สแยกของผู้เขียน เจาะลึกเรื่องนี้เต็มโมดูล พร้อม eval harness รันได้จริง)</p>
+</section>
+
+<section>
+  <h2>Golden Task Set — ชุดวัดของทีมตัวเอง</h2>
+  <p>ชุดงานต้อง<strong>คงที่และเป็นตัวแทนงานจริง</strong> — แต่งขึ้นเองแล้ววัดไม่ได้อะไร
+  ต้องดึงจาก backlog/PR ย้อนหลัง 3 เดือนที่รู้คำตอบแล้ว</p>
+  <table>
+    <tr><th>ส่วนประกอบ</th><th>ทำไมต้องมี</th></tr>
+    <tr><td><code>repo_sha</code></td><td>ตรึงสถานะ repo ไว้ — ถ้า repo เคลื่อน ผลเทียบข้ามเวลาไม่ได้</td></tr>
+    <tr><td><code>prompt</code></td><td>เขียนแบบที่จะพิมพ์จริง ไม่ใช่แบบขัดเกลาแล้ว</td></tr>
+    <tr><td><code>criteria</code></td><td>ต้องตัดสินได้ด้วยสคริปต์ ไม่ใช่ด้วยสายตา</td></tr>
+    <tr><td><code>env</code></td><td>เวอร์ชัน dependency, seed ของ DB — ตัวแปรที่คนลืมตรึงบ่อยที่สุด</td></tr>
+    <tr><td><code>tags</code></td><td>ประเภทงาน + ระดับความยาก เพื่อดูว่าพังเฉพาะกลุ่มไหน</td></tr>
+  </table>
+  <div class="warn">
+    <strong>ขนาดที่ใช้ได้จริง:</strong> ขั้นต่ำ ~20 งานเริ่มมีประโยชน์, ~40-60 งานเริ่มเชื่อผลได้จริง
+    — กระจายตามงานที่ทีมทำจริง ไม่ใช่ตามที่คิดว่าน่าจะเป็น
+  </div>
+</section>
+
+<section>
+  <h2>งานที่ต้องคัดทิ้งออกจากชุดวัด</h2>
+  <div class="two-col">
+    <div class="card-box">
+      <h4>ไม่ให้สัญญาณ</h4>
+      <ul>
+        <li>ง่ายเกิน — ผ่าน 100% ทุกครั้ง</li>
+        <li>ยากเกิน — ตกทุกครั้งเหมือนกันหมด</li>
+      </ul>
+    </div>
+    <div class="card-box">
+      <h4>วัดไม่ได้จริง</h4>
+      <ul>
+        <li>ไม่ deterministic — พึ่ง network/เวลาปัจจุบัน/service ภายนอก</li>
+        <li>อยู่ในข้อมูลฝึกแน่ๆ — เช่น bug ดังที่มีคำตอบเต็มอินเทอร์เน็ต</li>
+      </ul>
+    </div>
+  </div>
+  <p>เก็บเฉพาะ<strong>งานตรงกลาง</strong> — ที่ผลไม่แน่นอน — เพราะเป็นงานเดียวที่บอกได้ว่า
+  การเปลี่ยนแปลงมีผลจริงไหม (คะแนนเต็มตลอด กับศูนย์ตลอด มีค่าเท่ากันคือไม่มีค่า)</p>
+</section>
+
+<section>
+  <h2>เกณฑ์ 4 แบบ: Deterministic มาก่อนเสมอ</h2>
+  <p>ความผิดพลาดที่พบบ่อยที่สุด: กระโดดไปใช้ LLM-as-judge ทันที ทั้งที่เกณฑ์แบบสคริปต์ตอบได้อยู่แล้ว
+  — ใช้ judge เฉพาะเมื่อเกณฑ์ชั้นล่างตอบไม่ได้จริงๆ</p>
+  <table>
+    <tr><th>เกณฑ์ (เรียงถูก→แพง)</th><th>ใช้เมื่อไหร่</th></tr>
+    <tr><td><code>cmd</code></td><td>typecheck/test รันจริง — ถูกที่สุด เชื่อได้สมบูรณ์</td></tr>
+    <tr><td><code>before_after</code></td><td>แดงก่อน เขียวหลัง — สัญญาณแรงที่สุดต่อบาทที่จ่าย</td></tr>
+    <tr><td><code>diff</code></td><td>allow/deny/max_lines — ตรวจ scope ของการเปลี่ยนแปลง</td></tr>
+    <tr><td><code>budget</code></td><td>max_usd/max_wall_sec/max_turns — ยอมรับได้ก็ต่อเมื่อ 3 แบบบนไม่พอ</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>ทำไมโมดูลนี้เชื่อมกับ Evals</h2>
+  <p>Module 09 สอนวิธี "รัน Claude Code ใน pipeline อัตโนมัติ" แต่ไม่เคยตอบว่า
+  <strong>"pipeline นั้นทำงานดีขึ้นจริงไหมเมื่อแก้ prompt/config"</strong> — Evals คือชิ้นส่วนที่ขาด</p>
+  <div class="card-box">
+    <h4>เชื่อมกับหลักการที่มีอยู่แล้วในโมดูลนี้</h4>
+    <p>"Never report CI green without checking yourself" ใช้กับ eval เหมือนกัน —
+    ผลรันครั้งเดียวที่ดูดีอาจเป็นแค่ noise ไม่ใช่ improvement จริง ต้อง verify ด้วยการรันซ้ำ
+    เหมือนที่ต้อง curl ตรวจ HTTP code จริงก่อนบอกว่า deploy สำเร็จ</p>
+  </div>
+  <p style="font-size:0.8em;color:var(--r-text-dim);">เรียนลึกเรื่อง eval harness ที่รันได้จริง
+  (Bun runner, task template, deterministic-first grading) ต่อได้ที่
+  <a href="https://supachai-j.github.io/ai-sdlc/m12-evals.html" target="_blank">ai-sdlc M12 · Evals</a></p>
+</section>
+
+<section>
   <h2>สรุป Pattern การทำ CI/CD Automation</h2>
   <table>
     <tr><th>ขั้นตอน</th><th>เครื่องมือ</th></tr>
@@ -194,6 +278,7 @@ gh api repos/OWNER/REPO/pages -X POST \
     <tr><td>3. Trigger จาก event จริง</td><td><code>on: pull_request</code></td></tr>
     <tr><td>4. โพสต์ผลกลับ</td><td><code>gh pr comment</code></td></tr>
     <tr><td>5. Deploy + verify จริง</td><td><code>gh api</code> + poll + <code>curl</code></td></tr>
+    <tr><td>6. วัดว่า pipeline ดีขึ้นจริง</td><td>Golden task set + deterministic criteria + รันซ้ำ 5 ครั้ง</td></tr>
   </table>
   <a class="lab-cta" href="lab.html">เริ่ม Lab: เขียน workflow จริง + deploy ขึ้น Pages →</a>
 </section>

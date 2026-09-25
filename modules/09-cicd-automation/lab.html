@@ -22,7 +22,7 @@
 </div>
 
 <div class="lab-meta">
-  <span>⏱ ~60-75 นาที</span>
+  <span>⏱ ~70-90 นาที</span>
   <span>🖥 ต้องมี gh CLI + git + repo บน GitHub</span>
   <span>🔑 ต้องมี ANTHROPIC_API_KEY</span>
   <span>📦 Module 09 / 10</span>
@@ -47,6 +47,7 @@
     <li>เปิดใช้งาน GitHub Pages ผ่าน <code>gh api</code> แทน porcelain command</li>
     <li>Poll สถานะ build และ verify ด้วย <code>curl</code> จริงก่อนประกาศว่า deploy สำเร็จ</li>
     <li>ฝึกวินัย "never trust green CI without checking yourself"</li>
+    <li>ฝึกความเข้าใจพื้นฐาน eval — ทำไมการเทียบ prompt ด้วยการรันครั้งเดียวถึงเชื่อไม่ได้</li>
   </ul>
 </div>
 
@@ -238,6 +239,45 @@ fi
   </div>
 </div>
 
+<div class="step">
+  <h3><span class="step-num">9</span>Mini Eval: วัดว่า prompt เวอร์ชันไหน "ดีกว่า" จริง</h3>
+  <p>สร้าง mini eval script ง่ายๆ เทียบ prompt 2 แบบสำหรับงาน headless review เดียวกัน —
+  รันซ้ำหลายรอบแล้วดู<strong>ช่วง</strong>ของผล ไม่ใช่รันครั้งเดียวแล้วสรุป</p>
+  <pre><code class="language-bash">mkdir -p ~/eval-mini && cd ~/eval-mini
+
+cat > run_eval.sh << 'EOF'
+#!/usr/bin/env bash
+# Mini eval: รัน prompt เดิมซ้ำ N ครั้ง วัด num_turns เป็น deterministic proxy metric
+PROMPT="$1"
+LABEL="$2"
+N="${3:-5}"
+
+for i in $(seq 1 "$N"); do
+  RESULT=$(claude --bare -p "$PROMPT" --max-turns 5 --output-format json 2>/dev/null)
+  TURNS=$(echo "$RESULT" | python3 -c "import json,sys; print(json.load(sys.stdin).get('num_turns','NA'))")
+  echo "$LABEL run $i: num_turns=$TURNS"
+done
+EOF
+chmod +x run_eval.sh
+
+./run_eval.sh "Explain what this repo does in one sentence" "prompt-A" 5
+./run_eval.sh "In one sentence, explain the purpose of this repository" "prompt-B" 5</code></pre>
+  <div class="verify">
+    <strong>Verify:</strong> เก็บผลทั้ง 10 บรรทัด (5 รอบ x 2 prompt) — ดูว่าช่วงของ
+    <code>num_turns</code> ระหว่าง prompt-A กับ prompt-B <strong>ทับกันไหม</strong>
+    ถ้าทับกันเกือบทั้งหมด แปลว่าจากข้อมูลที่มี ยังสรุปไม่ได้ว่า prompt ไหนดีกว่าจริง —
+    นี่คือกับดักที่พบบ่อยที่สุด (n=1 comparison)
+  </div>
+  <div class="warn">
+    <strong>ทำไมต้องรันซ้ำ 5 ครั้งไม่ใช่ 1 ครั้ง:</strong> agent loop ไม่เดินเส้นทางเดียวทุกครั้ง —
+    ลำดับ tool-call, ผลลัพธ์ tool, และบริบทสะสมต่างกันได้แม้ prompt เหมือนเดิมทุกตัวอักษร
+    รันครั้งเดียวแล้วสรุปว่า "prompt นี้ดีกว่า" คือการอ่าน noise แล้วเรียกว่า improvement
+  </div>
+  <p style="font-size:0.85em;color:var(--panel-2,#666);">Mini exercise นี้สาธิตหลักการเท่านั้น
+  ถ้าต้องการ eval harness เต็มรูปแบบ (golden task set, deterministic-first criteria, baseline
+  tracking) ดูต่อได้ที่ <a href="https://supachai-j.github.io/ai-sdlc/m12-evals.html" target="_blank">ai-sdlc M12 · Evals</a></p>
+</div>
+
 <details class="troubleshoot">
   <summary>Troubleshoot: gh api ตอบสำเร็จแต่ curl ได้ 404</summary>
   <p>นี่คือพฤติกรรมปกติในช่วงแรกหลังเปิด Pages — POST/GET ต่อ <code>/pages</code> endpoint ยืนยันแค่ว่า "การตั้งค่า" ถูกบันทึกแล้ว แต่กระบวนการ build ไฟล์จริงเป็น asynchronous job ที่รันแยกต่างหาก มักใช้เวลา 30 วินาที ถึง 2-3 นาที</p>
@@ -266,6 +306,7 @@ fi
     <li>ลองเปิด PR จริงในโปรเจกต์ทดสอบ แล้วดู comment ที่ claude-review workflow โพสต์กลับมา</li>
     <li>เพิ่ม job แยกสำหรับรัน test suite ก่อนค่อยเรียก Claude Code review เพื่อประหยัด budget เมื่อ test พังอยู่แล้ว</li>
     <li>ลองตั้ง <code>--fallback-model</code> เป็นโมเดลอื่นแล้วเทียบคุณภาพ review กับต้นทุนที่ประหยัดได้</li>
+    <li>ขยาย mini eval script ของ step 9 ให้เก็บผลลง CSV แล้วลองเทียบ prompt 3-4 แบบพร้อมกัน</li>
     <li>Module 10 (Capstone) จะรวม pattern จาก Module 01-09 ทั้งหมดเข้าเป็นโปรเจกต์เดียว รวมถึง pipeline นี้ด้วย</li>
   </ul>
 </div>
