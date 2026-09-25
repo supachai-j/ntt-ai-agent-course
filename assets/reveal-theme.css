@@ -113,6 +113,100 @@
 }
 .content-link-btn:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--r-pink);text-decoration:none;}
 
+/* ---------- Generation style picker (floating, next to content-link/theme-toggle) ---------- */
+.gen-picker{position:fixed;top:14px;right:118px;z-index:400;}
+.gen-picker-btn{
+  width:42px;height:42px;border-radius:50%;
+  background:var(--r-panel);border:3px solid var(--r-cyan);
+  color:var(--r-text);font-size:1.1em;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:3px 3px 0 var(--r-cyan);transition:transform .12s ease;
+}
+.gen-picker-btn:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--r-cyan);}
+.gen-picker-menu{
+  position:absolute;top:50px;right:0;display:none;flex-direction:column;gap:6px;
+  background:var(--r-panel);border:3px solid var(--r-border);border-radius:12px;
+  padding:8px;box-shadow:5px 5px 0 var(--r-cyan);min-width:150px;
+}
+.gen-picker-menu.open{display:flex;}
+.gen-picker-item{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;
+  background:transparent;border:none;color:var(--r-text);font-weight:700;font-size:0.85em;
+  cursor:pointer;text-align:left;white-space:nowrap;
+}
+.gen-picker-item:hover{background:var(--r-bg);}
+.gen-picker-item.active{background:var(--r-lime);color:#0a0a0a;}
+.gen-picker-emoji{font-size:1.1em;}
+
+/* ============================================================
+   Generation Themes for reveal.js slides — mirrors assets/style.css.
+   The r-* variable names are legacy but function as generic accent
+   slots; each generation theme redefines what they mean.
+   ============================================================ */
+
+/* ---------- Millennial: soft, clean, pastel-muted ---------- */
+[data-gen="millennial"] .reveal{
+  --r-bg:#1b1f2a; --r-panel:#262b3a; --r-border:#3a4054;
+  --r-text:#eef0f5; --r-text-dim:#9096a8;
+  --r-lime:#7ed9a8; --r-pink:#f4a6c1; --r-cyan:#8ab4f8; --r-warn:#f2c14e; --r-danger:#ef8a8a;
+  font-family:'Poppins','Noto Sans Thai',system-ui,sans-serif;
+}
+[data-gen="millennial"][data-theme="light"] .reveal{
+  --r-bg:#faf7f2; --r-panel:#ffffff; --r-border:#e6dfd4;
+  --r-text:#2b2f3a; --r-text-dim:#6b7280;
+  --r-lime:#4fae7c; --r-pink:#d1608a; --r-cyan:#4d7fd6;
+}
+[data-gen="millennial"] .reveal pre, [data-gen="millennial"] .reveal .card-box,
+[data-gen="millennial"] .reveal .lab-cta, [data-gen="millennial"] .reveal .danger,
+[data-gen="millennial"] .reveal .warn, [data-gen="millennial"] .reveal .verify,
+[data-gen="millennial"] .reveal .flow-box, [data-gen="millennial"] .reveal .icon-card,
+[data-gen="millennial"] .theme-toggle-btn, [data-gen="millennial"] .content-link-btn{
+  box-shadow:0 6px 18px rgba(0,0,0,0.18) !important; border-width:1.5px !important;
+}
+
+/* ---------- Corporate (Gen X): minimal, professional, muted ---------- */
+[data-gen="corporate"] .reveal{
+  --r-bg:#14181f; --r-panel:#1c212b; --r-border:#2e3746;
+  --r-text:#e4e7ec; --r-text-dim:#8b93a1;
+  --r-lime:#4a90d9; --r-pink:#6b7685; --r-cyan:#3aa8a0; --r-warn:#d9932e; --r-danger:#d9534f;
+  font-family:'Segoe UI','Noto Sans Thai',system-ui,sans-serif;
+}
+[data-gen="corporate"][data-theme="light"] .reveal{
+  --r-bg:#f4f6f8; --r-panel:#ffffff; --r-border:#d5dbe3;
+  --r-text:#1c232e; --r-text-dim:#5b6472;
+  --r-lime:#2f6fb0; --r-pink:#5a6472; --r-cyan:#2a8078;
+}
+[data-gen="corporate"] .reveal pre, [data-gen="corporate"] .reveal .card-box,
+[data-gen="corporate"] .reveal .lab-cta, [data-gen="corporate"] .reveal .danger,
+[data-gen="corporate"] .reveal .warn, [data-gen="corporate"] .reveal .verify,
+[data-gen="corporate"] .reveal .flow-box, [data-gen="corporate"] .reveal .icon-card,
+[data-gen="corporate"] .theme-toggle-btn, [data-gen="corporate"] .content-link-btn{
+  box-shadow:0 1px 3px rgba(0,0,0,0.35) !important; border-width:1px !important;
+}
+[data-gen="corporate"] .reveal .badge{border-radius:4px;}
+
+/* ---------- Boomer / Classic: max legibility, flat, high-contrast ---------- */
+[data-gen="boomer"] .reveal{
+  --r-bg:#101010; --r-panel:#1a1a1a; --r-border:#4a4a4a;
+  --r-text:#f0f0f0; --r-text-dim:#b8b8b8;
+  --r-lime:#5b8fc7; --r-pink:#a85252; --r-cyan:#4f9e6b; --r-warn:#c99a2e; --r-danger:#b33a3a;
+  font-family:'Verdana','Tahoma','Noto Sans Thai',Arial,sans-serif;
+}
+[data-gen="boomer"][data-theme="light"] .reveal{
+  --r-bg:#fdfdf5; --r-panel:#ffffff; --r-border:#8a8a8a;
+  --r-text:#1a1a1a; --r-text-dim:#4a4a4a;
+  --r-lime:#2f5a86; --r-pink:#7a3535; --r-cyan:#2f6b45;
+}
+[data-gen="boomer"] .reveal p, [data-gen="boomer"] .reveal li{font-size:1em !important;line-height:1.7;}
+[data-gen="boomer"] .reveal pre, [data-gen="boomer"] .reveal .card-box,
+[data-gen="boomer"] .reveal .lab-cta, [data-gen="boomer"] .reveal .danger,
+[data-gen="boomer"] .reveal .warn, [data-gen="boomer"] .reveal .verify,
+[data-gen="boomer"] .reveal .flow-box, [data-gen="boomer"] .reveal .icon-card,
+[data-gen="boomer"] .theme-toggle-btn, [data-gen="boomer"] .content-link-btn{
+  box-shadow:none !important; border-width:2px !important;
+}
+[data-gen="boomer"] .reveal .badge{border-radius:4px;}
+
 /* ============================================================
    Visual diagram components — USE THESE INSTEAD OF PARAGRAPHS
    ============================================================ */
