@@ -239,8 +239,9 @@
 .reveal .flow-box .flow-icon{font-size:1.9em;display:block;margin-bottom:4px;}
 .reveal .flow-box .flow-sub{display:block;font-weight:400;font-size:0.82em;color:var(--r-text-dim);margin-top:3px;}
 .reveal .flow-arrow{font-size:1.6em;color:var(--r-lime);padding:0 0.5em;flex-shrink:0;font-weight:800;}
-.reveal .flow.vertical .flow-arrow{font-size:1em;padding:0;line-height:1;}
-.reveal .flow.vertical .flow-box{padding:0.5em 1em;}
+.reveal .flow.vertical .flow-arrow{font-size:0.9em;padding:0;line-height:1;margin:2px 0;}
+.reveal .flow.vertical .flow-box{padding:0.35em 1em;display:flex;align-items:center;justify-content:center;gap:0.5em;}
+.reveal .flow.vertical .flow-box .flow-icon{font-size:1.3em;display:inline;margin-bottom:0;}
 
 /* Comparison: two states side by side */
 .reveal .compare{display:flex;align-items:stretch;gap:1em;justify-content:center;margin:1em 0;}
