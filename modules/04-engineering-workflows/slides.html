@@ -24,6 +24,7 @@
       <h2>Agenda</h2>
       <ul>
         <li>Feature development loop มาตรฐาน (branch → prompt → review → iterate → commit → PR)</li>
+        <li>Framework ระดับ sprint: AI-DLC (Ideation → Inception → Construction → Operation)</li>
         <li>PR review pattern ด้วย <code>git diff | claude -p</code></li>
         <li>Interactive refactor workflow ผ่าน tmux + PTY</li>
         <li>Test-Driven Development กับ agent (RED-GREEN-REFACTOR)</li>
@@ -77,6 +78,112 @@ git add -p
 git commit -m "Add error handling to API calls"
 git push -u origin feature/api-error-handling
 gh pr create --fill</code></pre>
+    </section>
+
+    <section>
+      <h2>Framework ระดับ Sprint: AI-DLC</h2>
+      <p><strong>AI-DLC (AI Development Life Cycle)</strong> — framework จาก
+      <a href="https://awslabs.github.io/aidlc-workflows/" target="_blank">AWS AI-DLC</a>
+      ที่ครอบ feature loop ก่อนหน้านี้ทั้งหมดไว้ในระดับ sprint/module</p>
+      <div class="two-col">
+        <div class="card-box">
+          <h4>4 Phase</h4>
+          <p><strong>Ideation → Inception → Construction → Operation</strong></p>
+          <p style="font-size:0.85em;">วนซ้ำทุก sprint/module ไม่ใช่วนครั้งเดียวตลอดทั้งโปรเจกต์</p>
+        </div>
+        <div class="card-box">
+          <h4>ทำไมต้องมี framework นี้</h4>
+          <p>Feature loop (branch→prompt→review→commit) ตอบคำถาม "ทำอย่างไร"
+          แต่ AI-DLC ตอบคำถาม "ควรเริ่ม/หยุด/ส่งต่อเมื่อไหร่" ระดับ sprint —
+          ป้องกัน scope กระจาย และให้จุด stage-gate ชัดเจนก่อนแตะโค้ดจริง</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>AI-DLC: 4 Phase โดยละเอียด</h2>
+      <table>
+        <tr><th>Phase</th><th>สิ่งที่ทำ</th><th>ใครทำ</th></tr>
+        <tr><td><strong>Ideation</strong></td><td>แปลง scope เป็น user story ที่ตรวจสอบได้ ยืนยันร่วมกับผู้ใช้/PO ก่อนเริ่ม</td><td>Dev + PO/ผู้ใช้</td></tr>
+        <tr><td><strong>Inception</strong></td><td>ออกแบบ implementation plan ระดับไฟล์ ตั้ง acceptance criteria — เป็น stage-gate ก่อนแตะโค้ดจริง</td><td>Dev (planning-tier model)</td></tr>
+        <tr><td><strong>Construction</strong></td><td>Agent implement ตาม scope ที่แบ่งไว้ (ไม่ให้ agent สองตัวแตะไฟล์เดียวกัน) มี review ระหว่างทาง</td><td>Dev + agent(s)</td></tr>
+        <tr><td><strong>Operation</strong></td><td>รัน automated test จริงก่อนเชื่อรายงานของ agent, merge, ส่งต่อ QA + เอกสาร</td><td>Dev → QA + Docs</td></tr>
+      </table>
+      <div class="danger">
+        <strong>หลักการยึดทุก sprint:</strong> ไม่เชื่อ agent report เฉยๆ — ต้อง verify ด้วย
+        build/test จริงก่อนถึงจะนับว่า Operation phase เสร็จ (พบจริงจากการใช้งาน)
+      </div>
+    </section>
+
+    <section>
+      <h2>AI-DLC: ตัวอย่างจริงจาก Sprint</h2>
+      <p>ตัวอย่าง sprint ทั่วไป — เพิ่ม feature "override ค่าบางอย่างตอนอนุมัติคำขอ" + "ทุกหน้า admin ต้องมี auth"</p>
+      <ul>
+        <li><strong>Ideation</strong> — user story: "admin ต้อง override ค่าที่จะให้จริงตอนอนุมัติได้ ไม่ใช่ตามที่ขอมาเป๊ะๆ" + "ทุกหน้า admin ต้องมี auth ก่อนเข้าถึง"</li>
+        <li><strong>Inception</strong> — วางแผนแก้ validate-then-mutate flow, ออกแบบ shared admin shell/proxy ให้ใช้ซ้ำได้ทุกหน้าในอนาคต (กัน sprint ถัดไปต้อง refactor ซ้ำ)</li>
+        <li><strong>Construction</strong> — แยกงาน backend (auth middleware) กับ frontend (shared shell) เป็นงานคู่ขนานที่ <strong>ไม่แตะไฟล์ร่วมกัน</strong></li>
+        <li><strong>Operation</strong> — รัน regression test เดิม, ทีม QA เช็ค edge case จริงก่อนปิด sprint</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Inception เป็น Stage-Gate จริง — กรณีศึกษา</h2>
+      <p>Sprint ถัดมา: เพิ่ม entity ใหม่ที่ผูกกับของเดิม — Inception เลือกแยก entity ใหม่
+      ออกจากของเดิม (ไม่เพิ่ม field ใหม่ลงตรงๆ) เพื่อไม่ให้ reader/logic เดิมพัง</p>
+      <div class="card-box">
+        <h4>บทเรียนจากของจริง: "list-registration trap"</h4>
+        <p>ทุกครั้งที่สร้าง entity ใหม่ ต้องเพิ่มเข้า order/index list ที่มีอยู่แล้วเสมอ
+        — ไม่งั้น entity จะ "มีอยู่จริงในระบบแต่ไม่โผล่ที่ไหนเลย" ใน UI</p>
+        <p style="font-size:0.85em;color:var(--r-text-dim);">แก้ด้วยการ<strong>เตือน agent ล่วงหน้าในคำสั่งงาน</strong>
+        ตั้งแต่ prompt แรก — เป็นความรู้เฉพาะ codebase ที่ agent เดาเองไม่ได้</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Construction: แบ่งงาน Agent คู่ขนานให้ปลอดภัย</h2>
+      <p>ตัวอย่างจริง sprint "Security Hardening" — ปิดช่องโหว่ที่พบจาก code review หลายรอบ
+      ด้วย <strong>5 agent คู่ขนาน แบ่งตาม layer</strong></p>
+      <pre><code class="language-text">Layer 1: backend auth        → Agent A
+Layer 2: backend data store   → Agent B
+Layer 3: authorization logic  → Agent C
+Layer 4: frontend write-flow  → Agent D
+Layer 5: frontend generator   → Agent E</code></pre>
+      <div class="warn">
+        <strong>Inception ต้องจัดกลุ่ม finding ตามไฟล์ก่อน แบ่งงาน</strong> — พลาดจุดนี้แล้ว
+        2 agent จะแก้ไฟล์เดียวกันพร้อมกันและ merge conflict กันเอง แต่ละ agent ต้อง
+        verify ด้วย test จริงก่อนส่งงานกลับ ก่อน Operation phase verify ซ้ำอีกรอบ
+        รวมทุก layer ด้วย full test suite
+      </div>
+    </section>
+
+    <section>
+      <h2>AI Agent Coding Discipline (ใน AGENTS.md)</h2>
+      <p>วินัย 4 ข้อที่ควรใส่ใน <code>AGENTS.md</code>/<code>CLAUDE.md</code> ของทุกโปรเจกต์
+      — ใช้ <strong>เสริม</strong> ไม่ใช่แทนที่ PR review/security review</p>
+      <div class="two-col">
+        <div class="card-box">
+          <h4>1. Think Before Coding</h4>
+          <p>State assumption ชัดเจนก่อนลงมือ ถ้า request ตีความได้หลายแบบ บอกก่อนแล้วเลือก
+          แทนที่จะเดาเงียบๆ หยุดถามเมื่อไม่แน่ใจจริงๆ</p>
+        </div>
+        <div class="card-box">
+          <h4>2. Simplicity First (มี exception ได้)</h4>
+          <p>เขียนโค้ดขั้นต่ำที่แก้ปัญหาที่ระบุ — แต่ยอมรับ indirection ที่ดูเกินจำเป็นได้
+          ถ้ามีเหตุผลบันทึกไว้ชัดเจน (เช่น กัน breaking change ในอนาคต)</p>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="card-box">
+          <h4>3. Surgical Changes</h4>
+          <p>แตะเฉพาะสิ่งที่ task ต้องการ ห้าม refactor/clean-up โค้ดข้างเคียงที่ไม่เกี่ยวเป็นผลพลอยได้
+          — เข้ากับหลักการแบ่ง agent คู่ขนานแบบไม่แตะไฟล์ร่วมกัน</p>
+        </div>
+        <div class="card-box">
+          <h4>4. Goal-Driven Execution</h4>
+          <p>แปลง request คลุมเครือเป็น goal ที่ verify ได้ (failing test/repro/acceptance
+          criteria) ก่อนเขียนโค้ด แล้ว verify จริงตอนจบ — ไม่เชื่อรายงานความสำเร็จเฉยๆ</p>
+        </div>
+      </div>
     </section>
 
     <section>
@@ -247,6 +354,7 @@ claude -p 'Implement the rate limiter per docs/rate-limit-spec.md' \
       <h2>สรุป</h2>
       <ul>
         <li>Feature loop: branch → prompt → review diff → iterate → commit → PR — review เสมอ ไม่ trust blind</li>
+        <li>AI-DLC ครอบ feature loop ไว้ระดับ sprint: Ideation → Inception → Construction → Operation, ไม่เชื่อ agent report ต้อง verify ด้วย test จริง</li>
         <li>PR review: pipe diff เข้า <code>claude -p</code> เป็น first-pass ก่อน human review</li>
         <li>Refactor ใหญ่ที่ต้อง human-in-the-loop → interactive mode ผ่าน tmux</li>
         <li>TDD: agent implement ได้เฉพาะเมื่อมี failing test คุมทิศทางเสมอ</li>

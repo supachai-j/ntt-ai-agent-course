@@ -51,6 +51,7 @@
         <li>Verify การแก้ไขด้วย <code>pytest</code> จริง (exit code 0)</li>
         <li>ทำ PR review pattern: pipe <code>git diff</code> เข้า <code>claude -p</code> เพื่อ review อัตโนมัติ</li>
         <li>ฝึกวินัย TDD กับ agent — เขียน failing test เองก่อน แล้วให้ agent implement จนผ่าน (RED-GREEN)</li>
+        <li>เขียน sprint plan ตาม AI-DLC (Ideation/Inception/Construction/Operation) จับคู่กับงานที่เพิ่งทำจริง</li>
         <li>เข้าใจว่าทำไมต้อง set <code>--max-turns</code>/<code>--allowedTools</code> เสมอในงาน automation</li>
       </ul>
     </div>
@@ -145,7 +146,7 @@ echo "exit code: $?"</code></pre>
       <div class="verify">
         <strong>Verify:</strong> ต้องเห็น <strong>3 passed</strong> และ <code>exit code: 0</code> —
         ถ้ายัง fail อยู่ อ่าน error แล้วกลับไป iterate รอบสองด้วยคำสั่ง
-        <code>claude -p '...' --continue --max-turns 5</code> (ดู step 8: Troubleshoot)
+        <code>claude -p '...' --continue --max-turns 5</code> (ดูส่วน Troubleshoot ท้าย lab)
       </div>
       <p>Commit การแก้ไข:</p>
       <pre><code class="language-bash">git add -A
@@ -194,7 +195,7 @@ tmux capture-pane -t lab-refactor -p -S -40</code></pre>
       <div class="verify">
         <strong>Verify:</strong> <code>capture-pane</code> ต้องแสดงคำอธิบายจาก Claude เกี่ยวกับ
         <code>apply_discount</code> ในหน้าจอ — ถ้ายังไม่มีคำตอบ ให้ sleep เพิ่มแล้ว capture ใหม่
-        (ดูวิธี detect ว่า Claude ตอบเสร็จหรือยังใน step 8)
+        (ดูวิธี detect ว่า Claude ตอบเสร็จหรือยังในส่วน Troubleshoot ท้าย lab)
       </div>
       <p>ปิดท้าย session เมื่อจบงาน:</p>
       <pre><code class="language-bash">tmux send-keys -t lab-refactor '/exit' Enter
@@ -264,6 +265,51 @@ echo "exit code: $?"</code></pre>
 git commit -q -m "Add apply_bulk_discount via TDD (test-first)"</code></pre>
     </div>
 
+    <div class="step">
+      <h3><span class="step-num">8</span>AI-DLC Mini-Exercise: เขียน Sprint Plan ของงานที่เพิ่งทำ</h3>
+      <p><strong>AI-DLC (Ideation → Inception → Construction → Operation)</strong> คือ framework
+      ระดับ sprint ที่ครอบ feature loop ที่เพิ่งทำใน step 1-7 ไว้ทั้งหมด — ในขั้นตอนนี้คุณจะเขียน
+      sprint plan แบบย้อนหลังของงาน "เพิ่ม <code>apply_bulk_discount</code>" ที่เพิ่งทำเสร็จ
+      เพื่อฝึกจับคู่งานจริงเข้ากับ 4 phase</p>
+      <p>สร้าง <code>SPRINT_PLAN.md</code>:</p>
+      <pre><code class="language-bash">cat > SPRINT_PLAN.md << 'EOF'
+# Sprint: Bulk Discount Feature
+
+## Ideation
+- User story: "พนักงานขายต้องคำนวณส่วนลดแบบ bulk (10+ ชิ้น ลด 10%) ได้ถูกต้อง"
+- Acceptance: unit price x quantity ต่ำกว่า threshold ไม่ลด, ตั้งแต่ threshold ขึ้นไปลด 10%
+
+## Inception
+- ไฟล์ที่ต้องแตะ: src/pricing.py (เพิ่มฟังก์ชันใหม่ ไม่แก้ apply_discount เดิม)
+- ตัดสินใจ: เขียน test ก่อน (RED) กำหนด contract ให้ agent implement ตาม ไม่ให้ agent
+  ออกแบบ signature เอง
+- ความเสี่ยง: agent อาจแก้ apply_discount เดิมโดยไม่ตั้งใจ -> จำกัด scope ใน prompt ชัดเจน
+
+## Construction
+- Agent (Claude Code, --allowedTools 'Read,Edit') implement apply_bulk_discount
+  ตาม test ใน tests/test_bulk_discount.py เท่านั้น
+- ไม่มี agent ตัวที่สองแตะไฟล์เดียวกันพร้อมกัน (งานนี้เดี่ยว ไม่ต้อง parallel split)
+
+## Operation
+- Verify: pytest tests/test_bulk_discount.py -q -> 3 passed, exit 0
+- Verify: git diff --stat tests/test_bulk_discount.py -> ว่างเปล่า (agent ไม่แตะ test)
+- ผล: commit "Add apply_bulk_discount via TDD (test-first)"
+EOF</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> เปิด <code>SPRINT_PLAN.md</code> อ่านทวนแล้วเช็คว่าแต่ละ phase
+        ตรงกับสิ่งที่คุณทำจริงใน step 6-7 หรือไม่ — ถ้า Inception ของคุณไม่ได้ระบุ "ไฟล์ที่ต้องแตะ"
+        ไว้ล่วงหน้าจริง (แค่เขียนย้อนหลังให้ครบฟอร์ม) ให้ลองสมมติ sprint ถัดไปแล้วเขียน
+        Inception ก่อนเริ่ม Construction จริง ๆ ดู
+      </div>
+      <div class="warn">
+        <strong>ทำไมต้องทำ Inception ก่อนเขียนโค้ด (ไม่ใช่แค่เขียนพร้อมกัน):</strong>
+        กรณีจริงที่พบบ่อย — ถ้าเพิ่ม field ใหม่ลง entity เดิมตรง ๆ โดยไม่ผ่าน Inception
+        อาจพัง logic ที่มีอยู่แล้วโดยไม่รู้ตัว (เช่น entity ใหม่ที่ลืมเพิ่มเข้า index/order
+        list ที่มีอยู่แล้ว จะ "มีอยู่จริงแต่ไม่โผล่ที่ไหนเลย" ใน UI) — Inception คือจุดที่ควร
+        จับ trap แบบนี้ได้ก่อนแตะโค้ดจริง ไม่ใช่หลังจาก debug นานหลายชั่วโมง
+      </div>
+    </div>
+
     <details class="troubleshoot">
       <summary>Troubleshoot: Agent แก้ผิดจุด หรือ timeout จาก max-turns ไม่พอ</summary>
       <p><strong>อาการ 1 — <code>subtype: error_max_turns</code>:</strong>
@@ -302,6 +348,8 @@ claude -p 'In src/pricing.py, the function apply_discount() at line ~4 has a bug
         <li>Interactive refactor ผ่าน tmux สำหรับงานที่ต้องมี human-in-the-loop หลายรอบ</li>
         <li>TDD discipline — RED (เขียน test เอง) → GREEN (ให้ agent implement) โดยจำกัดสิทธิ์
         ไม่ให้ agent แตะไฟล์ test</li>
+        <li>AI-DLC — เขียน sprint plan ระดับ Ideation/Inception/Construction/Operation
+        ครอบ feature loop ไว้ทั้งหมด และเห็นว่า Inception ที่ดีป้องกัน trap ที่ debug ทีหลังยากกว่ามาก</li>
       </ul>
       <p><strong>ต่อยอด:</strong> ลองเพิ่ม <code>--max-budget-usd</code> ให้ทุกคำสั่ง
       <code>claude -p</code> ที่ใช้ในวันนี้ (เช่น <code>--max-budget-usd 0.50</code>)
