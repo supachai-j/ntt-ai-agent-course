@@ -267,7 +267,45 @@ git commit -q -m "Add apply_bulk_discount via TDD (test-first)"</code></pre>
     </div>
 
     <div class="step">
-      <h3><span class="step-num">8</span>AI-DLC Mini-Exercise: เขียน Sprint Plan ของงานที่เพิ่งทำ</h3>
+      <h3><span class="step-num">8</span>SDD Mini-Exercise: เขียน Constitution 3 ไฟล์แบบย่อ</h3>
+      <p><strong>Spec-Driven Development (SDD)</strong> เสนอวินัยอีกแบบที่ทำงานระดับ project+feature
+      แทนระดับ sprint — เขียน "Constitution" 3 ไฟล์ (<code>mission.md</code>, <code>tech-stack.md</code>,
+      <code>roadmap.md</code>) ผ่าน<strong>บทสนทนากับ Claude Code แบบ interactive</strong> ก่อนเริ่ม
+      feature ใหม่ ในขั้นตอนนี้คุณจะลองเขียน constitution แบบย่อสำหรับฟีเจอร์สมมติ
+      "export ประวัติการสั่งซื้อเป็น CSV" ที่จะเพิ่มเข้า mini-repo นี้</p>
+      <p>เปิด Claude Code แบบ interactive แล้วขอให้ช่วยร่าง constitution ผ่านบทสนทนา
+      (ไม่ใช่เขียนไฟล์เองคนเดียว):</p>
+      <pre><code class="language-bash">cd ~/module04-lab
+claude</code></pre>
+      <p>พิมพ์ prompt นี้ในเซสชัน interactive:</p>
+      <pre><code class="language-text">I'm about to add a small feature to this repo: "export order history to CSV".
+Help me draft a mini constitution with 3 short files (a few bullets each):
+mission.md (why — vision/audience/scope for this repo),
+tech-stack.md (key engineering decisions/constraints),
+roadmap.md (this feature as the next roadmap item).
+Ask me clarifying questions first if anything is ambiguous, then write the 3 files.</code></pre>
+      <p>ตอบคำถามที่ Claude ถามกลับมา (เช่น โทนของ mission.md, ใครคือ target user) แล้วให้เขียนไฟล์
+      ลงในโฟลเดอร์ <code>constitution/</code>:</p>
+      <div class="verify">
+        <strong>Verify:</strong> ต้องมี <code>constitution/mission.md</code>,
+        <code>constitution/tech-stack.md</code>, <code>constitution/roadmap.md</code> เกิดขึ้นจริง
+        แต่ละไฟล์มีแค่ไม่กี่ bullet (ไม่ต้องยาว) — เช็คด้วย <code>ls constitution/ && cat constitution/*.md</code>
+      </div>
+      <p>ปิด session แล้ว commit:</p>
+      <pre><code class="language-bash">git add constitution/
+git commit -q -m "Draft mini SDD constitution for CSV export feature"</code></pre>
+      <div class="callout">
+        <h4>เทียบกับ AI-DLC Sprint Plan ที่ step ถัดไป</h4>
+        <p>สังเกตความต่าง: <code>SPRINT_PLAN.md</code> ใน step ถัดไปเขียน<strong>ย้อนหลัง</strong>
+        จากงานที่ทำเสร็จแล้ว (ระดับ sprint, มี 4 phase) ส่วน constitution ที่เพิ่งเขียนนี้เขียน
+        <strong>ล่วงหน้าก่อนเริ่ม</strong> (ระดับ project, คงอยู่ยาวและใช้ซ้ำได้ทุก feature ถัดไป)
+        — สองแนวคิดนี้ไม่ต้องเลือกอย่างใดอย่างหนึ่ง เป็นแค่คนละ lens ของวินัยเดียวกัน:
+        วางแผน/ตกลง scope ให้ชัดก่อนแตะโค้ด แล้ว verify ผลงานจริงก่อนเชื่อ</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <h3><span class="step-num">9</span>AI-DLC Mini-Exercise: เขียน Sprint Plan ของงานที่เพิ่งทำ</h3>
       <p><strong>AI-DLC (Ideation → Inception → Construction → Operation)</strong> คือ framework
       ระดับ sprint ที่ครอบ feature loop ที่เพิ่งทำใน step 1-7 ไว้ทั้งหมด — ในขั้นตอนนี้คุณจะเขียน
       sprint plan แบบย้อนหลังของงาน "เพิ่ม <code>apply_bulk_discount</code>" ที่เพิ่งทำเสร็จ
@@ -349,6 +387,8 @@ claude -p 'In src/pricing.py, the function apply_discount() at line ~4 has a bug
         <li>Interactive refactor ผ่าน tmux สำหรับงานที่ต้องมี human-in-the-loop หลายรอบ</li>
         <li>TDD discipline — RED (เขียน test เอง) → GREEN (ให้ agent implement) โดยจำกัดสิทธิ์
         ไม่ให้ agent แตะไฟล์ test</li>
+        <li>SDD — ร่าง constitution 3 ไฟล์ (mission/tech-stack/roadmap) ผ่านบทสนทนากับ agent
+        ก่อนเริ่ม feature ใหม่ ทำงานระดับ project+feature ไม่ใช่ระดับ sprint</li>
         <li>AI-DLC — เขียน sprint plan ระดับ Ideation/Inception/Construction/Operation
         ครอบ feature loop ไว้ทั้งหมด และเห็นว่า Inception ที่ดีป้องกัน trap ที่ debug ทีหลังยากกว่ามาก</li>
       </ul>

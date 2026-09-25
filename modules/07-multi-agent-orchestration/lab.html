@@ -54,6 +54,7 @@
         <li>รัน 2 Claude Code print-mode task แบบขนานผ่าน background terminal process (tmux)</li>
         <li>Verify ผลลัพธ์ทั้งสองงานด้วยการเปิดไฟล์ output จริง ไม่เชื่อ log อย่างเดียว</li>
         <li>รู้จัก failure mode: tmux session ค้าง/ลืม kill และวิธีแก้</li>
+        <li>สั่งให้ main agent spawn sub-agents หลายตัวเพื่อ deep review ทั้งโปรเจกต์ก่อน commit จริง</li>
       </ul>
     </div>
 
@@ -221,6 +222,55 @@ tmux kill-session -t task-tests 2>/dev/null
       </div>
     </div>
 
+    <div class="step">
+      <h3><span class="step-num">9</span>Spawn sub-agents สำหรับ deep review ก่อนถือว่าเสร็จจริง</h3>
+      <p>
+        คุณเพิ่งให้ agent สร้าง <code>README.md</code> และ <code>test_utils.py</code> ใน step 5-7 ไปแล้ว
+        ก่อนจะ commit งานนี้จริง ให้ลองเทคนิคที่สองซึ่งต่างจาก step 3 (ที่ให้ subagent ตัวเดียวรีวิวไฟล์เดียว):
+        <strong>สั่งให้ main agent spawn sub-agents หลายตัวเพื่อรีวิวทั้งโปรเจกต์แบบอิสระ</strong>
+        ไม่ใช่แค่ diff ของไฟล์เดียว แต่มองทั้งพื้นที่ที่ถูกกระทบ (utils.py + README.md + test_utils.py ร่วมกัน)
+        ว่ามี bug, ความไม่สอดคล้องกัน, หรือ requirement ที่ตกหล่นไปหรือไม่
+        (เทคนิคนี้ปรับมาจาก DeepLearning.AI × JetBrains course —
+        ดูต้นฉบับได้ที่ <a href="https://youtu.be/hy8UstR2NEg" target="_blank" rel="noopener">youtu.be/hy8UstR2NEg</a>)
+      </p>
+      <pre><code class="language-bash">cd ~/lab07-multiagent
+claude</code></pre>
+      <p>ในพรอมต์ interactive พิมพ์คำสั่งลักษณะนี้ (ปรับคำพูดได้ ไม่ต้อง verbatim):</p>
+      <pre><code>› Spawn several sub-agents to do a deep independent review of everything
+  we just built in this project (utils.py, README.md, test_utils.py).
+  Look for bugs, inconsistencies between the files, or missed requirements.
+  Report back a consolidated list of findings.</code></pre>
+      <p>
+        รอให้ main agent spawn sub-agents (แต่ละตัวได้ context window สะอาดของตัวเอง เฉพาะสำหรับงานรีวิว)
+        แล้วอ่าน consolidated findings ที่ main agent สรุปกลับมาให้คุณ
+      </p>
+      <div class="callout">
+        💡 <strong>ทำไมไม่ให้ agent ตัวเดิมรีวิวงานตัวเองเลย?</strong> มีสองเหตุผล:
+        (1) <strong>Thinking space</strong> — sub-agent ที่ spawn มาใหม่มี context window ว่าง สะอาด เอาไว้ทำแค่งานรีวิวอย่างเดียว
+        ในขณะที่ agent หลักที่เพิ่ง implement เสร็จ context เต็มไปด้วย history ของการเขียนโค้ด ทำให้การ self-review
+        มักหลวมกว่าและมองข้ามปัญหาได้ง่ายกว่า
+        (2) <strong>รักษา context window ของ agent หลักไว้</strong> — sub-agents ทำงานรีวิวแบบยาวๆในพื้นที่ของตัวเอง
+        แล้วส่งกลับมาแค่สรุปสั้นๆ (consolidated list) เข้า context ของ main agent ไม่ใช่เอา full review pass
+        ทั้งหมดไปยัดใส่ context หลักจนแน่น
+      </div>
+      <p>
+        เมื่อได้ findings แล้ว ให้ triage ดูว่าอันไหนเป็นปัญหาจริง (ไม่ใช่แค่ nitpick ที่ไม่สำคัญ)
+        ถ้ามีปัญหาจริงให้สั่ง agent แก้ไข แล้วรัน test อีกครั้งก่อนถือว่างานนี้เสร็จ:
+      </p>
+      <pre><code>› Fix the real issues from the sub-agent review, then re-run the test suite.</code></pre>
+      <pre><code class="language-bash">python3 -m pytest test_utils.py -v</code></pre>
+      <div class="verify">
+        <strong>Verify:</strong> ต้องเห็น consolidated list จาก sub-agents จริง (ไม่ใช่ agent ตอบทันทีโดยไม่ spawn อะไร)
+        ถ้ามี finding ที่เป็นปัญหาจริง ต้องเห็นการแก้ไขไฟล์จริงตามมา และ <code>pytest</code> ต้องผ่านอีกครั้งหลังแก้
+        ถ้า sub-agent ไม่รายงานอะไรเลยหรือ findings ดูเป็น generic เกินไป ลองสั่งใหม่ให้เจาะจงมากขึ้น เช่น
+        ระบุจำนวน sub-agent ที่อยากให้ spawn หรือขอบเขตไฟล์ที่ต้องดู
+      </div>
+      <div class="warn">
+        <strong>ข้อสังเกต:</strong> เทคนิคนี้ไม่ได้จำกัดแค่งานใหญ่ — เก็บไว้ใช้เป็น "second look" สำหรับ feature
+        ที่สำคัญพอจะกังวลว่าอาจมีจุดที่มองข้ามไป ก่อน commit/merge จริง แม้จะเป็นงาน scratch เล็กๆแบบในแล็บนี้ก็ตาม
+      </div>
+    </div>
+
     <details class="troubleshoot">
       <summary>Troubleshoot: tmux session ค้าง / ลืม kill</summary>
       <p>
@@ -254,6 +304,9 @@ tmux kill-server</code></pre>
       เรียกใช้มันผ่าน <code>@reviewer</code> ในเซสชัน interactive, และรันสองงานที่ independent จริง
       (README กับ test) แบบขนานผ่าน tmux background process — จุดสำคัญที่สุดคือขั้น verify:
       การเปิดไฟล์จริงและรัน <code>pytest</code> จริง คือสิ่งที่แยก "งานเสร็จจริง" จาก "log บอกว่าเสร็จ"
+      สุดท้ายคุณได้ลองเทคนิค spawn sub-agents สำหรับ deep review ทั้งโปรเจกต์ก่อน commit —
+      ใช้ context window แยกของ sub-agent เพื่อรีวิวแบบมีสมาธิ โดยไม่ทำให้ context ของ main agent ยาวเกินจำเป็น
+      (ที่มา: <a href="https://youtu.be/hy8UstR2NEg" target="_blank" rel="noopener">youtu.be/hy8UstR2NEg</a>)
     </p>
     <p>
       ต่อยอด: ลองสร้าง subagent เพิ่มอีกตัว (เช่น <code>docs-writer</code>) แล้วให้ทั้งสามตัวทำงานร่วมกันในโฟลว์เดียว

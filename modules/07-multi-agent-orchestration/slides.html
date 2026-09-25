@@ -137,6 +137,21 @@ tmux kill-session -t task-readme</code></pre>
     </section>
 
     <section>
+      <h2>🔍 Second Look: Spawn Sub-Agents ให้ Deep Review</h2>
+      <p>ก่อน commit งานสำคัญ — สั่ง main agent ให้ spawn sub-agents รีวิวทั้งโปรเจกต์แบบอิสระ ไม่ใช่แค่ diff เดียว</p>
+      <div class="flow">
+        <div class="flow-box accent"><span class="flow-icon">🛠️</span>Main agent implement เสร็จ<span class="flow-sub">context เต็มด้วย history การเขียนโค้ด</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box pink"><span class="flow-icon">🧩</span>Spawn sub-agents รีวิว<span class="flow-sub">context สะอาด เฉพาะงานรีวิว</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box accent"><span class="flow-icon">📋</span>Consolidated findings<span class="flow-sub">กลับเข้า context หลักแค่สรุป</span></div>
+      </div>
+      <pre><code>› Spawn several sub-agents to do a deep independent review of everything
+  we just built in this project. Report back a consolidated list of findings.</code></pre>
+      <div class="callout">💡 สอง benefit: (1) thinking space — sub-agent มี context ว่างเฉพาะรีวิว (2) รักษา context หลักไว้ — ได้แค่สรุป ไม่ใช่ full review pass · ที่มา: <a href="https://youtu.be/hy8UstR2NEg" target="_blank" rel="noopener">youtu.be/hy8UstR2NEg</a></div>
+    </section>
+
+    <section>
       <h2>Agent Teams (Advanced)</h2>
       <div class="flow">
         <div class="flow-box accent"><span class="flow-icon">👥</span>--teammate-mode<span class="flow-sub">ทำงานร่วมกันเป็นทีม</span></div>

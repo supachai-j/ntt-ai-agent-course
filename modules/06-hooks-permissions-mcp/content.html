@@ -235,6 +235,25 @@ export MAX_MCP_OUTPUT_TOKENS=8000</code></pre>
     </div>
 
     <div class="lesson-section">
+      <h2>Case Study: Context7 และเทรนด์ MCP-to-CLI/Skills</h2>
+      <p>MCP server ยังคงเป็นวิธีที่นิยมและมีประโยชน์มากสำหรับหลายงาน (ตามที่อธิบายไว้ทั้ง module นี้) แต่มีเทรนด์ใหม่กำลังเกิดขึ้นในวงการ agentic coding: สำหรับหลาย use case, การใช้ <strong>Skill ที่เรียก CLI tool</strong> แบบเบาๆ ก็ทำงานได้ผลลัพธ์เดียวกันกับการรัน MCP server เต็มรูปแบบ แต่ setup น้อยกว่าและกิน context window น้อยกว่าในระยะยาว</p>
+      <p>เหตุผลหลักคือความแตกต่างของ "วงจรชีวิต" การทำงาน — MCP server เป็นแบบ <em>always-on</em>: พอ connect เข้ามาแล้ว มันจะอยู่ใน session ตลอดเวลา ประกาศ tools/resources ของตัวเองเข้าไปใน tool list ของ agent ซึ่งกิน context และ tool-slot อย่างต่อเนื่องไม่ว่าจะได้ใช้งานจริงหรือไม่ ในทางกลับกัน Skill + CLI จะถูกเรียกเฉพาะตอนที่ agent ตัดสินใจว่าต้องใช้งานจริงๆ เท่านั้น — ไม่ต้องมี process ค้างอยู่ ไม่ต้องประกาศ tool schema ล่วงหน้าตลอดเวลา ทำให้ context budget ที่จำกัดของ agent เหลือไว้ใช้กับงานอื่นได้มากขึ้น</p>
+
+      <h3>ตัวอย่างจริง: Context7</h3>
+      <p><strong>Context7</strong> เป็นเครื่องมือยอดนิยมที่แก้ปัญหาคลาสสิกของ LLM: training data ของ model มักจะเก่ากว่า library/package เวอร์ชันล่าสุดที่ project จริงใช้อยู่เสมอ เช่น model อาจแนะนำ API ของ React 18 ทั้งที่ project กำลังใช้ React 19.2 อยู่จริง ซึ่งทำให้โค้ดที่ agent เขียนอาจใช้ API ที่ deprecated หรือไม่มีอยู่แล้วในเวอร์ชันปัจจุบัน Context7 แก้ปัญหานี้ด้วยการดึง documentation ที่ <strong>ตรงกับเวอร์ชันปัจจุบัน</strong> ของ library ที่ project ใช้อยู่จริง เข้ามาเป็น context ให้ agent อ้างอิงตอนเขียนโค้ด แทนที่จะพึ่งความรู้ที่ฝังอยู่ใน training data ซึ่งอาจล้าสมัยไปแล้ว</p>
+      <p>จุดที่น่าสนใจคือวิวัฒนาการของ Context7 เอง: เดิมทีมันเปิดตัวมาในรูปแบบ MCP server ล้วนๆ แต่ปัจจุบันเมื่อ install Context7 สำหรับ Claude Code ระบบจะให้เลือกระหว่างสองแบบ — <strong>MCP server</strong> (แบบเดิม) หรือ <strong>CLI + Skill</strong> (แบบใหม่) และทางเลือก CLI + Skill ถูกแนะนำเป็นแนวทางที่ทันสมัยและมีประสิทธิภาพกว่าในตอนนี้</p>
+      <div class="callout">💡 นี่คือภาพสะท้อนของเทรนด์ใหญ่ในวงการ agentic coding: เมื่อ ecosystem เติบโตขึ้น การ integrate เครื่องมือบางตัวกำลังขยับจาก "MCP server ที่ on อยู่ตลอด" ไปเป็น "Skill ที่ shell out ไปเรียก CLI เมื่อจำเป็น" เพราะประหยัด context budget ที่จำกัดของ agent และไม่ต้องมี infrastructure ค้างอยู่ตลอดเวลา</div>
+
+      <h3>เลือกยังไง: MCP Server หรือ Skill + CLI</h3>
+      <p>ทั้งสองแนวทางไม่ได้แข่งกันตายตัว — แต่ละแบบเหมาะกับสถานการณ์ต่างกัน:</p>
+      <ul>
+        <li><strong>เลือก MCP server</strong> เมื่อต้องใช้ tool นั้นบ่อยและต่อเนื่องตลอด session, ต้องการ resource reference แบบ <code>@server:type://id</code> ที่ integrate ลึกกับ chat, หรือ tool นั้นต้องรักษา state ระหว่างการเรียกหลายครั้ง</li>
+        <li><strong>เลือก Skill + CLI</strong> เมื่อใช้งานเป็นครั้งคราว, อยากประหยัด context window, ไม่อยากมี process/server ค้างอยู่ตลอดเวลา หรือ setup ที่เบากว่าตอบโจทย์มากกว่า</li>
+      </ul>
+      <p>เนื้อหานี้ดัดแปลงและอ้างอิงจากวิดีโอคอร์สของ DeepLearning.AI ร่วมกับ JetBrains: <a href="https://youtu.be/hy8UstR2NEg" target="_blank" rel="noopener">youtu.be/hy8UstR2NEg</a></p>
+    </div>
+
+    <div class="lesson-section">
       <h2>เชื่อมโยงกลับ Hermes (Module 02)</h2>
       <p>Concept เดียวกันนี้ปรากฏใน Hermes ด้วย — Hermes เองก็ไม่ได้ผูก tool ไว้ตายตัวใน code แต่ใช้ MCP เป็น "tool layer" มาตรฐานเช่นเดียวกับ Claude Code ตัวอย่างที่เห็นได้ชัดใน Hermes:</p>
       <ul>

@@ -18,7 +18,7 @@
     <section class="title-slide">
       <span class="badge">⚙️ Module 04 · Engineering</span>
       <h1>Engineering Workflows<br>with Claude Code</h1>
-      <p class="subtitle">Feature loop · AI-DLC · PR review · Refactor · TDD · Session · Cost</p>
+      <p class="subtitle">Feature loop · AI-DLC · SDD · PR review · Refactor · TDD · Session · Cost</p>
     </section>
 
     <section>
@@ -26,6 +26,7 @@
       <div class="icon-grid">
         <div class="icon-card"><span class="icon">🔁</span><div class="title">Feature Loop</div><div class="desc">branch → prompt → review → PR</div></div>
         <div class="icon-card"><span class="icon">🗺️</span><div class="title">AI-DLC</div><div class="desc">Ideation → Inception → Construction → Operation</div></div>
+        <div class="icon-card"><span class="icon">📜</span><div class="title">Spec-Driven Dev</div><div class="desc">Constitution + Plan → Implement → Validate</div></div>
         <div class="icon-card"><span class="icon">🕵️</span><div class="title">PR Review</div><div class="desc"><code>git diff | claude -p</code></div></div>
         <div class="icon-card"><span class="icon">🖥️</span><div class="title">tmux Refactor</div><div class="desc">interactive + human-in-the-loop</div></div>
         <div class="icon-card"><span class="icon">🧪</span><div class="title">TDD</div><div class="desc">RED → GREEN → REFACTOR</div></div>
@@ -122,6 +123,106 @@ gh pr create --fill</code></pre>
         <div class="flow-box"><span class="flow-icon">🏗️</span>Construction<span class="flow-sub">backend auth ↔ frontend shell — คู่ขนาน ไม่แตะไฟล์ร่วมกัน</span></div>
         <div class="flow-arrow">↓</div>
         <div class="flow-box pink"><span class="flow-icon">🚦</span>Operation<span class="flow-sub">regression test + QA เช็ค edge case จริง</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Framework ระดับ Project+Feature: Spec-Driven Development</h2>
+      <p style="text-align:center;color:var(--r-text-dim);">แนวคิดหลัก: แยก <strong>spec</strong> (what/why)
+      ออกจาก <strong>implementation</strong> (how) — agent คือ "กล้ามเนื้อ" spec คือ "สมอง"</p>
+      <div class="icon-grid">
+        <div class="icon-card"><span class="icon">✏️</span><div class="title">Spec เล็ก → Code ใหญ่</div><div class="desc">เปลี่ยนประโยคเดียว (SQLite→MongoDB) กระเพื่อมได้หลายร้อยบรรทัด</div></div>
+        <div class="icon-card"><span class="icon">🧠</span><div class="title">กัน Context Decay</div><div class="desc">agent ไร้ state ข้าม session — spec คือ context คุณภาพสูงที่โหลดใหม่ได้ทุกครั้ง</div></div>
+        <div class="icon-card"><span class="icon">🎯</span><div class="title">Intent Fidelity</div><div class="desc">นิยาม problem/success-criteria/constraints ก่อน ไม่ปล่อยให้ agent เดาเอง</div></div>
+      </div>
+      <p style="text-align:center;font-size:0.7em;color:var(--r-text-dim);">อ้างอิง: DeepLearning.AI × JetBrains —
+      <a href="https://youtu.be/hy8UstR2NEg" target="_blank">youtu.be/hy8UstR2NEg</a></p>
+    </section>
+
+    <section>
+      <h2>SDD: Constitution — 3 ไฟล์รากฐานของโปรเจกต์</h2>
+      <p style="text-align:center;">เขียนผ่าน <strong>บทสนทนากับ agent</strong> (agent ถามคำถามชวนคิด เช่น
+      "mission.md ควรใช้โทนแบบไหน") — ไม่ใช่นั่งเขียนคนเดียวหรือแก้ไฟล์ตรงๆ (กัน doc เพี้ยนไม่ตรงกัน)</p>
+      <div class="flow">
+        <div class="flow-box accent"><span class="flow-icon">🎯</span>mission.md<span class="flow-sub">why — vision, audience, scope</span></div>
+        <div class="flow-arrow">+</div>
+        <div class="flow-box"><span class="flow-icon">🧱</span>tech-stack.md<span class="flow-sub">how — framework, constraint, decision</span></div>
+        <div class="flow-arrow">+</div>
+        <div class="flow-box pink"><span class="flow-icon">🗺️</span>roadmap.md<span class="flow-sub">living doc — ลำดับ phase ถัดไป</span></div>
+      </div>
+      <div class="warn">
+        <strong>หลักการ:</strong> human review/ปรับแก้ constitution ด้วยการ<strong>สนทนาต่อ</strong>กับ agent
+        ไม่ใช่ไปแก้ไฟล์ mission/tech-stack/roadmap ตรงๆ — ป้องกัน 3 ไฟล์ drift ไม่ตรงกัน
+      </div>
+    </section>
+
+    <section>
+      <h2>SDD: Feature Loop — วนต่อ Feature บน Branch ของตัวเอง</h2>
+      <div class="flow">
+        <div class="flow-box accent"><span class="flow-icon">📐</span>Plan<span class="flow-sub">spec + implementation plan + validation criteria</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><span class="flow-icon">🏗️</span>Implement<span class="flow-sub">clear context ก่อน แล้ว implement ทีละ task group</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box pink"><span class="flow-icon">✅</span>Validate<span class="flow-sub">review diff ระดับสูง + run test + sub-agent ตรวจซ้ำ</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><span class="flow-icon">🔁</span>Replan<span class="flow-sub">ทบทวน roadmap/constitution ก่อน feature ถัดไป</span></div>
+      </div>
+      <div class="card-box">
+        <h4>ทำไม Validate ต้อง "high-level" ไม่ใช่ nitpick</h4>
+        <p>เช็คว่า diff ตรง spec/ทำงานถูกไหม ไม่ใช่ไล่จับชื่อตัวแปร — ให้ agent spawn sub-agent
+        ตรวจซ้ำทั้ง change ก่อน merge ได้ ช่วยรักษา context window ของ main agent ไม่ให้เปื้อนด้วย</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>SDD: Replanning กัน "AI Fatigue"</h2>
+      <p style="text-align:center;">หลัง merge แต่ละ feature — revisit roadmap, revise constitution ถ้าจำเป็น
+      ก่อนเริ่ม feature ถัดไป</p>
+      <div class="big-stat"><span class="num">1</span><span class="label">clean break ต่อ feature — clear context
+      ทุกครั้ง แทนที่จะ review โค้ด agent สะสมยาวจนเหนื่อยล้า</span></div>
+      <div class="card-box">
+        <h4>🌱 Greenfield vs 🏚️ Brownfield</h4>
+        <p><strong>Greenfield:</strong> สร้าง constitution จากศูนย์ผ่านบทสนทนา &nbsp;|&nbsp;
+        <strong>Brownfield/Legacy:</strong> ให้ agent reverse-engineer mission/tech-stack/roadmap
+        จากโค้ดที่มีอยู่จริง (อ่าน README, TODO, โครงสร้างโค้ด) แล้วใช้ feature loop เดิมต่อจากนั้น</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>AI-DLC vs SDD — สอง Lens ของวินัยเดียวกัน</h2>
+      <div class="compare">
+        <div class="compare-box">
+          <div class="flow-box accent">🗺️ AI-DLC<span class="flow-sub">ระดับ Sprint — 4 phase วนทุก sprint</span></div>
+        </div>
+        <div class="compare-vs">≈</div>
+        <div class="compare-box">
+          <div class="flow-box pink">📜 SDD<span class="flow-sub">ระดับ Project+Feature — Constitution ถาวร + loop ต่อ feature</span></div>
+        </div>
+      </div>
+      <table>
+        <tr><th></th><th>AI-DLC</th><th>SDD</th></tr>
+        <tr><td>ระดับ</td><td>Sprint / module</td><td>Project (คงที่) + Feature (วนต่อ branch)</td></tr>
+        <tr><td>Artifact หลัก</td><td>User story + implementation plan ต่อ sprint</td><td>Constitution (mission/tech-stack/roadmap) + spec ต่อ feature</td></tr>
+        <tr><td>Phase</td><td>Ideation → Inception → Construction → Operation</td><td>Plan → Implement → Validate → Replan</td></tr>
+        <tr><td>จุดร่วม</td><td>Ideation ≈ constitution/planning conversation</td><td>Construction ≈ Implement step</td></tr>
+      </table>
+      <div class="warn">
+        <strong>ไม่ต้องเลือกอย่างใดอย่างหนึ่ง:</strong> ทั้งคู่คือ lens ของวินัยเดียวกัน — เลือกโครงสร้าง
+        artifact ที่เข้ากับทีมคุณ หรือผสมกันก็ได้ (ดูวิดีโอต้นฉบับ:
+        <a href="https://youtu.be/hy8UstR2NEg" target="_blank">youtu.be/hy8UstR2NEg</a>)
+      </div>
+    </section>
+
+    <section>
+      <h2>SDD Tooling ที่มีจริง (Open Source)</h2>
+      <div class="icon-grid">
+        <div class="icon-card"><span class="icon">🛠️</span><div class="title">GitHub Spec Kit</div><div class="desc"><code>/constitution /plan /tasks /implement</code></div></div>
+        <div class="icon-card"><span class="icon">🌀</span><div class="title">OpenSpec</div><div class="desc">propose → explore → apply → archive</div></div>
+      </div>
+      <div class="card-box">
+        <h4>โครงสร้าง phase คล้ายกันโดยตั้งใจ</h4>
+        <p>ทั้งสอง tool implement วินัย Plan→Implement→Validate ของ SDD เป็น slash command/workflow
+        ที่จับต้องได้ — เลือกใช้ตัวไหนก็ได้ หลักการเบื้องหลังเหมือนกัน</p>
       </div>
     </section>
 
@@ -317,6 +418,7 @@ claude -p 'Implement the rate limiter per docs/rate-limit-spec.md' \
       <div class="icon-grid">
         <div class="icon-card"><span class="icon">🔁</span><div class="title">Feature Loop</div><div class="desc">review เสมอ ไม่ trust blind</div></div>
         <div class="icon-card"><span class="icon">🗺️</span><div class="title">AI-DLC</div><div class="desc">verify Operation ด้วย test จริง</div></div>
+        <div class="icon-card"><span class="icon">📜</span><div class="title">Spec-Driven Dev</div><div class="desc">Constitution + Plan→Implement→Validate→Replan</div></div>
         <div class="icon-card"><span class="icon">🕵️</span><div class="title">PR Review</div><div class="desc">first-pass ก่อน human</div></div>
         <div class="icon-card"><span class="icon">🖥️</span><div class="title">tmux Refactor</div><div class="desc">human-in-the-loop</div></div>
         <div class="icon-card"><span class="icon">🧪</span><div class="title">TDD</div><div class="desc">failing test คุมทิศทางเสมอ</div></div>

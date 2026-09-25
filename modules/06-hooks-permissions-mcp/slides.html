@@ -213,6 +213,38 @@ claude mcp get postgres</code></pre>
   </section>
 
   <section>
+    <h2>เทรนด์ใหม่: MCP Server vs Skill + CLI</h2>
+    <p class="subtitle">MCP server ยังมีประโยชน์มาก — แต่บาง use case มีทางเลือกที่เบากว่า</p>
+    <div class="compare">
+      <div class="compare-box"><div class="flow-box accent"><span class="flow-icon">🔌</span>MCP Server<span class="flow-sub">always-on — กิน context/tool-slot ตลอด session</span></div></div>
+      <div class="compare-vs">VS</div>
+      <div class="compare-box"><div class="flow-box pink"><span class="flow-icon">🧩</span>Skill + CLI<span class="flow-sub">เรียกเฉพาะตอนใช้ — context เบากว่า</span></div></div>
+    </div>
+    <p class="subtitle">Setup น้อยกว่า + ไม่ต้องมี process ค้างอยู่ตลอดเวลา</p>
+  </section>
+
+  <section>
+    <h2>ตัวอย่างจริง: Context7</h2>
+    <div class="flow">
+      <div class="flow-box danger"><span class="flow-icon">📚</span>Training data เก่า<span class="flow-sub">เช่น React 18 API</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box accent"><span class="flow-icon">🔎</span>Context7<span class="flow-sub">ดึง docs เวอร์ชันปัจจุบัน</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box pink"><span class="flow-icon">✅</span>Docs ล่าสุด<span class="flow-sub">ตรงกับ React 19.2 ที่ project ใช้จริง</span></div>
+    </div>
+    <p class="subtitle">Context7 เดิมเป็น MCP server — วันนี้ตอน install ให้เลือกได้ระหว่าง MCP server หรือ CLI + Skill</p>
+  </section>
+
+  <section>
+    <h2>เลือกยังไง: MCP Server หรือ Skill + CLI</h2>
+    <div class="icon-grid">
+      <div class="icon-card"><span class="icon">🔌</span><div class="title">MCP Server</div><div class="desc">ต้องใช้บ่อย/ต่อเนื่อง, ต้องการ resource/prompt แบบ structured</div></div>
+      <div class="icon-card"><span class="icon">🧩</span><div class="title">Skill + CLI</div><div class="desc">ใช้เป็นครั้งคราว, อยาก save context budget, setup ง่ายกว่า</div></div>
+    </div>
+    <p class="subtitle">ที่มา: DeepLearning.AI × JetBrains — <a href="https://youtu.be/hy8UstR2NEg">youtu.be/hy8UstR2NEg</a></p>
+  </section>
+
+  <section>
     <h2>MCP ใน CI / Bare Mode</h2>
     <pre><code># รันแบบ headless ใน CI, ใช้ MCP config ที่ pin ไว้
 claude --bare -p "run migration check against staging db" \

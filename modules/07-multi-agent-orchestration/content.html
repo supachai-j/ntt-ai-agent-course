@@ -133,6 +133,23 @@ tmux kill-session -t task-readme</code></pre>
     </div>
 
     <div class="lesson-section">
+      <h2>🔍 Second Look: Spawn Sub-Agents ให้ Deep Review ก่อน Commit</h2>
+      <p>อีกวิธีใช้ subagent ที่ต่างจากการเรียก <code>@reviewer</code> ตัวเดียวรีวิวไฟล์เดียว คือการสั่ง main agent ให้
+      <strong>spawn sub-agents หลายตัวเพื่อรีวิวทั้งโปรเจกต์ที่ถูกกระทบแบบอิสระ</strong> ไม่ใช่มองแค่ diff ในไอโซเลชัน
+      แต่ให้มองพื้นที่ของโค้ดทั้งหมดที่เกี่ยวข้องกับ feature นั้นว่ามี bug, ความไม่สอดคล้องกัน, หรือ requirement ที่ตกหล่นไปหรือไม่</p>
+      <p>Workflow คร่าวๆ: implement feature เสร็จ → สั่ง main agent <em>"spawn several sub-agents to do a deep review of
+      the entire project with this feature change"</em> → sub-agents รายงานกลับมาเป็น consolidated list → triage findings
+      → แก้ไฟล์จริงถ้าเจอปัญหา → รัน test อีกครั้ง → แล้วค่อย commit/merge</p>
+      <p>สองเหตุผลที่เทคนิคนี้ต่างจากการให้ agent ตัวเดิม self-review งานตัวเอง:</p>
+      <p><strong>1. Thinking space</strong> — sub-agent ที่ spawn มาใหม่ได้ context window สะอาด ใช้เฉพาะสำหรับงานรีวิวเท่านั้น
+      ในขณะที่ agent หลักที่เพิ่ง implement เสร็จ context เต็มไปด้วย history ของการเขียนโค้ด ทำให้ self-review มักหลวมกว่า</p>
+      <p><strong>2. รักษา context window ของ main agent</strong> — sub-agents ทำ review pass แบบยาวๆในพื้นที่ของตัวเอง
+      แล้วส่งกลับมาแค่สรุปสั้นๆ (consolidated findings) เข้า context หลัก ไม่ใช่เอา full review ทั้งหมดไปยัดใส่จนแน่น</p>
+      <div class="callout">💡 เก็บเทคนิคนี้ไว้เป็น "second look" สำหรับ feature ที่สำคัญพอจะกังวลว่าอาจมีจุดที่มองข้ามไป
+      ไม่จำเป็นต้องใช้เฉพาะงานใหญ่เท่านั้น — ที่มา: <a href="https://youtu.be/hy8UstR2NEg" target="_blank" rel="noopener">youtu.be/hy8UstR2NEg</a> (DeepLearning.AI × JetBrains)</div>
+    </div>
+
+    <div class="lesson-section">
       <h2>Agent Teams (Advanced)</h2>
       <p>นอกเหนือจาก subagent เดี่ยวๆ และ parallel tmux แล้ว Claude Code ยังรองรับโหมด multi-agent แบบ collaborative ที่ agent หลายตัวทำงานร่วมกันเป็นทีมและแชร์สถานะระหว่างกันได้ ผ่าน flag ระดับ advanced</p>
       <pre><code class="language-bash">claude --teammate-mode --brief "coordinate with other agents on this refactor"</code></pre>

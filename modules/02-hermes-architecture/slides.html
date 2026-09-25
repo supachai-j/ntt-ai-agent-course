@@ -153,6 +153,29 @@
 </section>
 
 <section>
+  <h2>4 Open Standards: ทำให้ Agent Workflow Portable</h2>
+  <div class="icon-grid">
+    <div class="icon-card"><span class="icon">🔧</span><div class="title">MCP</div><div class="desc">agent ↔ external tools/data</div></div>
+    <div class="icon-card"><span class="icon">📄</span><div class="title">agents.md</div><div class="desc">agent ↔ project rules/conventions</div></div>
+    <div class="icon-card"><span class="icon">📚</span><div class="title">Agent Skills</div><div class="desc">agent ↔ repeatable workflows</div></div>
+    <div class="icon-card"><span class="icon">🔌</span><div class="title">ACP</div><div class="desc">agent ↔ client/editor (IDE)</div></div>
+  </div>
+  <p style="font-size:0.5em;color:var(--r-text-dim);margin-top:0.6em;">ที่มา: DeepLearning.AI × JetBrains — <a href="https://youtu.be/hy8UstR2NEg" target="_blank" rel="noopener">youtu.be/hy8UstR2NEg</a></p>
+</section>
+
+<section>
+  <h2>ACP (Agent Client Protocol): เหมือน LSP แต่สำหรับ Agent</h2>
+  <div class="flow">
+    <div class="flow-box accent"><span class="flow-icon">🤖</span>AI Agent<span class="flow-sub">Claude Code, Codex, ...</span></div>
+    <div class="flow-arrow">↔</div>
+    <div class="flow-box pink"><span class="flow-icon">🔌</span>ACP<span class="flow-sub">มาตรฐานกลาง</span></div>
+    <div class="flow-arrow">↔</div>
+    <div class="flow-box"><span class="flow-icon">🖥️</span>Editor/IDE<span class="flow-sub">WebStorm, ...</span></div>
+  </div>
+  <div class="warn"><strong>ACP Registry:</strong> IDE browse/install agent ที่ compatible ได้เลยด้วยคลิกเดียว (เช่น WebStorm ติดตั้ง "Open Code" ผ่าน registry) — ครอบคลุมมากกว่า chat: next-edit-suggestions, plan mode ด้วย</div>
+</section>
+
+<section>
   <h2>Nous Portal / Tool Gateway</h2>
   <div class="big-stat"><span class="num">0</span><span class="label">API keys ที่ต้องหาเองสำหรับ web search / image gen / TTS / browser (ผ่าน gateway)</span></div>
   <div class="card-box">
@@ -276,6 +299,7 @@ version: 1.0
     <div class="icon-card"><span class="icon">🔍</span><div class="title">tool_search pattern</div><div class="desc">ลด context overhead</div></div>
     <div class="icon-card"><span class="icon">🔌</span><div class="title">Connectors</div><div class="desc">20+ platforms จริง</div></div>
     <div class="icon-card"><span class="icon">🧬</span><div class="title">delegate_task</div><div class="desc">verify ด้วย evidence เสมอ</div></div>
+    <div class="icon-card"><span class="icon">🧩</span><div class="title">4 Open Standards</div><div class="desc">MCP · agents.md · Skills · ACP = agent ที่ swap ได้</div></div>
   </div>
   <a class="lab-cta" href="lab.html">เริ่มทำ Lab →</a>
 </section>

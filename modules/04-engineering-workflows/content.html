@@ -30,7 +30,8 @@
 
     <div class="tldr"><strong>TL;DR:</strong> ทุก workflow ในโมดูลนี้ยึดหลักเดียวกัน — agent เขียนโค้ดเร็ว
     แต่ human ต้อง verify ทุกครั้งด้วยของจริง (diff review, test run, build) ไม่ใช่เชื่อรายงานของ agent เฉยๆ
-    Feature loop จัดการงานระดับวัน, AI-DLC จัดการงานระดับ sprint, ส่วน TDD/session flags/cost flags
+    Feature loop จัดการงานระดับวัน, AI-DLC จัดการงานระดับ sprint, SDD จัดการงานระดับ project+feature
+    ด้วย "constitution" 3 ไฟล์และ loop ต่อ feature ส่วน TDD/session flags/cost flags
     คือวินัยเสริมที่ทำให้ automation ปลอดภัยและควบคุมต้นทุนได้</div>
 
     <div class="lesson-section">
@@ -146,7 +147,101 @@ Layer 5: frontend generator   → Agent E</code></pre>
     </div>
 
     <div class="lesson-section">
-      <h2>3. PR Review Pattern</h2>
+      <h2>3. Framework ระดับ Project+Feature: Spec-Driven Development (SDD)</h2>
+      <p><strong>Spec-Driven Development (SDD)</strong> เป็นอีกแนวคิดที่ใช้แก้ปัญหาเดียวกันกับ
+      AI-DLC — ทำงานกับ agent ที่เขียนโค้ดเร็วแต่ต้องมีวินัยควบคุม — เพียงแต่มองปัญหาจากอีกมุม
+      แนวคิดหลักคือ <strong>แยก specification (สิ่งที่ต้องทำ + เหตุผล) ออกจาก implementation
+      (วิธีทำ) อย่างชัดเจน</strong>: agent เป็น "กล้ามเนื้อ" ที่ลงมือเขียนโค้ด ส่วน spec เป็น
+      "สมอง" ที่กำหนดทิศทาง (สรุปแนวคิดจากวิดีโอ DeepLearning.AI × JetBrains —
+      <a href="https://youtu.be/hy8UstR2NEg" target="_blank">youtu.be/hy8UstR2NEg</a>)</p>
+
+      <h3 style="margin-top:24px;">ทำไม spec ที่ดีถึงสำคัญ — 3 เหตุผลหลัก</h3>
+      <ul>
+        <li><strong>Spec เล็กควบคุม code ใหญ่</strong> — การแก้ spec แค่ประโยคเดียว เช่น
+        เปลี่ยนจาก "ใช้ SQLite" เป็น "ใช้ MongoDB" สามารถส่งผลกระเพื่อมไปยังโค้ดหลายร้อยบรรทัด
+        เมื่อ agent implement ตาม spec นั้นใหม่ทั้งหมด</li>
+        <li><strong>กัน context decay ระหว่าง session</strong> — agent ไม่มี state ติดตัว
+        ทุก session เริ่มจากศูนย์ ถ้าไม่มี spec คุณภาพสูงให้โหลดใหม่ทุกครั้ง ความเข้าใจ
+        project จะค่อยๆ เสื่อมสภาพทุกครั้งที่เริ่ม session ใหม่</li>
+        <li><strong>เพิ่ม intent fidelity</strong> — การนิยาม problem, success criteria, และ
+        constraints ไว้ก่อนให้ agent generate โค้ด ทำให้ output ตรงเจตนาจริงมากกว่าการปล่อยให้
+        agent เดาเจตนาเอาเองจาก prompt สั้นๆ</li>
+      </ul>
+
+      <h3 style="margin-top:24px;">Constitution: รากฐาน 3 ไฟล์ของโปรเจกต์</h3>
+      <p>SDD กำหนดให้ทุกโปรเจกต์มี "Constitution" ประกอบด้วยไฟล์หลัก 3 ไฟล์:</p>
+      <table>
+        <tr><th>ไฟล์</th><th>เนื้อหา</th></tr>
+        <tr><td><code>mission.md</code></td><td>why — vision ของโปรเจกต์, กลุ่มเป้าหมาย, ขอบเขต (scope)</td></tr>
+        <tr><td><code>tech-stack.md</code></td><td>how — การตัดสินใจเชิงวิศวกรรม, framework ที่เลือกใช้, ข้อจำกัดทางเทคนิค</td></tr>
+        <tr><td><code>roadmap.md</code></td><td>living document — ลำดับ phase/feature ที่จะทำถัดไป ปรับปรุงได้เรื่อยๆ</td></tr>
+      </table>
+      <div class="callout">💡 <strong>ข้อสำคัญ: เขียนผ่านบทสนทนา ไม่ใช่เขียนคนเดียว</strong> —
+      Constitution ถูกสร้างขึ้นด้วยการ<strong>คุยกับ agent</strong> agent จะถามคำถามชวนคิดกลับมา
+      เช่น "mission.md ควรใช้โทนภาษาแบบไหน" เมื่อ human ต้องการปรับแก้ ก็ทำผ่านการ
+      <strong>สนทนาต่อ</strong> ไม่ใช่ไปแก้ไฟล์ mission.md/tech-stack.md/roadmap.md ตรงๆ ด้วยมือ
+      — เพราะการแก้ไฟล์เดียวแยกกันมีความเสี่ยงที่ไฟล์อื่นๆ จะ drift ไม่ตรงกันอีกต่อไป</div>
+
+      <h3 style="margin-top:24px;">Feature Loop: วนต่อทุก Feature บน Branch ของตัวเอง</h3>
+      <p>เมื่อมี constitution แล้ว งานแต่ละ feature ใน roadmap จะวนผ่าน loop นี้ (แต่ละ feature
+      แยก git branch ของตัวเอง):</p>
+      <ol>
+        <li><strong>Plan</strong> — agent ร่าง feature spec + implementation plan + requirements +
+        validation criteria; human review และขอปรับแก้ผ่านบทสนทนา ก่อนเริ่ม implement จริง</li>
+        <li><strong>Implement</strong> — เคลียร์ context ของ agent ก่อนเริ่ม แล้วให้ agent
+        implement ทุก task group รวดเดียว หรือทีละ group สำหรับส่วนที่เสี่ยงสูง (เช่น security,
+        database) เพื่อ review ได้ละเอียดขึ้น</li>
+        <li><strong>Validate</strong> — human review diff ใน<strong>ระดับสูง</strong> (ตรงกับ
+        spec ไหม ทำงานถูกไหม) ไม่ใช่ไล่จับรายละเอียดเล็กๆ เช่นชื่อตัวแปร, รัน test จริง, และ
+        สามารถขอให้ agent spawn sub-agent เพื่อทำ deep review รอบสุดท้ายก่อน merge ได้ —
+        วิธีนี้ยังช่วยรักษา context window ของ main agent ไม่ให้เปื้อนจากการ review เองด้วย</li>
+      </ol>
+      <p>หลัง merge แต่ละ feature จะมีขั้น <strong>Replanning</strong> — ทบทวน roadmap, ปรับปรุง
+      constitution ถ้าจำเป็น ก่อนเริ่ม feature ถัดไป การมี "clean break" ระหว่าง feature แบบนี้
+      ช่วยลด <strong>AI fatigue</strong> (ความเหนื่อยล้าจากการ review โค้ดที่ agent generate
+      จำนวนมากต่อเนื่อง) เพราะ context จะถูก clear ใหม่ทุกครั้งที่เริ่ม feature ใหม่</p>
+
+      <h3 style="margin-top:24px;">Greenfield vs Brownfield</h3>
+      <p>SDD ใช้ได้ทั้งสองสถานการณ์:</p>
+      <ul>
+        <li><strong>Greenfield</strong> — โปรเจกต์ใหม่ทั้งหมด สร้าง constitution จากศูนย์ผ่าน
+        บทสนทนากับ agent ตามขั้นตอนข้างต้น</li>
+        <li><strong>Brownfield / Legacy codebase</strong> — ให้ agent
+        <strong>reverse-engineer</strong> mission.md, tech-stack.md, roadmap.md ย้อนกลับจาก
+        โค้ดที่มีอยู่แล้ว โดยอ่าน README, ไฟล์ TODO, และโครงสร้างโค้ดจริง เพื่อสร้าง constitution
+        ขึ้นมาใหม่แบบย้อนหลัง จากนั้นใช้ feature loop เดียวกันต่อไปสำหรับงานถัดไป</li>
+      </ul>
+
+      <h3 style="margin-top:24px;">เทียบกับ AI-DLC: สอง Lens ของวินัยเดียวกัน</h3>
+      <p>AI-DLC (หัวข้อก่อนหน้า) กับ SDD <strong>ไม่ใช่คู่แข่งที่ต้องเลือกอย่างใดอย่างหนึ่ง</strong>
+      — ทั้งสองเป็นมุมมองที่ทับซ้อนกันของวินัยเดียวกัน คือ "อย่าปล่อยให้ agent ลงมือโดยไม่มี
+      แผน/ข้อตกลงชัดเจนล่วงหน้า และต้อง verify ผลงานจริงก่อนเชื่อ" แต่ operate กันคนละระดับ:</p>
+      <table>
+        <tr><th></th><th>AI-DLC</th><th>SDD</th></tr>
+        <tr><td><strong>ระดับ</strong></td><td>Sprint / module — วนซ้ำทุก sprint</td><td>Project (Constitution คงที่) + Feature (loop วนต่อ branch)</td></tr>
+        <tr><td><strong>Artifact หลัก</strong></td><td>User story + implementation plan ต่อ sprint</td><td>Constitution 3 ไฟล์ (mission/tech-stack/roadmap) + spec ต่อ feature</td></tr>
+        <tr><td><strong>Phase</strong></td><td>Ideation → Inception → Construction → Operation</td><td>Plan → Implement → Validate → Replan</td></tr>
+        <tr><td><strong>จุดที่ทับกัน</strong></td><td>Ideation ≈ บทสนทนาสร้าง constitution/planning ของ SDD</td><td>Implement ≈ Construction ของ AI-DLC</td></tr>
+      </table>
+      <div class="callout pink">⚠️ <strong>ไม่ต้องเลือกอย่างใดอย่างหนึ่ง:</strong> ใช้ AI-DLC ถ้าทีมคุณคุ้นกับ
+      cadence ระดับ sprint อยู่แล้ว หรือใช้โครงสร้าง constitution 3 ไฟล์ของ SDD ถ้าต้องการ artifact
+      ที่ชัดเจนกว่าในระดับ project และเทคนิค reverse-engineer สำหรับ brownfield codebase —
+      หรือผสมทั้งสองแนวคิดเข้าด้วยกันก็ได้ เลือกโครงสร้าง artifact ที่เข้ากับทีมคุณที่สุด</div>
+
+      <h3 style="margin-top:24px;">Open-Source Tooling</h3>
+      <p>มี tool open-source ที่ implement แนวคิด SDD เป็น workflow/slash command จับต้องได้แล้ว:</p>
+      <ul>
+        <li><strong>GitHub Spec Kit</strong> — ให้ slash command <code>/constitution</code>,
+        <code>/plan</code>, <code>/tasks</code>, <code>/implement</code> ตรงกับขั้นตอนที่อธิบายไว้ข้างต้น</li>
+        <li><strong>OpenSpec</strong> (จาก VoiceFlow/visionai) — ใช้ workflow
+        propose → explore → apply → archive ซึ่งมี phase คล้ายกันภายใต้ชื่อเรียกต่างกัน</li>
+      </ul>
+      <p>ทั้งสอง tool เลือกใช้ตัวไหนก็ได้ตามความถนัดของทีม — หลักการเบื้องหลังเหมือนกันคือ
+      แยก spec ออกจาก implementation และมี artifact ที่ตรวจสอบย้อนกลับได้เสมอ</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>4. PR Review Pattern</h2>
       <p>ใช้ Claude Code เป็น <strong>first-pass reviewer</strong> ก่อนส่งให้ human review —
       pipe diff เข้าไปตรงๆ ด้วย print mode:</p>
       <pre><code class="language-bash">git diff main...feature | claude -p \
@@ -175,7 +270,7 @@ python -c "import json,sys; r=json.load(open('review.json')); print(r['result'])
     </div>
 
     <div class="lesson-section">
-      <h2>4. Interactive Refactor Workflow: tmux + PTY</h2>
+      <h2>5. Interactive Refactor Workflow: tmux + PTY</h2>
       <p>Refactor ใหญ่ๆ มักต้องมี <strong>human-in-the-loop หลายรอบ</strong> — print mode
       ไม่พอเพราะเราอยากเห็น progress และ steer ระหว่างทาง ต้องรัน Claude Code แบบ interactive
       ข้างใน tmux session แล้วควบคุมด้วย <code>send-keys</code>, ตรวจ progress ด้วย
@@ -212,7 +307,7 @@ tmux kill-session -t refactor-auth</code></pre>
     </div>
 
     <div class="lesson-section">
-      <h2>5. Test-Driven Development กับ Agent</h2>
+      <h2>6. Test-Driven Development กับ Agent</h2>
       <p>วินัยสำคัญที่สุดของ engineering workflow กับ agent: <strong>ห้ามให้ agent เขียนโค้ด
       production โดยไม่มี test คุมทิศทาง</strong> — ใช้รูปแบบ RED-GREEN-REFACTOR:</p>
       <ul>
@@ -242,7 +337,7 @@ pytest tests/test_discount.py -q</code></pre>
     </div>
 
     <div class="lesson-section">
-      <h2>6. Session Continuation</h2>
+      <h2>7. Session Continuation</h2>
       <p>งานยาวข้ามหลาย session ต้องใช้ flag เหล่านี้แทนการเริ่ม context ใหม่ทุกครั้ง:</p>
       <table>
         <tr><th>Flag</th><th>ใช้เมื่อไหร่</th></tr>
@@ -267,7 +362,7 @@ claude -p 'Try a different pooling strategy' \
     </div>
 
     <div class="lesson-section">
-      <h2>7. Cost / Performance Discipline</h2>
+      <h2>8. Cost / Performance Discipline</h2>
       <p>Automation จริงต้อง <strong>set flag เหล่านี้เสมอ</strong> — อย่าปล่อย default:</p>
       <table>
         <tr><th>Flag</th><th>ทำไมต้อง set</th></tr>
@@ -295,6 +390,8 @@ claude -p 'Implement the rate limiter per docs/rate-limit-spec.md' \
         ไม่ trust blind</li>
         <li>AI-DLC ครอบ feature loop ไว้ระดับ sprint: Ideation → Inception → Construction →
         Operation, ไม่เชื่อ agent report ต้อง verify ด้วย test จริง</li>
+        <li>SDD ครอบทั้งระดับ project (constitution 3 ไฟล์: mission/tech-stack/roadmap) และ
+        ระดับ feature (Plan → Implement → Validate → Replan) — ใช้แทนหรือควบคู่กับ AI-DLC ได้</li>
         <li>PR review: pipe diff เข้า <code>claude -p</code> เป็น first-pass ก่อน human review</li>
         <li>Refactor ใหญ่ที่ต้อง human-in-the-loop → interactive mode ผ่าน tmux</li>
         <li>TDD: agent implement ได้เฉพาะเมื่อมี failing test คุมทิศทางเสมอ</li>

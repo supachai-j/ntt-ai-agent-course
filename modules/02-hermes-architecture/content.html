@@ -145,6 +145,25 @@
     </div>
 
     <div class="lesson-section">
+      <h2>4 Open Standards เบื้องหลัง Agent ที่ Swap ได้: MCP, agents.md, Skills, ACP</h2>
+      <p>นอกจาก MCP ที่คุยไปแล้ว วงการ AI coding agent ตอนนี้มีมาตรฐานเปิด (open standard) อีก 3 ตัวที่เกิดขึ้นมาเพื่อเหตุผลเดียวกัน: กันไม่ให้ทีมถูก lock-in กับ agent หรือ IDE ตัวใดตัวหนึ่ง เพราะ landscape ของ agent เปลี่ยนเร็วมาก (leaderboard สลับผู้นำแทบทุกเดือน) วิธีคิดง่ายๆ คือมองแต่ละมาตรฐานเป็นเส้นเชื่อมคนละเส้นระหว่าง agent กับสิ่งรอบๆ มัน:</p>
+      <table>
+        <tr><th>มาตรฐาน</th><th>เชื่อม agent กับอะไร</th></tr>
+        <tr><td><strong>MCP</strong> (Model Context Protocol)</td><td>External tools / data sources — เครื่องมือและแหล่งข้อมูลภายนอก (คุยไปแล้วด้านบน)</td></tr>
+        <tr><td><strong>agents.md</strong></td><td>Project rules — ไฟล์ plain-text convention ที่เก็บกฎ/convention ของ project ให้ agent ตัวไหนก็อ่านได้</td></tr>
+        <tr><td><strong>Agent Skills</strong></td><td>Repeatable workflows — ชุด instruction + resource ที่ packaged ไว้ใช้ซ้ำ (เหมือน Skills system ของ Hermes ที่คุยไปก่อนหน้า)</td></tr>
+        <tr><td><strong>ACP</strong> (Agent Client Protocol)</td><td>Client/Editor — มาตรฐานเชื่อม agent เข้ากับ IDE/editor ที่ใช้งานมัน</td></tr>
+      </table>
+
+      <h3>ACP (Agent Client Protocol): มาตรฐานใหม่ล่าสุด</h3>
+      <p>ACP standardize การเชื่อมต่อระหว่าง <strong>AI agent</strong> กับ <strong>client</strong> ของมัน (เช่น IDE หรือ text editor) แนวคิดเทียบได้ตรงๆ กับ <strong>LSP (Language Server Protocol)</strong> ที่ standardize การเชื่อม language server เข้ากับ editor มาก่อนหน้านี้ — LSP ทำให้ editor ตัวไหนก็ต่อ language server ตัวไหนก็ได้โดยไม่ต้องเขียน integration เฉพาะคู่ ACP ก็เล็งผลแบบเดียวกันแต่กับ agent: agent ที่ compatible กับ ACP เสียบเข้า editor/IDE ที่ compatible กับ ACP ได้ทันที โดยไม่ต้องมีใครเขียน custom integration ให้แต่ละคู่</p>
+      <p>ACP ไม่ได้ครอบคลุมแค่ chat interface — ยังรวมถึงฟีเจอร์ที่ IDE คาดหวังจาก agent สมัยใหม่ เช่น <strong>next-edit-suggestions</strong> (แนะนำการแก้ไขบรรทัดถัดไปในตัว editor) และ <strong>plan mode</strong> (โหมดให้ agent วางแผนก่อนลงมือแก้โค้ดจริง)</p>
+      <p><strong>ACP Registry:</strong> เป็นแนวคิดของ directory ที่ IDE ใช้ discover, install และเชื่อมต่อกับ agent ที่ compatible กับ ACP ได้อัตโนมัติ ตัวอย่างที่ยกในวิดีโอ: AI chat panel ของ JetBrains WebStorm ให้ browse/install agent อย่าง "Open Code" จาก ACP registry ได้ด้วยคลิกเดียว — WebStorm จัดการทั้งการติดตั้ง binary ของ agent และการต่อสายเข้ากับ IDE ให้เองทั้งหมด ผู้ใช้ไม่ต้องไปหา config เองแยกต่างหาก</p>
+      <div class="callout">💡 ทำไม portability แบบนี้ถึงสำคัญ: เมื่อ tools (MCP), project rules (agents.md), workflows (Skills), และ editor integration (ACP) ถูก standardize แยกออกจากตัว agent เอง ทีมสามารถสลับ coding agent (เช่น Claude Code ↔ Codex ↔ ตัวอื่น) ได้โดยไม่ต้องรื้อ setup ทั้งหมดใหม่ — future-proof ต่อ leaderboard ที่เปลี่ยนผู้นำเร็วมาก</div>
+      <p style="color:var(--text-dim);font-size:0.9em;">ที่มา: DeepLearning.AI × JetBrains short course — <a href="https://youtu.be/hy8UstR2NEg" target="_blank" rel="noopener">youtu.be/hy8UstR2NEg</a></p>
+    </div>
+
+    <div class="lesson-section">
       <h2>Nous Portal / Tool Gateway</h2>
       <p>ฟีเจอร์ที่ Hermes ไม่ได้บังคับให้ทุกคนหา API key เอง — paid subscriber ใช้ web search/image gen/TTS/browser ผ่าน <strong>Tool Gateway</strong> โดยไม่ต้องมี API key แยกต่างหาก</p>
       <div class="callout">💡 เทียบกับสถานการณ์จริงของทีม: คล้ายกับ subscription ที่หลายคนมีอยู่แล้ว (เช่น ChatGPT Enterprise, Gemini Plus) — <strong>มี subscription ไม่ได้แปลว่ามี API access อัตโนมัติ</strong> ต้องแยกสมัคร API key ต่างหากเสมอ เว้นแต่ผู้ให้บริการมี "gateway" แบบเดียวกับ Nous Portal ที่ bridge ให้</div>
@@ -263,6 +282,7 @@ New > Expense, attach the receipt, submit</code></pre>
         <li>Connectors เชื่อม Hermes กับ 20+ platforms จริง (ไม่ใช่แค่ Discord/Telegram/Email)</li>
         <li>Skills เขียนแบบ "lessons not logs" + <code>/learn</code> สอน skill เร็วๆ + Autonomous Curator ดูแลให้</li>
         <li>delegate_task = isolated subagent — ต้อง verify ผลลัพธ์ด้วย evidence เสมอ</li>
+        <li>4 open standards ทำให้ agent portable: MCP (tools), agents.md (project rules), Skills (workflows), ACP (editor/client) — สลับ coding agent ได้โดยไม่ต้องรื้อ setup</li>
       </ul>
     </div>
 
