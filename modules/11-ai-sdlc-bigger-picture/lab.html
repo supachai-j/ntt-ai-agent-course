@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem('course-theme')||(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab · Module 11 — The Bigger Picture: AI Coding Agent SDLC</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<button class="theme-toggle-btn" type="button" aria-label="สลับธีม Light/Dark">☀️</button>
+
+<div class="topnav"><div class="brand"><span class="dot"></span> AI Agent Engineering Course</div>
+<nav><a href="../../index.html">Home</a><a href="slides.html">Slides</a></nav></div>
+
+<div class="wrap">
+
+<div class="hero">
+  <span class="badge">Lab · Module 11</span>
+  <h1>The Bigger Picture: AI Coding Agent SDLC</h1>
+  <p class="lead">Lab นี้ไม่มีเนื้อหาใหม่ให้ implement — เป็น <strong>guided tour</strong>
+  ให้เปิดคอร์ส <a href="https://supachai-j.github.io/ai-sdlc/" target="_blank">ai-sdlc</a> จริง
+  แล้วติดตั้ง AI Hero skills มาทดลองใช้กับโปรเจกต์เล็กๆ เพื่อเห็นว่าแนวคิด spec-first/TDD
+  ที่เรียนใน Module 04 ถูกทำเป็น production skill จริงยังไง</p>
+</div>
+
+<div class="lab-meta">
+  <span>⏱ ~40-55 นาที</span>
+  <span>🌐 ต้องต่อเน็ตได้ (เปิดเว็บ + npx install)</span>
+  <span>🖥 ต้องมี Node.js/npx และ Claude Code (จาก Module 03)</span>
+  <span>📦 Module 11 (Optional/Enrichment)</span>
+</div>
+
+<div class="prereq">
+  <h2>Prerequisites</h2>
+  <ul>
+    <li>ผ่าน Module 03 (มี Claude Code ติดตั้งแล้ว, auth สำเร็จ)</li>
+    <li>ผ่าน Module 04 (เข้าใจ feature loop + TDD RED-GREEN-REFACTOR มาก่อน จะได้เทียบได้)</li>
+    <li>มี Node.js/npx ใช้งานได้ (เช็คด้วย <code>npx --version</code>)</li>
+    <li>ไม่บังคับต้องมี git repo จริงของทีม — ใช้ repo ทดลองใหม่ก็พอสำหรับ lab นี้</li>
+  </ul>
+</div>
+
+<div class="objectives">
+  <h2>Objectives</h2>
+  <ul>
+    <li>สำรวจโครงสร้าง 15 module ของคอร์ส ai-sdlc และหาว่าโมดูลไหนตรงกับ gap ของทีมตัวเองมากที่สุด</li>
+    <li>ติดตั้ง AI Hero skill set จริงลงในโปรเจกต์ทดลอง</li>
+    <li>ลองรัน <code>/grill-with-docs</code> กับ feature เล็กๆ แล้วดูว่า artifact (<code>CONTEXT.md</code>, ADR) ถูกเขียนจริงยังไง</li>
+    <li>เปรียบเทียบ workflow นี้กับ feature loop ที่ทำใน Module 04 lab — เหมือน/ต่างกันตรงไหน</li>
+    <li>ตัดสินใจได้ว่า module ไหนของ ai-sdlc ควรเรียนต่อก่อนเป็นอันดับแรก ตามงานจริงของตัวเอง</li>
+  </ul>
+</div>
+
+<div class="step">
+  <h3><span class="step-num">1</span>สำรวจโครงสร้างคอร์ส ai-sdlc</h3>
+  <p>เปิดหน้า overview แล้วสำรวจ course-data จริงของทั้ง 15 module (ไม่ต้องเข้าเรียนตอนนี้)</p>
+  <pre><code class="language-bash">curl -s "https://supachai-j.github.io/ai-sdlc/" -o /tmp/ai-sdlc-index.html
+curl -s "https://supachai-j.github.io/ai-sdlc/assets/course-data.js" \
+  | grep -oP '"title"\s*:\s*"[^"]*"'</code></pre>
+  <div class="verify">
+    <strong>Verify:</strong> ต้องเห็นรายชื่อ 15 module พิมพ์ออกมา (M01 กลไกภายในของ Agent
+    ไปจนถึง M15 Operations/Governance) — ถ้าไม่มี output แปลว่า curl โดน block ให้เปิดผ่าน
+    เบราว์เซอร์แทน
+  </div>
+</div>
+
+<div class="step">
+  <h3><span class="step-num">2</span>เลือก 1 module ที่ตรงกับ gap ของทีมมากที่สุด</h3>
+  <p>อ่านหัวข้อทั้ง 15 module ที่ได้จาก step 1 แล้วเขียนไฟล์บันทึกการตัดสินใจของตัวเอง</p>
+  <pre><code class="language-bash">mkdir -p ~/module11-lab && cd ~/module11-lab
+cat > my-priority.md << 'EOF'
+# Module ai-sdlc ที่ควรเรียนก่อน
+
+## Module ที่เลือก: M__ - (ชื่อ module)
+
+## เหตุผล
+- ปัญหาจริงที่ทีม/ตัวเองเจอ: ...
+- ทำไม module นี้ตรงจุดที่สุด (ไม่ใช่ module อื่น): ...
+
+## สิ่งที่คาดว่าจะได้หลังเรียน
+- ...
+EOF</code></pre>
+  <div class="verify">
+    <strong>Verify:</strong> เปิดไฟล์อ่านทวน — เหตุผลต้องอ้างอิงปัญหาที่เกิดขึ้นจริงกับตัวเอง/ทีม
+    ไม่ใช่แค่ "ดูน่าสนใจ" — ถ้าตอบไม่ได้ว่าทำไมต้อง module นี้ไม่ใช่ module อื่น
+    ให้กลับไปอ่านหัวข้อสรุปของแต่ละ module ใน slides.html อีกรอบ
+  </div>
+</div>
+
+<div class="step">
+  <h3><span class="step-num">3</span>สร้างโปรเจกต์ทดลองสำหรับ AI Hero skills</h3>
+  <pre><code class="language-bash">mkdir -p ~/aihero-lab && cd ~/aihero-lab
+git init -q
+git config user.email "you@example.com"
+git config user.name "Your Name"
+echo "# AI Hero Skills Lab" > README.md
+git add README.md
+git commit -q -m "init: aihero skills lab"</code></pre>
+  <div class="verify">
+    <strong>Verify:</strong> <code>git log --oneline</code> ต้องแสดง commit แรก
+  </div>
+</div>
+
+<div class="step">
+  <h3><span class="step-num">4</span>ติดตั้ง AI Hero skill set</h3>
+  <p>ติดตั้งชุด skill ทั้งหมด (25 skills, MIT license, ใช้ได้กับ Claude Code/Cursor/Codex/Copilot)</p>
+  <pre><code class="language-bash">npx skills@latest add mattpocock/skills</code></pre>
+  <div class="verify">
+    <strong>Verify:</strong> ต้องเห็นไฟล์ skill ใหม่ถูกเขียนลงในโปรเจกต์ (เช่นใต้ <code>.claude/skills/</code>
+    หรือ path ที่ installer แจ้ง) — เช็คด้วย <code>find . -iname "*grill*"</code>
+  </div>
+  <div class="warn">
+    <strong>ทางเลือก:</strong> ถ้าใช้ Claude Code และอยากได้ auto-update ให้ใช้
+    <code>claude plugins install mattpocock-skills</code> แทน (ติดตั้งเป็น managed
+    read-only plugin จาก official marketplace แทนการ copy ไฟล์เข้าโปรเจกต์)
+  </div>
+</div>
+
+<div class="step">
+  <h3><span class="step-num">5</span>ทดลองรัน /grill-with-docs กับ feature เล็กๆ</h3>
+  <p>เปิด Claude Code ในโปรเจกต์นี้แล้วลองใช้ skill สัมภาษณ์เพื่อ align ก่อนเขียนโค้ดจริง —
+  เทียบกับ Module 04 lab ที่คุณเขียน spec/test เองตรงๆ ไม่มี agent สัมภาษณ์</p>
+  <pre><code class="language-bash">cd ~/aihero-lab
+claude</code></pre>
+  <p>ในเซสชัน Claude Code พิมพ์:</p>
+  <pre><code class="language-text">/grill-with-docs
+
+(เมื่อถูกถาม ให้บอกว่า: "I want to add a function that calculates
+a loyalty discount: customers with more than 5 orders get 15% off,
+otherwise no discount")</code></pre>
+  <div class="verify">
+    <strong>Verify:</strong> ตอบคำถามที่ agent สัมภาษณ์กลับไปสัก 2-3 รอบ จนกว่า session
+    จะจบ แล้วเช็คว่ามีไฟล์ใหม่เกิดขึ้นจริงไหม:
+    <pre><code class="language-bash">find . -iname "CONTEXT.md" -o -path "*/adr/*"</code></pre>
+    ถ้าเจอ <code>CONTEXT.md</code> — เปิดอ่านดูว่าคำศัพท์ที่ agent สรุปตรงกับที่คุณตั้งใจไหม
+  </div>
+</div>
+
+<div class="step">
+  <h3><span class="step-num">6</span>เปรียบเทียบกับ feature loop ของ Module 04</h3>
+  <p>เขียนตารางเปรียบเทียบสั้นๆ ระหว่าง 2 workflow ที่เพิ่งทำจริงทั้งคู่</p>
+  <pre><code class="language-bash">cat >> ~/module11-lab/my-priority.md << 'EOF'
+
+## เทียบ workflow: Module 04 feature loop vs /grill-with-docs
+
+| | Module 04 feature loop | /grill-with-docs |
+|---|---|---|
+| จุดเริ่ม | เขียน branch + prompt ตรงๆ | ถูกสัมภาษณ์ก่อนเริ่ม |
+| Artifact ที่ได้ | commit + PR diff | CONTEXT.md + ADR + (แล้วค่อย commit) |
+| เหมาะกับ | งานที่ scope ชัดแล้ว | งานที่ scope ยังไม่นิ่ง ต้อง align กับ agent ก่อน |
+EOF</code></pre>
+  <div class="verify">
+    <strong>Verify:</strong> เติมช่องว่างในตารางด้วยประสบการณ์จริงที่เพิ่งได้จาก step 5 —
+    ไม่ใช่แค่ท่องนิยาม
+  </div>
+</div>
+
+<details class="troubleshoot">
+  <summary>Troubleshoot: /grill-with-docs รันแล้วไม่มี CONTEXT.md หรือ ADR โผล่มาเลย</summary>
+  <p>ตามเอกสารต้นทาง นี่มี 2 สาเหตุที่เป็นไปได้:</p>
+  <ul>
+    <li><strong>สาเหตุปกติ:</strong> session ที่ยังไม่มีคำศัพท์ใหม่หรือการตัดสินใจที่เข้าเกณฑ์
+    ครบ 3 ข้อ (กลับยาก + surprising + trade-off จริง) พร้อมกัน จะไม่มีอะไรถูกเขียนลงไฟล์เลย —
+    ลองใช้ feature ที่มีความซับซ้อนมากขึ้นอีกหน่อย</li>
+    <li><strong>Known bug:</strong> ถ้ารันภายใต้ orchestration layer อื่น (เช่น spec-driven-development
+    wrapper หรือ multi-agent framework ที่เรียก skill นี้เป็น step หนึ่ง) ส่วนเขียนไฟล์อาจไม่ทำงานเงียบๆ
+    ทั้งที่ interview ยังรันอยู่ปกติ — ตรวจ working directory ก่อนเชื่อผลลัพธ์ของ session</li>
+  </ul>
+  <p>ที่มา: <a href="https://www.aihero.dev/grill-with-docs" target="_blank">aihero.dev/grill-with-docs — Common Questions</a></p>
+</details>
+
+<details class="troubleshoot">
+  <summary>Troubleshoot: skill ถามทุกอย่างพร้อมกันไม่มี recommendation เลย</summary>
+  <p><code>/grill-with-docs</code> คือ 1 บรรทัดที่ delegate ไปยัง skill อื่น 2 ตัว
+  (<code>grilling</code> สำหรับ interview, <code>domain-modeling</code> สำหรับการเขียน) —
+  ถ้า agent ไม่โหลด dependency ทั้งสองตัวนี้ พฤติกรรมจะผิดแบบนี้พอดี ลอง reinstall
+  ทั้งชุดใหม่แทนการติดตั้งแค่ skill เดียว</p>
+</details>
+
+<div class="objectives">
+  <h2>สรุป &amp; ต่อยอด</h2>
+  <p>Lab นี้ไม่ได้สอนเนื้อหาใหม่ แต่เปิดให้เห็น 2 อย่าง: (1) มี "แผนที่การเรียนรู้" ที่ลึกกว่า
+  คอร์สนี้อยู่แล้ว (ai-sdlc) สำหรับหัวข้อที่ยังไม่ครอบคลุม และ (2) หลักการที่เรียนใน Module 04/11
+  ของคอร์สนี้ (spec-first, TDD) ถูกนำไปทำเป็น production tool จริงที่คนอื่นใช้งานกันแล้ววันนี้</p>
+  <ul>
+    <li>เลือก module ai-sdlc 1 อันจาก step 2 แล้วเริ่มเรียนจริงในสัปดาห์นี้</li>
+    <li>ลอง <code>/code-review</code> ของ AI Hero กับ diff จริงที่เพิ่งทำใน Module 04 lab เทียบกับ
+    <code>git diff | claude -p 'review...'</code> pattern เดิม — คุณภาพ feedback ต่างกันแค่ไหน</li>
+    <li>ถ้าทีมตัดสินใจ adopt skill set นี้จริง ให้กลับไปอ่าน Module 08 (Governance) ก่อน —
+    skill ที่เขียนไฟล์ลง repo อัตโนมัติต้องผ่าน review เหมือน code ปกติ</li>
+  </ul>
+</div>
+
+<div class="pagefoot">
+  <a href="../10-capstone/lab.html">← Module 10: Capstone Project</a>
+  <a href="../../index.html">กลับหน้า Course Home →</a>
+</div>
+
+<div class="footer-note">Internal Enablement — Module 11 Lab (Optional/Enrichment)</div>
+
+</div>
+<script src="../../assets/theme.js" defer></script>
+</body>
+</html>
