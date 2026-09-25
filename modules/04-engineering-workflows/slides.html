@@ -11,55 +11,52 @@
 </head>
 <body>
 <button class="theme-toggle-btn" type="button" aria-label="สลับธีม Light/Dark">☀️</button>
+<a class="content-link-btn" href="content.html">📖 Content</a>
 <div class="reveal">
   <div class="slides">
 
     <section class="title-slide">
-      <span class="badge">Module 04 · Engineering</span>
+      <span class="badge">⚙️ Module 04 · Engineering</span>
       <h1>Engineering Workflows<br>with Claude Code</h1>
-      <p class="subtitle">Feature dev loop · PR review · Refactor · TDD · Session control · Cost discipline</p>
+      <p class="subtitle">Feature loop · AI-DLC · PR review · Refactor · TDD · Session · Cost</p>
     </section>
 
     <section>
       <h2>Agenda</h2>
-      <ul>
-        <li>Feature development loop มาตรฐาน (branch → prompt → review → iterate → commit → PR)</li>
-        <li>Framework ระดับ sprint: AI-DLC (Ideation → Inception → Construction → Operation)</li>
-        <li>PR review pattern ด้วย <code>git diff | claude -p</code></li>
-        <li>Interactive refactor workflow ผ่าน tmux + PTY</li>
-        <li>Test-Driven Development กับ agent (RED-GREEN-REFACTOR)</li>
-        <li>Session continuation: <code>-c</code>, <code>-r</code>, <code>--fork-session</code></li>
-        <li>Cost/performance discipline: <code>--max-turns</code>, <code>--max-budget-usd</code>, <code>--effort</code></li>
-      </ul>
+      <div class="icon-grid">
+        <div class="icon-card"><span class="icon">🔁</span><div class="title">Feature Loop</div><div class="desc">branch → prompt → review → PR</div></div>
+        <div class="icon-card"><span class="icon">🗺️</span><div class="title">AI-DLC</div><div class="desc">Ideation → Inception → Construction → Operation</div></div>
+        <div class="icon-card"><span class="icon">🕵️</span><div class="title">PR Review</div><div class="desc"><code>git diff | claude -p</code></div></div>
+        <div class="icon-card"><span class="icon">🖥️</span><div class="title">tmux Refactor</div><div class="desc">interactive + human-in-the-loop</div></div>
+        <div class="icon-card"><span class="icon">🧪</span><div class="title">TDD</div><div class="desc">RED → GREEN → REFACTOR</div></div>
+        <div class="icon-card"><span class="icon">💾</span><div class="title">Session</div><div class="desc"><code>-c / -r / --fork-session</code></div></div>
+        <div class="icon-card"><span class="icon">💸</span><div class="title">Cost Discipline</div><div class="desc">turns / budget / effort / tools</div></div>
+      </div>
     </section>
 
     <section>
       <h2>Feature Development Loop</h2>
-      <div class="two-col">
-        <div class="card-box">
-          <h4>Loop มาตรฐาน</h4>
-          <ol>
-            <li><span class="step-num">1</span>สร้าง branch ใหม่</li>
-            <li><span class="step-num">2</span>prompt Claude Code ให้ implement</li>
-            <li><span class="step-num">3</span>review diff ที่เกิดขึ้น</li>
-            <li><span class="step-num">4</span>iterate — ให้ feedback รอบต่อไป</li>
-            <li><span class="step-num">5</span>commit เมื่อพอใจ</li>
-            <li><span class="step-num">6</span>เปิด PR</li>
-          </ol>
-        </div>
-        <div class="card-box">
-          <h4>หลักการสำคัญ</h4>
-          <p>Agent เขียนโค้ดได้เร็ว แต่ engineer ยังต้อง <strong>review ทุก diff</strong>
-          ก่อน commit เสมอ — ไม่ trust output แบบ blind. Loop นี้เหมือน pair-programming
-          ที่คุณเป็นคนตัดสินใจสุดท้าย</p>
-        </div>
+      <div class="flow">
+        <div class="flow-box accent"><span class="flow-icon">🌿</span>Branch</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><span class="flow-icon">💬</span>Prompt</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><span class="flow-icon">👀</span>Review</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><span class="flow-icon">🔄</span>Iterate</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box pink"><span class="flow-icon">✅</span>Commit</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box pink"><span class="flow-icon">🚀</span>PR</div>
+      </div>
+      <div class="warn">
+        <strong>หลักการ:</strong> Agent เขียนโค้ดได้เร็ว แต่ engineer ต้อง review ทุก diff ก่อน commit เสมอ —
+        ห้าม trust output แบบ blind
       </div>
     </section>
 
     <section>
       <h2>Feature Loop: ตัวอย่างจริง</h2>
-      <p>สร้าง branch แล้วสั่ง Claude Code ใน print mode ให้ทำงานที่ scope ชัดเจน จากนั้น
-      review diff, iterate ถ้าจำเป็น แล้วค่อย commit:</p>
       <pre><code class="language-bash">git checkout -b feature/api-error-handling
 
 claude -p 'Add error handling to all API calls in src/' \
@@ -69,7 +66,7 @@ claude -p 'Add error handling to all API calls in src/' \
 # ตรวจ diff ทุกครั้งก่อน commit
 git diff
 
-# ถ้าไม่โอเค ให้ prompt ต่อเพื่อ iterate (ใช้ -c เพื่อสาน context เดิม)
+# iterate ต่อด้วย -c เพื่อสาน context เดิม
 claude -p 'The retry logic in fetchUser() is missing a max-retry cap, fix it' \
   --continue --max-turns 5
 
@@ -82,21 +79,20 @@ gh pr create --fill</code></pre>
 
     <section>
       <h2>Framework ระดับ Sprint: AI-DLC</h2>
-      <p><strong>AI-DLC (AI Development Life Cycle)</strong> — framework จาก
-      <a href="https://awslabs.github.io/aidlc-workflows/" target="_blank">AWS AI-DLC</a>
-      ที่ครอบ feature loop ก่อนหน้านี้ทั้งหมดไว้ในระดับ sprint/module</p>
-      <div class="two-col">
-        <div class="card-box">
-          <h4>4 Phase</h4>
-          <p><strong>Ideation → Inception → Construction → Operation</strong></p>
-          <p style="font-size:0.85em;">วนซ้ำทุก sprint/module ไม่ใช่วนครั้งเดียวตลอดทั้งโปรเจกต์</p>
-        </div>
-        <div class="card-box">
-          <h4>ทำไมต้องมี framework นี้</h4>
-          <p>Feature loop (branch→prompt→review→commit) ตอบคำถาม "ทำอย่างไร"
-          แต่ AI-DLC ตอบคำถาม "ควรเริ่ม/หยุด/ส่งต่อเมื่อไหร่" ระดับ sprint —
-          ป้องกัน scope กระจาย และให้จุด stage-gate ชัดเจนก่อนแตะโค้ดจริง</p>
-        </div>
+      <div class="big-stat"><span class="num">4</span><span class="label">phase ที่วนซ้ำทุก sprint/module — ไม่ใช่วนครั้งเดียวตลอดโปรเจกต์</span></div>
+      <div class="flow">
+        <div class="flow-box accent"><span class="flow-icon">💡</span>Ideation</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><span class="flow-icon">📐</span>Inception</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><span class="flow-icon">🏗️</span>Construction</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box pink"><span class="flow-icon">🚦</span>Operation</div>
+      </div>
+      <div class="card-box">
+        <h4>ทำไมต้องมี framework นี้</h4>
+        <p>Feature loop ตอบ "ทำอย่างไร" — AI-DLC ตอบ "ควรเริ่ม/หยุด/ส่งต่อเมื่อไหร่" ระดับ sprint
+        ป้องกัน scope กระจาย ให้ stage-gate ชัดเจนก่อนแตะโค้ดจริง (จาก <a href="https://awslabs.github.io/aidlc-workflows/" target="_blank">AWS AI-DLC</a>)</p>
       </div>
     </section>
 
@@ -104,101 +100,85 @@ gh pr create --fill</code></pre>
       <h2>AI-DLC: 4 Phase โดยละเอียด</h2>
       <table>
         <tr><th>Phase</th><th>สิ่งที่ทำ</th><th>ใครทำ</th></tr>
-        <tr><td><strong>Ideation</strong></td><td>แปลง scope เป็น user story ที่ตรวจสอบได้ ยืนยันร่วมกับผู้ใช้/PO ก่อนเริ่ม</td><td>Dev + PO/ผู้ใช้</td></tr>
-        <tr><td><strong>Inception</strong></td><td>ออกแบบ implementation plan ระดับไฟล์ ตั้ง acceptance criteria — เป็น stage-gate ก่อนแตะโค้ดจริง</td><td>Dev (planning-tier model)</td></tr>
-        <tr><td><strong>Construction</strong></td><td>Agent implement ตาม scope ที่แบ่งไว้ (ไม่ให้ agent สองตัวแตะไฟล์เดียวกัน) มี review ระหว่างทาง</td><td>Dev + agent(s)</td></tr>
-        <tr><td><strong>Operation</strong></td><td>รัน automated test จริงก่อนเชื่อรายงานของ agent, merge, ส่งต่อ QA + เอกสาร</td><td>Dev → QA + Docs</td></tr>
+        <tr><td>💡 Ideation</td><td>user story ที่ตรวจสอบได้ ยืนยันร่วมกับ PO/ผู้ใช้</td><td>Dev + PO</td></tr>
+        <tr><td>📐 Inception</td><td>implementation plan ระดับไฟล์ + acceptance criteria (stage-gate)</td><td>Dev (planning-tier)</td></tr>
+        <tr><td>🏗️ Construction</td><td>agent(s) implement ตาม scope แบ่งไว้ ไม่แตะไฟล์ร่วมกัน</td><td>Dev + agent(s)</td></tr>
+        <tr><td>🚦 Operation</td><td>รัน test จริงก่อนเชื่อรายงาน agent, merge, ส่ง QA</td><td>Dev → QA</td></tr>
       </table>
       <div class="danger">
-        <strong>หลักการยึดทุก sprint:</strong> ไม่เชื่อ agent report เฉยๆ — ต้อง verify ด้วย
-        build/test จริงก่อนถึงจะนับว่า Operation phase เสร็จ (พบจริงจากการใช้งาน)
+        <strong>หลักยึดทุก sprint:</strong> ไม่เชื่อ agent report เฉยๆ — ต้อง verify ด้วย build/test จริง
+        ก่อนนับว่า Operation เสร็จ
       </div>
     </section>
 
     <section>
       <h2>AI-DLC: ตัวอย่างจริงจาก Sprint</h2>
-      <p>ตัวอย่าง sprint ทั่วไป — เพิ่ม feature "override ค่าบางอย่างตอนอนุมัติคำขอ" + "ทุกหน้า admin ต้องมี auth"</p>
-      <ul>
-        <li><strong>Ideation</strong> — user story: "admin ต้อง override ค่าที่จะให้จริงตอนอนุมัติได้ ไม่ใช่ตามที่ขอมาเป๊ะๆ" + "ทุกหน้า admin ต้องมี auth ก่อนเข้าถึง"</li>
-        <li><strong>Inception</strong> — วางแผนแก้ validate-then-mutate flow, ออกแบบ shared admin shell/proxy ให้ใช้ซ้ำได้ทุกหน้าในอนาคต (กัน sprint ถัดไปต้อง refactor ซ้ำ)</li>
-        <li><strong>Construction</strong> — แยกงาน backend (auth middleware) กับ frontend (shared shell) เป็นงานคู่ขนานที่ <strong>ไม่แตะไฟล์ร่วมกัน</strong></li>
-        <li><strong>Operation</strong> — รัน regression test เดิม, ทีม QA เช็ค edge case จริงก่อนปิด sprint</li>
-      </ul>
+      <p style="text-align:center;color:var(--r-text-dim);">Feature: "override ค่าตอนอนุมัติคำขอ" + "ทุกหน้า admin ต้องมี auth"</p>
+      <div class="flow vertical">
+        <div class="flow-box accent"><span class="flow-icon">💡</span>Ideation<span class="flow-sub">2 user story ยืนยันกับ PO</span></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-box"><span class="flow-icon">📐</span>Inception<span class="flow-sub">วางแผน validate-then-mutate + shared admin shell ใช้ซ้ำได้</span></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-box"><span class="flow-icon">🏗️</span>Construction<span class="flow-sub">backend auth ↔ frontend shell — คู่ขนาน ไม่แตะไฟล์ร่วมกัน</span></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-box pink"><span class="flow-icon">🚦</span>Operation<span class="flow-sub">regression test + QA เช็ค edge case จริง</span></div>
+      </div>
     </section>
 
     <section>
       <h2>Inception เป็น Stage-Gate จริง — กรณีศึกษา</h2>
-      <p>Sprint ถัดมา: เพิ่ม entity ใหม่ที่ผูกกับของเดิม — Inception เลือกแยก entity ใหม่
-      ออกจากของเดิม (ไม่เพิ่ม field ใหม่ลงตรงๆ) เพื่อไม่ให้ reader/logic เดิมพัง</p>
+      <p style="text-align:center;">Sprint ถัดมา: เพิ่ม entity ใหม่ผูกกับของเดิม — Inception เลือกแยก entity ใหม่ออก
+      (ไม่เพิ่ม field ตรงๆ) เพื่อไม่ให้ logic เดิมพัง</p>
       <div class="card-box">
-        <h4>บทเรียนจากของจริง: "list-registration trap"</h4>
-        <p>ทุกครั้งที่สร้าง entity ใหม่ ต้องเพิ่มเข้า order/index list ที่มีอยู่แล้วเสมอ
-        — ไม่งั้น entity จะ "มีอยู่จริงในระบบแต่ไม่โผล่ที่ไหนเลย" ใน UI</p>
-        <p style="font-size:0.85em;color:var(--r-text-dim);">แก้ด้วยการ<strong>เตือน agent ล่วงหน้าในคำสั่งงาน</strong>
-        ตั้งแต่ prompt แรก — เป็นความรู้เฉพาะ codebase ที่ agent เดาเองไม่ได้</p>
+        <h4>🪤 "list-registration trap"</h4>
+        <p>ทุกครั้งที่สร้าง entity ใหม่ ต้องเพิ่มเข้า order/index list ที่มีอยู่แล้วเสมอ —
+        ไม่งั้น entity จะ "มีอยู่จริงในระบบแต่ไม่โผล่ที่ไหนเลย" ใน UI</p>
+        <p style="font-size:0.85em;color:var(--r-text-dim);">แก้ด้วยการเตือน agent ล่วงหน้าตั้งแต่ prompt แรก — ความรู้เฉพาะ codebase ที่ agent เดาเองไม่ได้</p>
       </div>
     </section>
 
     <section>
       <h2>Construction: แบ่งงาน Agent คู่ขนานให้ปลอดภัย</h2>
-      <p>ตัวอย่างจริง sprint "Security Hardening" — ปิดช่องโหว่ที่พบจาก code review หลายรอบ
-      ด้วย <strong>5 agent คู่ขนาน แบ่งตาม layer</strong></p>
-      <pre><code class="language-text">Layer 1: backend auth        → Agent A
-Layer 2: backend data store   → Agent B
-Layer 3: authorization logic  → Agent C
-Layer 4: frontend write-flow  → Agent D
-Layer 5: frontend generator   → Agent E</code></pre>
+      <p style="text-align:center;">Sprint "Security Hardening" — 5 agent คู่ขนาน แบ่งตาม layer</p>
+      <div class="flow">
+        <div class="flow-box accent"><span class="flow-icon">🔐</span>L1: Backend Auth<span class="flow-sub">Agent A</span></div>
+        <div class="flow-arrow">‖</div>
+        <div class="flow-box accent"><span class="flow-icon">🗄️</span>L2: Data Store<span class="flow-sub">Agent B</span></div>
+        <div class="flow-arrow">‖</div>
+        <div class="flow-box accent"><span class="flow-icon">🛂</span>L3: AuthZ Logic<span class="flow-sub">Agent C</span></div>
+        <div class="flow-arrow">‖</div>
+        <div class="flow-box pink"><span class="flow-icon">✍️</span>L4: FE Write-flow<span class="flow-sub">Agent D</span></div>
+        <div class="flow-arrow">‖</div>
+        <div class="flow-box pink"><span class="flow-icon">⚙️</span>L5: FE Generator<span class="flow-sub">Agent E</span></div>
+      </div>
       <div class="warn">
-        <strong>Inception ต้องจัดกลุ่ม finding ตามไฟล์ก่อน แบ่งงาน</strong> — พลาดจุดนี้แล้ว
-        2 agent จะแก้ไฟล์เดียวกันพร้อมกันและ merge conflict กันเอง แต่ละ agent ต้อง
-        verify ด้วย test จริงก่อนส่งงานกลับ ก่อน Operation phase verify ซ้ำอีกรอบ
-        รวมทุก layer ด้วย full test suite
+        <strong>Inception ต้องจัดกลุ่ม finding ตามไฟล์ก่อนแบ่งงาน</strong> — พลาดจุดนี้ 2 agent จะแก้ไฟล์เดียวกัน
+        และ merge conflict กันเอง แต่ละ agent verify ด้วย test จริงก่อนส่งงาน แล้ว Operation verify ซ้ำด้วย full test suite
       </div>
     </section>
 
     <section>
-      <h2>AI Agent Coding Discipline (ใน AGENTS.md)</h2>
-      <p>วินัย 4 ข้อที่ควรใส่ใน <code>AGENTS.md</code>/<code>CLAUDE.md</code> ของทุกโปรเจกต์
-      — ใช้ <strong>เสริม</strong> ไม่ใช่แทนที่ PR review/security review</p>
-      <div class="two-col">
-        <div class="card-box">
-          <h4>1. Think Before Coding</h4>
-          <p>State assumption ชัดเจนก่อนลงมือ ถ้า request ตีความได้หลายแบบ บอกก่อนแล้วเลือก
-          แทนที่จะเดาเงียบๆ หยุดถามเมื่อไม่แน่ใจจริงๆ</p>
-        </div>
-        <div class="card-box">
-          <h4>2. Simplicity First (มี exception ได้)</h4>
-          <p>เขียนโค้ดขั้นต่ำที่แก้ปัญหาที่ระบุ — แต่ยอมรับ indirection ที่ดูเกินจำเป็นได้
-          ถ้ามีเหตุผลบันทึกไว้ชัดเจน (เช่น กัน breaking change ในอนาคต)</p>
-        </div>
-      </div>
-      <div class="two-col">
-        <div class="card-box">
-          <h4>3. Surgical Changes</h4>
-          <p>แตะเฉพาะสิ่งที่ task ต้องการ ห้าม refactor/clean-up โค้ดข้างเคียงที่ไม่เกี่ยวเป็นผลพลอยได้
-          — เข้ากับหลักการแบ่ง agent คู่ขนานแบบไม่แตะไฟล์ร่วมกัน</p>
-        </div>
-        <div class="card-box">
-          <h4>4. Goal-Driven Execution</h4>
-          <p>แปลง request คลุมเครือเป็น goal ที่ verify ได้ (failing test/repro/acceptance
-          criteria) ก่อนเขียนโค้ด แล้ว verify จริงตอนจบ — ไม่เชื่อรายงานความสำเร็จเฉยๆ</p>
-        </div>
+      <h2>AI Agent Coding Discipline</h2>
+      <p style="text-align:center;color:var(--r-text-dim);">4 ข้อใน <code>AGENTS.md</code>/<code>CLAUDE.md</code> — เสริม ไม่แทนที่ PR/security review</p>
+      <div class="icon-grid">
+        <div class="icon-card"><span class="icon">🧠</span><div class="title">1. Think Before Coding</div><div class="desc">state assumption ชัดก่อนลงมือ ถามเมื่อไม่แน่ใจ</div></div>
+        <div class="icon-card"><span class="icon">✂️</span><div class="title">2. Simplicity First</div><div class="desc">โค้ดขั้นต่ำที่แก้ปัญหา ยกเว้นมีเหตุผลบันทึกไว้</div></div>
+        <div class="icon-card"><span class="icon">🎯</span><div class="title">3. Surgical Changes</div><div class="desc">แตะเฉพาะที่ task ต้องการ ห้าม refactor พลอยได้</div></div>
+        <div class="icon-card"><span class="icon">✅</span><div class="title">4. Goal-Driven Execution</div><div class="desc">แปลง request เป็น goal ที่ verify ได้ก่อนเขียนโค้ด</div></div>
       </div>
     </section>
 
     <section>
       <h2>PR Review Pattern</h2>
-      <p>ใช้ Claude Code เป็น <strong>first-pass reviewer</strong> ก่อนส่งให้ human review —
-      pipe diff เข้าไปตรง ๆ ด้วย print mode</p>
+      <p style="text-align:center;">Claude Code เป็น <strong>first-pass reviewer</strong> ก่อน human review</p>
       <pre><code class="language-bash">git diff main...feature | claude -p \
   'Review this diff for bugs, security issues, style' \
   --max-turns 2</code></pre>
       <div class="card-box">
-        <h4>ทำไมต้องตั้ง <code>--max-turns</code> ต่ำ ๆ (แต่ไม่ใช่ 1)</h4>
-        <p>Review งานนี้เป็น text-in / text-out เป็นหลัก ไม่ต้องแก้ไฟล์ จึงตั้ง turn limit
-        ต่ำเพื่อควบคุมต้นทุน — แต่จากการทดสอบจริง <code>--max-turns 1</code> มักไม่พอ
-        เพราะ Claude มักขอใช้ tool หนึ่งครั้งก่อนตอบ (เช่น ตรวจสอบ context) ทำให้ error
-        <code>error_max_turns</code> ตั้งแต่ turn แรก — ใช้ <code>--max-turns 2</code> ขึ้นไปจึงจะสำเร็จจริง</p>
+        <h4>ทำไม <code>--max-turns</code> ต่ำ (แต่ไม่ใช่ 1)</h4>
+        <p>Review เป็น text-in/text-out ไม่ต้องแก้ไฟล์ — แต่ <code>--max-turns 1</code> มักไม่พอ
+        เพราะ Claude มักขอใช้ tool ก่อนตอบ ทำให้ error <code>error_max_turns</code> ตั้งแต่ turn แรก
+        ใช้ <code>--max-turns 2</code>+ จึงสำเร็จจริง</p>
       </div>
     </section>
 
@@ -215,69 +195,53 @@ git diff origin/main...HEAD | claude -p \
   --max-turns 3 > review.json
 
 python -c "import json,sys; r=json.load(open('review.json')); print(r['result'])"</code></pre>
-      <p><code>--output-format json</code> ให้ผลลัพธ์ที่ parse ได้ เหมาะกับ pipeline
-      ที่ต้อง post comment กลับเข้า PR อัตโนมัติ</p>
+      <p style="text-align:center;color:var(--r-text-dim);"><code>--output-format json</code> ให้ผลลัพธ์ parse ได้ — เหมาะกับ pipeline post comment กลับ PR อัตโนมัติ</p>
     </section>
 
     <section>
-      <h2>Interactive Refactor Workflow: tmux + PTY</h2>
-      <p>Refactor ใหญ่ ๆ มักต้องมี <strong>human-in-the-loop หลายรอบ</strong> —
-      print mode ไม่พอเพราะเราอยากเห็น progress และ steer ระหว่างทาง ต้องรัน Claude Code
-      แบบ interactive ข้างใน tmux session แล้วควบคุมด้วย <code>send-keys</code>,
-      ตรวจ progress ด้วย <code>capture-pane</code></p>
-      <pre><code class="language-bash"># เปิด session
+      <h2>Interactive Refactor: tmux + PTY</h2>
+      <p style="text-align:center;">Refactor ใหญ่ต้องมี <strong>human-in-the-loop</strong> — print mode ไม่พอ
+      ต้องรันแบบ interactive ใน tmux แล้วควบคุมด้วย <code>send-keys</code> / <code>capture-pane</code></p>
+      <pre><code class="language-bash"># เปิด session แล้วสั่ง claude
 tmux new-session -d -s refactor-auth -x 140 -y 40
-
-# เข้าโปรเจกต์แล้วสั่ง claude
-tmux send-keys -t refactor-auth \
-  'cd ~/project && claude' Enter
+tmux send-keys -t refactor-auth 'cd ~/project && claude' Enter
 
 # รอ startup + trust dialog แล้ว Enter รับ default
 sleep 4 && tmux send-keys -t refactor-auth Enter
 
-# ส่ง task แรก
+# ส่ง task แรก แล้วตรวจความคืบหน้า
 sleep 2 && tmux send-keys -t refactor-auth \
   'Refactor the auth module to use JWT tokens' Enter
-
-# ตรวจความคืบหน้า
 sleep 15 && tmux capture-pane -t refactor-auth -p -S -50</code></pre>
     </section>
 
     <section>
       <h2>tmux Pattern: iterate แล้วปิด session</h2>
-      <pre><code class="language-bash"># เห็น diff ที่ยังไม่ถูกใจ ส่ง feedback รอบสอง
+      <pre><code class="language-bash"># เห็น diff ยังไม่ถูกใจ ส่ง feedback รอบสอง
 tmux send-keys -t refactor-auth \
   'Also add unit tests for the new JWT verify function' Enter
-
 sleep 20 && tmux capture-pane -t refactor-auth -p -S -60
 
 # จบงาน — ออกจาก Claude แล้วเก็บ session
 tmux send-keys -t refactor-auth '/exit' Enter
 tmux kill-session -t refactor-auth</code></pre>
       <div class="warn">
-        <strong>ข้อควรระวัง:</strong> อย่าลืม kill session เมื่อจบงาน — session ที่ค้างไว้
-        กิน resource และอาจสร้างความสับสนเมื่อรัน task ใหม่ในไดเรกทอรีเดิม
+        <strong>ข้อควรระวัง:</strong> อย่าลืม kill session เมื่อจบงาน — session ที่ค้างไว้กิน resource
+        และอาจสร้างความสับสนเมื่อรัน task ใหม่ในไดเรกทอรีเดิม
       </div>
     </section>
 
     <section>
-      <h2>Test-Driven Development กับ Agent</h2>
-      <p>วินัยสำคัญที่สุดของ engineering workflow กับ agent: <strong>ห้ามให้ agent
-      เขียนโค้ด production โดยไม่มี test คุมทิศทาง</strong></p>
-      <div class="two-col">
-        <div class="card-box">
-          <h4>RED</h4>
-          <p>Engineer เขียน failing test เองก่อน — กำหนด contract ที่ชัดเจน</p>
-        </div>
-        <div class="card-box">
-          <h4>GREEN</h4>
-          <p>ให้ Claude Code implement จนกว่า test จะผ่าน ไม่มากไม่น้อยกว่านั้น</p>
-        </div>
+      <h2>TDD กับ Agent</h2>
+      <p style="text-align:center;">วินัยสำคัญที่สุด: <strong>ห้ามให้ agent เขียนโค้ด production โดยไม่มี test คุมทิศทาง</strong></p>
+      <div class="compare">
+        <div class="compare-box"><div class="flow-box danger">🔴 RED<span class="flow-sub">Engineer เขียน failing test เอง — กำหนด contract</span></div></div>
+        <div class="compare-vs">→</div>
+        <div class="compare-box"><div class="flow-box accent">🟢 GREEN<span class="flow-sub">Claude Code implement จนกว่า test จะผ่าน ไม่มากไม่น้อยกว่านั้น</span></div></div>
       </div>
       <div class="card-box">
-        <h4>REFACTOR</h4>
-        <p>เมื่อ test เขียวแล้ว ค่อยให้ agent (หรือ human) ปรับโครงสร้างโค้ดให้สะอาดขึ้น
-        โดย test ต้องเขียวตลอดขั้นตอนนี้</p>
+        <h4>♻️ REFACTOR</h4>
+        <p>เมื่อ test เขียวแล้ว ค่อยให้ agent (หรือ human) ปรับโครงสร้างโค้ดให้สะอาดขึ้น โดย test ต้องเขียวตลอด</p>
       </div>
     </section>
 
@@ -296,14 +260,13 @@ claude -p 'Implement apply_discount() in src/pricing.py so that \
 # verify
 pytest tests/test_discount.py -q</code></pre>
       <div class="danger">
-        <strong>กฎเหล็ก:</strong> ห้ามให้ <code>--allowedTools</code> รวม permission แก้ไฟล์ test
-        ในรอบ GREEN — ถ้า agent แก้ test ให้ผ่านง่าย ๆ แทนที่จะแก้โค้ด นั่นคือ false green
+        <strong>กฎเหล็ก:</strong> ห้ามให้ <code>--allowedTools</code> รวม permission แก้ไฟล์ test ในรอบ GREEN —
+        ถ้า agent แก้ test ให้ผ่านง่ายๆ แทนที่จะแก้โค้ด นั่นคือ false green
       </div>
     </section>
 
     <section>
       <h2>Session Continuation</h2>
-      <p>งานยาวข้ามหลาย session ต้องใช้ flag เหล่านี้แทนการเริ่ม context ใหม่ทุกครั้ง</p>
       <table>
         <tr><th>Flag</th><th>ใช้เมื่อไหร่</th></tr>
         <tr><td><code>-c, --continue</code></td><td>สาน conversation ล่าสุดในไดเรกทอรีปัจจุบัน</td></tr>
@@ -320,7 +283,7 @@ SID=$(python -c "import json;print(json.load(open('session1.json'))['session_id'
 claude -p 'Continue and add connection pooling' \
   --continue --max-turns 5
 
-# หรือ resume แบบเจาะจง id / fork เพื่อลองแนวทางอื่นโดยไม่ทับของเดิม
+# resume เจาะจง id / fork เพื่อลองแนวทางอื่นโดยไม่ทับของเดิม
 claude -p 'Continue' --resume "$SID" --max-turns 5
 claude -p 'Try a different pooling strategy' \
   --resume "$SID" --fork-session --max-turns 10</code></pre>
@@ -328,19 +291,18 @@ claude -p 'Try a different pooling strategy' \
 
     <section>
       <h2>Cost / Performance Discipline</h2>
-      <p>Automation จริงต้อง <strong>set flag เหล่านี้เสมอ</strong> — อย่าปล่อย default</p>
       <table>
         <tr><th>Flag</th><th>ทำไมต้อง set</th></tr>
-        <tr><td><code>--max-turns</code></td><td>กัน agentic loop ที่ไม่มีจุดจบ — งาน automation ต้องมี upper bound</td></tr>
+        <tr><td><code>--max-turns</code></td><td>กัน agentic loop ไม่มีจุดจบ — automation ต้องมี upper bound</td></tr>
         <tr><td><code>--max-budget-usd</code></td><td>cap ค่าใช้จ่าย API ต่อ run โดยตรง</td></tr>
-        <tr><td><code>--effort low/high</code></td><td>งานง่ายใช้ low ลด latency/cost, งานซับซ้อนใช้ high เพื่อความแม่นยำ</td></tr>
+        <tr><td><code>--effort low/high</code></td><td>งานง่าย → low (latency/cost ต่ำ), งานซับซ้อน → high (แม่นยำ)</td></tr>
         <tr><td><code>--allowedTools</code></td><td>จำกัด blast radius — งาน review ไม่ควรมีสิทธิ์ Write/Bash</td></tr>
       </table>
-      <pre><code class="language-bash"># งาน review เบา ๆ: effort ต่ำ, turn จำกัด, ไม่มีสิทธิ์แก้ไฟล์
+      <pre><code class="language-bash"># งาน review เบาๆ: effort ต่ำ, turn จำกัด, ไม่มีสิทธิ์แก้ไฟล์
 git diff | claude -p 'Quick style review' \
   --effort low --max-turns 3 --allowedTools ''
 
-# งาน implement ที่ซับซ้อน: effort สูง, budget cap ชัดเจน
+# งาน implement ซับซ้อน: effort สูง, budget cap ชัดเจน
 claude -p 'Implement the rate limiter per docs/rate-limit-spec.md' \
   --effort high --max-turns 15 --max-budget-usd 2.00 \
   --allowedTools 'Read,Edit,Write,Bash(pytest*)'</code></pre>
@@ -352,15 +314,15 @@ claude -p 'Implement the rate limiter per docs/rate-limit-spec.md' \
 
     <section>
       <h2>สรุป</h2>
-      <ul>
-        <li>Feature loop: branch → prompt → review diff → iterate → commit → PR — review เสมอ ไม่ trust blind</li>
-        <li>AI-DLC ครอบ feature loop ไว้ระดับ sprint: Ideation → Inception → Construction → Operation, ไม่เชื่อ agent report ต้อง verify ด้วย test จริง</li>
-        <li>PR review: pipe diff เข้า <code>claude -p</code> เป็น first-pass ก่อน human review</li>
-        <li>Refactor ใหญ่ที่ต้อง human-in-the-loop → interactive mode ผ่าน tmux</li>
-        <li>TDD: agent implement ได้เฉพาะเมื่อมี failing test คุมทิศทางเสมอ</li>
-        <li>งานยาวข้าม session ใช้ <code>-c</code>/<code>-r</code>/<code>--fork-session</code></li>
-        <li>Automation จริงต้อง set <code>--max-turns</code>, <code>--max-budget-usd</code>, <code>--effort</code>, <code>--allowedTools</code> เสมอ</li>
-      </ul>
+      <div class="icon-grid">
+        <div class="icon-card"><span class="icon">🔁</span><div class="title">Feature Loop</div><div class="desc">review เสมอ ไม่ trust blind</div></div>
+        <div class="icon-card"><span class="icon">🗺️</span><div class="title">AI-DLC</div><div class="desc">verify Operation ด้วย test จริง</div></div>
+        <div class="icon-card"><span class="icon">🕵️</span><div class="title">PR Review</div><div class="desc">first-pass ก่อน human</div></div>
+        <div class="icon-card"><span class="icon">🖥️</span><div class="title">tmux Refactor</div><div class="desc">human-in-the-loop</div></div>
+        <div class="icon-card"><span class="icon">🧪</span><div class="title">TDD</div><div class="desc">failing test คุมทิศทางเสมอ</div></div>
+        <div class="icon-card"><span class="icon">💾</span><div class="title">Session</div><div class="desc"><code>-c/-r/--fork-session</code></div></div>
+        <div class="icon-card"><span class="icon">💸</span><div class="title">Cost Discipline</div><div class="desc">set flag เสมอ ไม่ปล่อย default</div></div>
+      </div>
       <a class="lab-cta" href="lab.html">ไปทำ Lab Module 04 →</a>
     </section>
 

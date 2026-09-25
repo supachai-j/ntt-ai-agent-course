@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem('course-theme')||(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content · Module 09 — CI/CD &amp; Automation Integration — AI Agent Engineering Course</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<button class="theme-toggle-btn" type="button" aria-label="สลับธีม Light/Dark">☀️</button>
+  <div class="topnav">
+    <div class="brand"><span class="dot"></span> AI Agent Engineering Course</div>
+    <nav>
+      <a href="../../index.html">Home</a>
+      <a href="slides.html">Slides</a>
+      <a href="content.html" class="active">Content</a>
+      <a href="lab.html">Lab</a>
+    </nav>
+  </div>
+
+  <div class="wrap">
+    <div class="lesson-hero">
+      <span class="badge">📖 Content · Module 09</span>
+      <h1>CI/CD &amp; Automation Integration</h1>
+      <p style="color:var(--text-dim);">รัน Claude Code แบบ headless ใน pipeline อัตโนมัติ, ใช้ gh CLI ทำ PR/deploy automation, deploy static site ขึ้น GitHub Pages แบบตรวจสอบได้จริง และวัดผลว่า pipeline ดีขึ้นจริงหรือแค่รู้สึกว่าดีขึ้นด้วย Evals</p>
+    </div>
+
+    <div class="tldr"><strong>TL;DR:</strong> Headless mode (<code>--bare -p</code>) คือวิธีเดียวที่รัน Claude Code ใน CI ได้ — ต้อง lock tools, จำกัด turns/budget เสมอ. gh CLI + gh api ใช้ทำ PR automation และ deploy GitHub Pages ได้ทั้งหมด. แต่ไม่ว่า CI จะรายงานว่าสำเร็จแค่ไหน ต้อง verify ด้วยตัวเองเสมอ (curl HTTP code จริง, เปิด PR ดู comment จริง) — และหลักการเดียวกันนี้ขยายไปถึงการวัดผล prompt/config ด้วย Evals: อย่าเชื่อผลรันครั้งเดียว (n=1) ต้องมี Golden Task Set, เกณฑ์แบบ deterministic, และรันซ้ำหลายครั้งก่อนสรุปว่า "ดีขึ้นจริง"</div>
+
+    <div class="lesson-section">
+      <h2>ทำไม CI ต้องรัน Claude Code แบบ headless</h2>
+      <p>Interactive REPL ที่เราคุ้นเคยตอนใช้งาน Claude Code แบบมือถือคีย์บอร์ด ใช้กับ pipeline อัตโนมัติไม่ได้ — เพราะไม่มีคนนั่งกด Enter ตอบ permission prompt กลางทาง CI runner รันแบบไม่มีคนเฝ้า ดังนั้นต้องใช้ <strong>headless mode</strong> ผ่านแฟล็ก <code>--bare -p</code> ซึ่งจะรับ input เข้ามาครั้งเดียว ประมวลผล แล้วส่ง output ออกมาแล้วจบการทำงานทันที ไม่ค้างรอ interaction ใดๆ เพิ่ม เหมาะสมพอดีกับธรรมชาติของ CI runner ที่ทำงานแบบ non-interactive job</p>
+      <p>Pattern นี้เปิดทางให้ทำงานอัตโนมัติได้หลายอย่างโดยไม่ต้องมี human อยู่ในลูปเลย เช่น automated PR review (สแกน diff หาบั๊ก/security issue อัตโนมัติทุกครั้งที่เปิด PR), changelog generation (สรุปการเปลี่ยนแปลงจาก commit history), และ test-failure triage (วิเคราะห์ทำไม test ถึงพังโดยไม่ต้องรอ engineer มานั่งอ่าน log เอง)</p>
+      <div class="callout pink">⚠️ ข้อควรระวังที่สำคัญที่สุด: headless หมายความว่าไม่มีใครยืนยัน permission กลางทางได้เลย ดังนั้นต้อง lock <code>--allowedTools</code> ให้แคบที่สุดเท่าที่งานจะทำได้ — ไม่ปล่อยให้ agent มีสิทธิ์กว้างเกินความจำเป็นในสภาพแวดล้อมที่ไม่มีคนคอยเบรก</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Headless flags ที่ต้องรู้</h2>
+      <p>มีแฟล็กหลักสี่ตัวที่ใช้ควบคุมพฤติกรรมของ Claude Code เมื่อรันแบบ headless:</p>
+      <table>
+        <tr><th>Flag</th><th>ทำอะไร</th></tr>
+        <tr><td><code>--bare</code></td><td>ปิด UI แบบ interactive ทั้งหมด และข้าม OAuth login flow ที่ปกติต้องมีคนเปิด browser ยืนยันตัวตน</td></tr>
+        <tr><td><code>-p "..."</code></td><td>ส่ง prompt ตรงเข้าไปให้รันครั้งเดียวจบ ไม่ใช่เปิด session สนทนาต่อเนื่อง</td></tr>
+        <tr><td><code>--allowedTools 'Read,Bash'</code></td><td>จำกัดชุด tool ที่ agent เรียกใช้ได้ในรอบการรันนี้ — ยิ่งแคบยิ่งปลอดภัยในสภาพแวดล้อมที่ไม่มีคนคอยอนุมัติ</td></tr>
+        <tr><td><code>--max-turns N</code></td><td>จำกัดจำนวนรอบคิด/เรียก tool สูงสุด กันไม่ให้ agent วน loop ไม่จบและกินทรัพยากร/เวลาไม่จำกัด</td></tr>
+      </table>
+      <div class="callout">💡 <strong>Auth ต้องมาจาก environment เสมอ</strong> — เพราะ bare mode ข้าม OAuth device flow ไปเลย จึงต้องมี <code>ANTHROPIC_API_KEY</code> อยู่ใน environment ของ runner ให้พร้อมก่อนรัน ปกติแล้ววิธีที่ปลอดภัยที่สุดคือ set ผ่าน GitHub Secrets แล้วดึงเข้ามาเป็น environment variable ในขั้นตอนของ job เท่านั้น ไม่ hardcode ค่าไว้ใน workflow file</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>ตัวอย่างคำสั่ง headless แบบเต็ม</h2>
+      <p>ตัวอย่างการรัน headless review หนึ่งครั้งที่รวมทุกแฟล็กสำคัญเข้าด้วยกัน รวมถึงการควบคุมต้นทุนด้วย:</p>
+      <pre><code class="language-bash">export ANTHROPIC_API_KEY="${{ secrets.ANTHROPIC_API_KEY }}"
+
+claude --bare \
+  -p "Review the diff in this PR for bugs, security issues, and style. Output findings as a markdown list." \
+  --allowedTools 'Read,Bash' \
+  --max-turns 8 \
+  --max-budget-usd 0.50 \
+  --fallback-model claude-3-5-haiku-20241022 \
+  > review-output.md
+</code></pre>
+      <p>ผลลัพธ์ที่ได้ออกมาเป็น plain text ธรรมดา ทำให้สามารถ pipe ต่อเข้า step อื่นๆ ใน pipeline ได้ง่าย เช่น เอาไปโพสต์กลับเข้า PR เป็น comment อัตโนมัติ หรือเอาไปประกอบเป็นส่วนหนึ่งของ report อื่น</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>GitHub Actions workflow แบบเต็ม: auto-review PR</h2>
+      <p>ตัวอย่าง workflow YAML ที่ใช้งานได้จริงทั้งไฟล์ สำหรับตั้งค่าให้ทุกครั้งที่มีการเปิด PR ใหม่หรือ push commit เพิ่มเข้า branch นั้น Claude Code จะรัน review อัตโนมัติแล้วโพสต์ผลกลับเป็น comment:</p>
+      <pre><code class="language-yaml">name: claude-review
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run headless review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          git diff origin/${{ github.base_ref }}...HEAD > pr.diff
+          claude --bare -p "Review pr.diff for bugs and risks. Be concise." \
+            --allowedTools 'Read,Bash' --max-turns 6 > review.md
+
+      - name: Post comment to PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr comment ${{ github.event.pull_request.number }} --body-file review.md
+</code></pre>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Trigger event: อ่านให้ถูกก่อนเขียน job</h2>
+      <p>ก่อนเขียน job ต้องเข้าใจ trigger event ที่ใช้ให้ถูกต้อง เพราะการตั้งค่าผิดจะทำให้ workflow ไม่รัน หรือรันผิดจังหวะ:</p>
+      <div class="callout">
+        <strong>pull_request</strong><br>
+        <code>types: [opened, synchronize]</code> — รันตอนเปิด PR ใหม่ และรันซ้ำทุกครั้งที่มีการ push commit เพิ่มเข้าไปใน branch นั้น (ไม่ใช่แค่ครั้งแรกที่เปิด PR เท่านั้น)
+      </div>
+      <div class="callout">
+        <strong>Context variable ที่ใช้บ่อย</strong><br>
+        <code>github.event.pull_request.number</code>, <code>github.base_ref</code>, <code>github.head_ref</code> — ใช้สำหรับระบุหมายเลข PR และกำหนด diff range ที่จะเทียบระหว่าง branch เป้าหมายกับ branch ที่กำลังจะ merge เข้า
+      </div>
+      <p>สำคัญมาก: การประกาศ <code>permissions: pull-requests: write</code> ใน workflow เป็นสิ่งจำเป็น — หากไม่ประกาศไว้ คำสั่ง <code>gh pr comment</code> จะถูก GitHub API ปฏิเสธด้วย HTTP 403 ทันที เพราะ token ที่ GitHub Actions สร้างให้อัตโนมัติจะไม่มีสิทธิ์เขียนลง PR โดยดีฟอลต์</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>gh CLI automation patterns</h2>
+      <p>นอกจากใช้ควบคุม workflow แล้ว <code>gh</code> CLI ยังเป็นเครื่องมือหลักสำหรับ automate การจัดการ PR และ repository settings จาก command line หรือจาก script ได้โดยตรง:</p>
+      <pre><code class="language-bash"># สร้าง PR จาก branch ปัจจุบัน
+gh pr create --title "fix: retry logic" --body "Fixes timeout on flaky tests" --base main
+
+# เช็คสถานะ checks ของ PR ปัจจุบัน (ใช้ตัดสินใจ merge ใน script)
+gh pr checks --watch
+
+# เรียก endpoint ที่ porcelain command ไม่รองรับ ผ่าน REST โดยตรง
+gh api repos/OWNER/REPO/pages -X POST \
+  -f source[branch]=main -f source[path]=/
+</code></pre>
+      <p><code>gh api</code> คือทางออกที่สำคัญเมื่อ <code>gh</code> ไม่มี porcelain subcommand ให้ใช้ตรงๆ — เช่นการตั้งค่า GitHub Pages, การตั้งค่า branch protection rule, หรือการปรับ repo settings ปลีกย่อยอื่นๆ ที่ CLI ไม่ได้ทำ wrapper ไว้ให้ ในกรณีเหล่านี้เราสามารถเรียก REST API ของ GitHub ได้โดยตรงผ่าน <code>gh api</code> พร้อมส่ง field ที่ต้องการด้วย <code>-f</code></p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Cost control: กันบิลบาน</h2>
+      <p>เนื่องจาก pipeline ที่ตั้งไว้จะรันซ้ำทุกครั้งที่มี push หรือเปิด PR ใหม่ ถ้าไม่กำกับเรื่อง cost ไว้ตั้งแต่ต้น agent อาจวน loop นานแค่ไหนก็ได้โดยไม่มีการควบคุม ทำให้ค่าใช้จ่ายบานปลายอย่างไม่คาดคิด แฟล็กที่ใช้ควบคุมต้นทุนมีดังนี้:</p>
+      <ul>
+        <li><code>--max-turns N</code> — จำกัดจำนวนรอบ tool-call/think สูงสุดต่อการรันหนึ่งครั้ง</li>
+        <li><code>--max-budget-usd</code> — ตัดการทำงานทันทีเมื่อค่าใช้จ่ายสะสมถึงเพดานที่ตั้งไว้</li>
+        <li><code>--fallback-model haiku</code> — เปลี่ยนไปใช้โมเดลที่เล็กกว่าและถูกกว่าโดยอัตโนมัติ เมื่อโควตาของโมเดลหลักหมดหรือ budget ใกล้เต็ม</li>
+      </ul>
+      <div class="callout pink">⚠️ <strong>กฎง่ายๆ ที่ไม่มีข้อยกเว้น:</strong> ทุก job ที่รัน Claude Code แบบอัตโนมัติซ้ำๆ (ทุก PR, ทุก commit) ต้องมีทั้งเพดานเทิร์นและเพดานเงินเสมอ ไม่ว่าจะดูเหมือนงานเล็กแค่ไหนก็ตาม</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Deploy pattern: static site → GitHub Pages</h2>
+      <p>การ deploy static site ขึ้น GitHub Pages แบบตรวจสอบได้จริง ใช้ pattern 3 ขั้นตอนดังนี้:</p>
+      <p><strong>ขั้นที่ 1 — เปิดใช้งาน Pages ผ่าน API</strong> เพราะ porcelain <code>gh</code> ไม่มี subcommand ตรงสำหรับเปิด Pages ต้องเรียกผ่าน <code>gh api</code> โดยตรง:</p>
+      <pre><code class="language-bash">gh api repos/OWNER/REPO/pages -X POST \
+  -f "source[branch]=main" -f "source[path]=/"</code></pre>
+      <p><strong>ขั้นที่ 2 — Poll สถานะ build</strong> จนกว่าจะเป็น <code>built</code> เพราะการ build เป็นกระบวนการ async ไม่ใช่ผลลัพธ์ทันที:</p>
+      <pre><code class="language-bash">gh api repos/OWNER/REPO/pages | jq -r '.status'</code></pre>
+      <p><strong>ขั้นที่ 3 — ยืนยันด้วย HTTP request จริง</strong> ไม่ใช่เชื่อ API response แต่เพียงอย่างเดียว ต้องยิง request จริงไปตรวจว่าเว็บ live แล้วจริงหรือไม่:</p>
+      <pre><code class="language-bash">curl -s -o /dev/null -w '%{http_code}\n' https://OWNER.github.io/REPO/</code></pre>
+    </div>
+
+    <div class="lesson-section">
+      <h2>ทำไมต้อง curl เอง — ห้ามเชื่อ API เฉยๆ</h2>
+      <p>เหตุผลที่ต้องมีขั้นตอน verify ด้วย HTTP request จริงเสมอ มีสองส่วนสำคัญ:</p>
+      <div class="callout">
+        <strong>API บอกว่าสำเร็จ ≠ เว็บ live แล้ว</strong><br>
+        การ POST เพื่อเปิดใช้งาน Pages มักตอบกลับด้วย status code 201 หรือ 204 ทันที แต่การ build จริงของหน้าเว็บนั้นเป็นกระบวนการ <strong>async</strong> ที่ใช้เวลาตั้งแต่หลักสิบวินาทีไปจนถึงหลายนาที การได้รับ response สำเร็จจาก API จึงบอกได้แค่ว่า "คำขอถูกรับแล้ว" ไม่ได้บอกว่า "หน้าเว็บพร้อมให้ดูแล้ว"
+      </div>
+      <div class="callout">
+        <strong>สถานะ 404 ในช่วงแรกคือเรื่องปกติ</strong><br>
+        เพราะ static asset ยังอยู่ระหว่าง build ไม่เสร็จ การเห็น 404 ทันทีหลังเปิด Pages ไม่ได้แปลว่ามีอะไรผิดพลาด แต่ต้อง poll ดู <code>status</code> ก่อนจนกว่าจะเป็น built แล้วจึงค่อย curl ตรวจดูว่าได้ HTTP 200 จริงหรือไม่
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>วินัยการ verify — กฎเดียวที่คุมทุกอย่าง</h2>
+      <div class="callout pink">⚠️ <strong>Never report CI green without checking yourself</strong> — log ของ CI สามารถบอกว่า "success" ได้ทั้งที่ผลลัพธ์จริงผิดพลาด เช่น test ที่ flaky ผ่านโดยบังเอิญ, step ที่ถูก skip ไปเงียบๆ โดยไม่มีใครสังเกต, หรือ permission ที่ไม่พอแล้วเกิด silent-fail โดยไม่มี error ปรากฏชัดเจน</div>
+      <p>หลักการนี้ต้องนำไปใช้ในทุกจุดของ pipeline:</p>
+      <ul>
+        <li>ก่อนบอกว่า deploy สำเร็จ → ต้อง curl ตรวจ HTTP code จริงด้วยตัวเองเสมอ ไม่เชื่อแค่ log ของ CI step</li>
+        <li>ก่อนบอกว่า PR review ทำงานถูกต้อง → ต้องเปิด PR ไปดู comment ที่โพสต์จริงบนหน้า GitHub ว่าเนื้อหาถูกต้องและโพสต์สำเร็จจริง</li>
+        <li>ก่อนบอกว่า workflow syntax ถูกต้อง → ต้อง validate ด้วย YAML parser จริง หรือใช้เครื่องมืออย่าง <code>actionlint</code> ไม่ใช่แค่อ่านด้วยตาเปล่าแล้วสรุปเอาเอง</li>
+      </ul>
+    </div>
+
+    <div class="lesson-section">
+      <h2>วัดผลว่า pipeline "ดีขึ้นจริง" หรือแค่รู้สึกว่าดีขึ้น (Evals)</h2>
+      <p>ก่อนที่จะแก้ prompt หรือ config ของ headless job ใน pipeline สิ่งที่ต้องเข้าใจก่อนคือ <strong>ความแปรปรวนระหว่างการรันสองครั้งของงานเดียวกัน มักใหญ่กว่าผลของการแก้ prompt ที่เพิ่งทำไป</strong> การรันงานเดิมซ้ำๆ กันสามารถให้ผลลัพธ์ diff คนละแบบได้ แม้จะไม่ได้แตะ prompt เลยแม้แต่นิดเดียว เพราะลำดับการเรียก tool, ผลลัพธ์ที่ tool คืนกลับมา, และบริบทที่สะสมไปเรื่อยๆ ไม่เหมือนเดิมทุกรอบการรัน</p>
+      <div class="callout pink">
+        ⚠️ <strong>กฎข้อ 1:</strong> n=1 คือเกร็ดเล่าสู่กันฟัง ไม่ใช่ผลการวัด — ก่อนจะเชื่อว่า "แก้แบบนี้แล้วดีขึ้น" ต้องรันซ้ำอย่างน้อย 5 ครั้งทั้งก่อนและหลังการแก้ไข แล้วดู<strong>ช่วง</strong>ของผลลัพธ์ทั้งหมด ไม่ใช่ดูแค่ค่าเดียวจากการรันครั้งเดียว
+      </div>
+      <p style="font-size:0.85em;color:var(--text-dim);">อ้างอิงเนื้อหาจาก
+      <a href="https://supachai-j.github.io/ai-sdlc/m12-evals.html" target="_blank">ai-sdlc — M12 Evals</a>
+      (คอร์สแยกของผู้เขียน เจาะลึกเรื่องนี้เต็มโมดูล พร้อม eval harness รันได้จริง)</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Golden Task Set — ชุดวัดของทีมตัวเอง</h2>
+      <p>ชุดงานที่ใช้เป็นมาตรฐานวัดผล ต้อง<strong>คงที่และเป็นตัวแทนงานจริง</strong> — การแต่งชุดงานขึ้นมาเองโดยไม่มีที่มา แล้ววัดผลด้วยชุดนั้นจะไม่ได้อะไร เพราะไม่สะท้อนงานจริงที่ทีมเจอ วิธีที่ถูกต้องคือดึงงานจาก backlog หรือ PR ย้อนหลังประมาณ 3 เดือนที่รู้คำตอบที่ถูกต้องอยู่แล้ว มาประกอบเป็นชุดวัด</p>
+      <p>แต่ละงานในชุดวัดควรประกอบด้วย 5 ส่วนหลัก:</p>
+      <table>
+        <tr><th>ส่วนประกอบ</th><th>ทำไมต้องมี</th></tr>
+        <tr><td><code>repo_sha</code></td><td>ตรึงสถานะ repo ไว้ ณ จุดหนึ่ง — ถ้า repo เคลื่อนไปเรื่อยๆ ผลที่วัดได้ระหว่างช่วงเวลาต่างกันจะเทียบกันไม่ได้</td></tr>
+        <tr><td><code>prompt</code></td><td>เขียนในรูปแบบที่คนจะพิมพ์จริงๆ ไม่ใช่ prompt ที่ขัดเกลาให้สวยงามเกินจริงแล้ว</td></tr>
+        <tr><td><code>criteria</code></td><td>ต้องเป็นเกณฑ์ที่ตัดสินได้ด้วยสคริปต์อัตโนมัติ ไม่ใช่ต้องอาศัยคนมานั่งดูด้วยสายตาทุกครั้ง</td></tr>
+        <tr><td><code>env</code></td><td>เวอร์ชันของ dependency และ seed ของฐานข้อมูล — เป็นตัวแปรที่คนมักลืมตรึงไว้บ่อยที่สุด จนทำให้ผลวัดไม่คงเส้นคงวา</td></tr>
+        <tr><td><code>tags</code></td><td>ประเภทของงานและระดับความยาก เพื่อให้ดูภายหลังได้ว่าการเปลี่ยนแปลงทำให้พังเฉพาะในกลุ่มงานไหน</td></tr>
+      </table>
+      <div class="callout warn">⚠️ <strong>ขนาดที่ใช้ได้จริง:</strong> ขั้นต่ำประมาณ 20 งานเริ่มมีประโยชน์ในการให้สัญญาณ ส่วน 40-60 งานคือระดับที่เริ่มเชื่อผลได้จริง โดยควรกระจายชุดงานตามลักษณะงานที่ทีมทำอยู่จริง ไม่ใช่ตามที่คิดเอาเองว่าน่าจะเป็นแบบไหน</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>งานที่ต้องคัดทิ้งออกจากชุดวัด</h2>
+      <p>ไม่ใช่ทุกงานที่เหมาะเอามาอยู่ในชุดวัด มีสองประเภทที่ควรคัดทิ้งเพราะไม่ช่วยให้เห็นความแตกต่างของผลการทดลอง:</p>
+      <div class="callout">
+        <strong>ประเภทที่ไม่ให้สัญญาณ</strong>
+        <ul>
+          <li>ง่ายเกินไป — ผ่านได้ 100% ทุกครั้งไม่ว่าจะแก้อะไร</li>
+          <li>ยากเกินไป — ตกทุกครั้งเหมือนกันหมดไม่ว่าจะแก้อะไร</li>
+        </ul>
+      </div>
+      <div class="callout">
+        <strong>ประเภทที่วัดไม่ได้จริง</strong>
+        <ul>
+          <li>ไม่ deterministic — ผลลัพธ์ขึ้นอยู่กับ network, เวลาปัจจุบัน หรือ service ภายนอกที่ควบคุมไม่ได้</li>
+          <li>อยู่ในข้อมูลฝึกของโมเดลอยู่แล้วแน่ๆ — เช่น bug ที่โด่งดังมากจนมีคำตอบเต็มอินเทอร์เน็ตอยู่แล้ว ทำให้โมเดลตอบถูกได้โดยไม่เกี่ยวกับความสามารถจริงของ pipeline ที่กำลังทดสอบ</li>
+        </ul>
+      </div>
+      <p>สรุปแล้วให้เก็บไว้เฉพาะ<strong>งานที่อยู่ตรงกลาง</strong> — งานที่ผลลัพธ์ไม่แน่นอน เพราะเป็นงานเดียวที่บอกได้จริงว่าการเปลี่ยนแปลงที่ทำมีผลจริงหรือไม่ (คะแนนเต็มตลอดเวลา กับคะแนนศูนย์ตลอดเวลา มีค่าเท่ากันในแง่ของการเป็นสัญญาณ นั่นคือไม่มีค่าเลย)</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>เกณฑ์ 4 แบบ: Deterministic มาก่อนเสมอ</h2>
+      <p>ข้อผิดพลาดที่พบบ่อยที่สุดในการออกแบบ eval คือการกระโดดไปใช้ LLM-as-judge ทันที ทั้งที่เกณฑ์แบบสคริปต์ธรรมดาสามารถตอบคำถามได้อยู่แล้ว หลักการที่ถูกต้องคือใช้ judge เฉพาะเมื่อเกณฑ์ในระดับที่ถูกกว่าตอบไม่ได้จริงๆ เท่านั้น เกณฑ์ทั้ง 4 แบบเรียงจากถูกที่สุดไปแพงที่สุดดังนี้:</p>
+      <table>
+        <tr><th>เกณฑ์ (เรียงถูก→แพง)</th><th>ใช้เมื่อไหร่</th></tr>
+        <tr><td><code>cmd</code></td><td>รัน typecheck/test จริง — ถูกที่สุดและเชื่อถือได้สมบูรณ์เพราะเป็นผลจากการรันจริง</td></tr>
+        <tr><td><code>before_after</code></td><td>ตรวจว่าแดงก่อนแล้วเขียวหลังการแก้ไข — สัญญาณแรงที่สุดเมื่อเทียบกับต้นทุนที่จ่าย</td></tr>
+        <tr><td><code>diff</code></td><td>ใช้ allow/deny list และ max_lines — ตรวจสอบขอบเขต (scope) ของการเปลี่ยนแปลงที่เกิดขึ้น</td></tr>
+        <tr><td><code>budget</code></td><td>ใช้ max_usd/max_wall_sec/max_turns — ยอมรับได้ก็ต่อเมื่อสามแบบข้างต้นไม่เพียงพอต่อการตัดสิน</td></tr>
+      </table>
+    </div>
+
+    <div class="lesson-section">
+      <h2>ทำไมโมดูลนี้เชื่อมกับ Evals</h2>
+      <p>Module 09 สอนวิธี "รัน Claude Code ใน pipeline อัตโนมัติ" แต่ไม่เคยตอบคำถามที่สำคัญกว่าคือ <strong>"pipeline นั้นทำงานดีขึ้นจริงไหมเมื่อเราแก้ prompt หรือ config"</strong> — Evals คือชิ้นส่วนที่ขาดหายไปตรงนี้พอดี</p>
+      <div class="callout">
+        <strong>เชื่อมกับหลักการที่มีอยู่แล้วในโมดูลนี้</strong><br>
+        "Never report CI green without checking yourself" ใช้กับการทำ eval ได้เหมือนกันทุกประการ — ผลการรันครั้งเดียวที่ดูดีขึ้นอาจเป็นแค่ noise ธรรมดา ไม่ใช่ improvement ที่แท้จริง ต้อง verify ด้วยการรันซ้ำหลายครั้งก่อนสรุป เหมือนกับที่ต้อง curl ตรวจ HTTP code จริงก่อนที่จะบอกว่า deploy สำเร็จแล้ว
+      </div>
+      <p style="font-size:0.85em;color:var(--text-dim);">เรียนลึกเรื่อง eval harness ที่รันได้จริง
+      (Bun runner, task template, deterministic-first grading) ต่อได้ที่
+      <a href="https://supachai-j.github.io/ai-sdlc/m12-evals.html" target="_blank">ai-sdlc M12 · Evals</a></p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>สรุป Pattern การทำ CI/CD Automation</h2>
+      <p>สรุปทุกขั้นตอนของโมดูลนี้เป็นตารางเดียว:</p>
+      <table>
+        <tr><th>ขั้นตอน</th><th>เครื่องมือ</th></tr>
+        <tr><td>1. รัน Claude Code แบบ headless</td><td><code>--bare -p ... --allowedTools --max-turns</code></td></tr>
+        <tr><td>2. ควบคุมต้นทุน</td><td><code>--max-budget-usd</code>, <code>--fallback-model</code></td></tr>
+        <tr><td>3. Trigger จาก event จริง</td><td><code>on: pull_request</code></td></tr>
+        <tr><td>4. โพสต์ผลกลับ</td><td><code>gh pr comment</code></td></tr>
+        <tr><td>5. Deploy + verify จริง</td><td><code>gh api</code> + poll + <code>curl</code></td></tr>
+        <tr><td>6. วัดว่า pipeline ดีขึ้นจริง</td><td>Golden task set + deterministic criteria + รันซ้ำ 5 ครั้ง</td></tr>
+      </table>
+    </div>
+
+    <div class="pagefoot">
+      <a href="slides.html">← กลับไปดู Slides</a>
+      <a href="lab.html">ไปทำ Lab →</a>
+    </div>
+    <div class="footer-note">Internal Enablement — Module 09 Content</div>
+  </div>
+<script src="../../assets/theme.js" defer></script>
+</body>
+</html>

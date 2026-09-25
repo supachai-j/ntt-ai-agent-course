@@ -1,90 +1,171 @@
-/* Custom reveal.js theme overrides — dark/technical, matches assets/style.css tokens */
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Noto+Sans+Thai:wght@400;600;700&display=swap');
+/* ============================================================
+   Gen Z Neubrutalist theme — reveal.js slides
+   Dark, lime/pink neon, thick borders, hard shadows.
+   Visual-diagram components below — prefer these over paragraphs/tables.
+   ============================================================ */
 :root{
-  --r-bg:#0b0f17;
-  --r-accent:#00c2b8;
-  --r-accent-2:#5b8cff;
-  --r-text:#dbe4f0;
-  --r-text-dim:#8b9bb4;
-  --r-panel:#161f2e;
-  --r-border:#233047;
+  --r-bg:#0a0a0a;
+  --r-lime:#ccff00;
+  --r-pink:#ff2d8a;
+  --r-cyan:#33e0ff;
+  --r-warn:#ffb454;
+  --r-danger:#ff4d4d;
+  --r-text:#f5f5f0;
+  --r-text-dim:#9a9a9a;
+  --r-panel:#141414;
+  --r-border:#0a0a0a;
 }
 .reveal{
-  background:radial-gradient(circle at top left,#14213a 0%,var(--r-bg) 55%);
-  font-family:'Segoe UI','Noto Sans Thai',system-ui,sans-serif;
+  background:var(--r-bg);
+  font-family:'Baloo 2','Noto Sans Thai',system-ui,sans-serif;
   color:var(--r-text);
 }
-.reveal h1,.reveal h2,.reveal h3{color:#fff;font-weight:700;}
-.reveal h1{font-size:2.1em;}
-.reveal h2{font-size:1.55em;color:var(--r-accent);}
-.reveal h3{font-size:1.15em;color:var(--r-accent-2);}
+.reveal h1,.reveal h2,.reveal h3{color:var(--r-text);font-weight:800;}
+.reveal h1{font-size:2.2em;}
+.reveal h2{font-size:1.6em;color:var(--r-lime);}
+.reveal h3{font-size:1.15em;color:var(--r-pink);}
 .reveal p, .reveal li{color:var(--r-text);font-size:0.85em;line-height:1.5;}
 .reveal ul, .reveal ol{display:block;margin-left:0.6em;}
 .reveal .subtitle{color:var(--r-text-dim);font-size:0.6em;letter-spacing:.04em;text-transform:uppercase;}
 .reveal section.title-slide{text-align:center;}
 .reveal .badge{
-  display:inline-block;padding:3px 12px;border-radius:999px;
-  background:rgba(0,194,184,0.12);color:var(--r-accent);
-  font-size:0.5em;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
-  border:1px solid rgba(0,194,184,0.4);margin-bottom:14px;
+  display:inline-block;padding:4px 14px;border-radius:999px;
+  background:var(--r-pink);color:#0a0a0a;
+  font-size:0.5em;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+  border:2px solid #0a0a0a;margin-bottom:14px;
 }
 .reveal pre{
-  background:#0d1420;border:1px solid var(--r-border);border-radius:8px;
-  box-shadow:none;width:100%;
+  background:#0d0d0d;border:3px solid var(--r-border);border-radius:12px;
+  box-shadow:5px 5px 0 var(--r-cyan);width:100%;
 }
-.reveal pre code{
-  color:#c9e9ff;max-height:520px;padding:14px 18px;font-size:0.62em;
-}
-.reveal code{color:#7ee8e0;}
-.reveal .two-col{display:grid;grid-template-columns:1fr 1fr;gap:2em;text-align:left;}
+.reveal pre code{color:#c9e9ff;max-height:480px;padding:14px 18px;font-size:0.6em;}
+.reveal code{color:var(--r-lime);}
+.reveal .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.6em;text-align:left;}
 .reveal .card-box{
-  background:var(--r-panel);border:1px solid var(--r-border);border-radius:10px;
+  background:var(--r-panel);border:3px solid var(--r-border);border-radius:16px;
   padding:0.8em 1.1em;margin:0.5em 0;text-align:left;font-size:0.7em;
+  box-shadow:4px 4px 0 var(--r-lime);
 }
-.reveal .card-box h4{margin:0 0 6px;color:var(--r-accent-2);font-size:1.1em;}
+.reveal .card-box h4{margin:0 0 6px;color:var(--r-pink);font-size:1.1em;}
 .reveal .lab-cta{
-  display:inline-block;margin-top:1em;padding:0.5em 1.2em;border-radius:8px;
-  background:var(--r-accent);color:#04211f;font-weight:700;text-decoration:none;font-size:0.7em;
+  display:inline-block;margin-top:1em;padding:0.6em 1.4em;border-radius:999px;
+  background:var(--r-lime);color:#0a0a0a;font-weight:800;text-decoration:none;font-size:0.7em;
+  border:2px solid #0a0a0a;box-shadow:4px 4px 0 var(--r-pink);
 }
 .reveal .step-num{
   display:inline-block;width:1.3em;height:1.3em;line-height:1.3em;text-align:center;
-  background:var(--r-accent-2);color:#031222;border-radius:50%;font-size:0.6em;font-weight:700;margin-right:0.4em;
+  background:var(--r-pink);color:#0a0a0a;border-radius:50%;font-size:0.6em;font-weight:800;margin-right:0.4em;
+  border:2px solid #0a0a0a;
 }
 .reveal table{font-size:0.65em;border-collapse:collapse;width:100%;}
-.reveal th,.reveal td{border:1px solid var(--r-border);padding:6px 10px;text-align:left;}
-.reveal th{background:var(--r-panel);color:var(--r-accent);}
-.reveal .progress{color:var(--r-accent);}
-.reveal .controls{color:var(--r-accent-2);}
-.reveal a{color:var(--r-accent-2);}
+.reveal th,.reveal td{border:2px solid var(--r-border);padding:6px 10px;text-align:left;}
+.reveal th{background:var(--r-pink);color:#0a0a0a;font-weight:800;}
+.reveal .progress{color:var(--r-lime);}
+.reveal .controls{color:var(--r-cyan);}
+.reveal a{color:var(--r-cyan);}
 .reveal small, .reveal .footnote{color:var(--r-text-dim);font-size:0.5em;}
+.reveal .danger{background:var(--r-panel);border:2px solid var(--r-danger);border-radius:12px;padding:0.7em 1em;font-size:0.68em;box-shadow:4px 4px 0 var(--r-danger);text-align:left;}
+.reveal .danger strong{color:var(--r-danger);}
+.reveal .warn{background:var(--r-panel);border:2px solid var(--r-warn);border-radius:12px;padding:0.7em 1em;font-size:0.68em;box-shadow:4px 4px 0 var(--r-warn);text-align:left;}
+.reveal .warn strong{color:var(--r-warn);}
+.reveal .verify{background:var(--r-panel);border:2px solid var(--r-lime);border-radius:12px;padding:0.7em 1em;font-size:0.68em;box-shadow:4px 4px 0 var(--r-lime);text-align:left;}
+.reveal .verify strong{color:var(--r-lime);}
 
 /* ---------- Light theme override (reveal.js) ---------- */
 [data-theme="light"] .reveal{
-  --r-bg:#f3f5fa;
-  --r-accent:#00958c;
-  --r-accent-2:#2d5fd0;
-  --r-text:#1b2436;
-  --r-text-dim:#5c6a80;
+  --r-bg:#f5f5f0;
+  --r-lime:#7ea600;
+  --r-pink:#d1136a;
+  --r-cyan:#0090ad;
+  --r-warn:#a5680a;
+  --r-danger:#c9302c;
+  --r-text:#0a0a0a;
+  --r-text-dim:#5a5a5a;
   --r-panel:#ffffff;
-  --r-border:#d9e0ea;
-  background:radial-gradient(circle at top left,#e6ebf7 0%,var(--r-bg) 55%);
+  --r-border:#0a0a0a;
+  background:var(--r-bg);
 }
-[data-theme="light"] .reveal h1,
-[data-theme="light"] .reveal h3{color:#0f1830;}
-[data-theme="light"] .reveal h2{color:var(--r-accent);}
-/* Code blocks intentionally stay dark (VS Code style) in both themes for readability */
+[data-theme="light"] .reveal .badge,
+[data-theme="light"] .reveal th,
+[data-theme="light"] .reveal .lab-cta,
+[data-theme="light"] .reveal .step-num{color:#fff;}
 [data-theme="light"] .reveal pre{border-color:var(--r-border);}
-[data-theme="light"] .reveal .lab-cta{color:#04211f;}
-[data-theme="light"] .reveal .step-num{color:#04211f;}
 
-/* Theme toggle button — full self-contained rule (slide pages don't load assets/style.css,
-   only this file, so the button styles must live here too, not just override z-index) */
+/* Theme toggle + content-link buttons (slide pages load only this file, not style.css) */
 .theme-toggle-btn{
   position:fixed;top:14px;right:18px;z-index:400;
-  width:38px;height:38px;border-radius:50%;
-  background:var(--r-panel);border:1px solid var(--r-border);
-  color:var(--r-text);font-size:1.05em;line-height:1;cursor:pointer;
+  width:42px;height:42px;border-radius:50%;
+  background:var(--r-panel);border:3px solid var(--r-lime);
+  color:var(--r-text);font-size:1.1em;line-height:1;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
-  box-shadow:0 2px 8px rgba(0,0,0,0.35);
-  transition:transform .15s ease, border-color .15s ease, background .2s ease, color .2s ease;
+  box-shadow:3px 3px 0 var(--r-lime);
+  transition:transform .12s ease;
 }
-.theme-toggle-btn:hover{transform:scale(1.08);border-color:var(--r-accent);}
+.theme-toggle-btn:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--r-lime);}
+.content-link-btn{
+  position:fixed;top:14px;right:68px;z-index:400;
+  height:42px;padding:0 16px;border-radius:21px;
+  background:var(--r-panel);border:3px solid var(--r-pink);
+  color:var(--r-text);font-size:0.78em;font-weight:800;line-height:36px;
+  text-decoration:none;box-shadow:3px 3px 0 var(--r-pink);
+  transition:transform .12s ease;
+}
+.content-link-btn:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--r-pink);text-decoration:none;}
+
+/* ============================================================
+   Visual diagram components — USE THESE INSTEAD OF PARAGRAPHS
+   ============================================================ */
+
+/* Flow diagram: boxes connected by arrows (process/pipeline/sequence) */
+.reveal .flow{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:0;margin:1em 0;}
+.reveal .flow.vertical{flex-direction:column;}
+.reveal .flow-box{
+  background:var(--r-panel);border:3px solid var(--r-cyan);border-radius:14px;
+  padding:0.7em 1.1em;text-align:center;font-size:0.68em;font-weight:700;
+  min-width:110px;color:var(--r-text);line-height:1.35;
+  box-shadow:3px 3px 0 var(--r-cyan);
+}
+.reveal .flow-box.accent{border-color:var(--r-lime);box-shadow:3px 3px 0 var(--r-lime);}
+.reveal .flow-box.pink{border-color:var(--r-pink);box-shadow:3px 3px 0 var(--r-pink);}
+.reveal .flow-box.warn{border-color:var(--r-warn);box-shadow:3px 3px 0 var(--r-warn);}
+.reveal .flow-box.danger{border-color:var(--r-danger);box-shadow:3px 3px 0 var(--r-danger);}
+.reveal .flow-box .flow-icon{font-size:1.9em;display:block;margin-bottom:4px;}
+.reveal .flow-box .flow-sub{display:block;font-weight:400;font-size:0.82em;color:var(--r-text-dim);margin-top:3px;}
+.reveal .flow-arrow{font-size:1.6em;color:var(--r-lime);padding:0 0.5em;flex-shrink:0;font-weight:800;}
+.reveal .flow.vertical .flow-arrow{padding:0.15em 0;}
+
+/* Comparison: two states side by side */
+.reveal .compare{display:flex;align-items:stretch;gap:1em;justify-content:center;margin:1em 0;}
+.reveal .compare-vs{display:flex;align-items:center;font-weight:800;font-size:1.3em;color:var(--r-pink);}
+.reveal .compare-box{flex:1;max-width:280px;}
+
+/* Timeline: vertical sequence of dated events */
+.reveal .timeline{position:relative;padding-left:1.5em;text-align:left;margin:1em auto;max-width:640px;}
+.reveal .timeline::before{content:'';position:absolute;left:0.4em;top:0.3em;bottom:0.3em;width:3px;background:var(--r-lime);}
+.reveal .timeline-item{position:relative;margin:0.7em 0;padding-left:0.9em;font-size:0.68em;}
+.reveal .timeline-item::before{content:'';position:absolute;left:-1.15em;top:0.3em;width:12px;height:12px;border-radius:50%;background:var(--r-pink);border:2px solid #0a0a0a;}
+.reveal .timeline-item .t-date{font-size:0.85em;color:var(--r-lime);display:block;font-weight:800;}
+
+/* Stack: layered boxes top-to-bottom (architecture layers) */
+.reveal .stack{display:flex;flex-direction:column;gap:8px;align-items:stretch;max-width:520px;margin:1em auto;}
+.reveal .stack-layer{
+  background:var(--r-panel);border:3px solid var(--r-border);border-radius:10px;
+  padding:0.55em 1em;font-size:0.68em;text-align:center;color:var(--r-text);font-weight:600;
+}
+.reveal .stack-layer.accent{border-color:var(--r-lime);color:var(--r-lime);font-weight:800;box-shadow:3px 3px 0 var(--r-lime);}
+
+/* Big number / metric callout */
+.reveal .big-stat{text-align:center;margin:0.6em 0;}
+.reveal .big-stat .num{font-size:2.8em;font-weight:800;color:var(--r-lime);display:block;line-height:1.1;}
+.reveal .big-stat .label{font-size:0.7em;color:var(--r-text-dim);}
+
+/* Emoji/icon grid for concepts (mascot-style, Gen Z friendly) */
+.reveal .icon-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin:1em 0;}
+.reveal .icon-card{
+  background:var(--r-panel);border:3px solid var(--r-border);border-radius:16px;
+  padding:1em 0.8em;text-align:center;box-shadow:3px 3px 0 var(--r-pink);
+}
+.reveal .icon-card .icon{font-size:2.2em;display:block;margin-bottom:6px;}
+.reveal .icon-card .title{font-weight:800;font-size:0.72em;color:var(--r-text);}
+.reveal .icon-card .desc{font-size:0.6em;color:var(--r-text-dim);margin-top:4px;}

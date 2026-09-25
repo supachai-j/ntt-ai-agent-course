@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem('course-theme')||(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content · Module 10 — Capstone Project — AI Agent Engineering Course</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<button class="theme-toggle-btn" type="button" aria-label="สลับธีม Light/Dark">☀️</button>
+  <div class="topnav">
+    <div class="brand"><span class="dot"></span> AI Agent Engineering Course</div>
+    <nav>
+      <a href="../../index.html">Home</a>
+      <a href="slides.html">Slides</a>
+      <a href="content.html" class="active">Content</a>
+      <a href="lab.html">Lab</a>
+    </nav>
+  </div>
+
+  <div class="wrap">
+    <div class="lesson-hero">
+      <span class="badge">📖 Content · Module 10</span>
+      <h1>Capstone Project</h1>
+      <p style="color:var(--text-dim);">รวมทุกอย่างที่เรียนมาจาก module 01–09 เป็นโปรเจกต์ agent เดียวที่ design, build, secure, test และ ship ได้จริง</p>
+    </div>
+
+    <div class="tldr"><strong>TL;DR:</strong> Capstone ไม่ใช่แบบฝึกหัดเขียน prompt แต่เป็นการเอาความรู้ทั้งคอร์สมารวมร่างเป็น agent ที่ใช้งานจริง — เลือกโจทย์ 1 อันจาก 4 ตัวเลือก (หรือเสนอเอง), ทำตาม checklist ที่โยงกลับทุก module, ประเมินด้วย rubric 4 หมวด, และทำให้เสร็จภายใน 1 sprint (7 วัน) ตาม timeline ที่แนะนำ</div>
+
+    <div class="lesson-section">
+      <h2>ทำไมต้องมี Capstone</h2>
+      <p>
+        ตลอด 9 module ที่ผ่านมา เราเรียนแยกเป็นส่วน ๆ:
+      </p>
+      <ul>
+        <li>Agentic loop และ tool use (Module 01 — AI Agents 101)</li>
+        <li>Hermes platform + Claude Code CLI (Module 02 / 03)</li>
+        <li>Engineering workflow + context management (Module 04 / 05)</li>
+        <li>Hooks, permissions, multi-agent orchestration (Module 06 / 07)</li>
+        <li>Governance และ CI/CD automation (Module 08 / 09)</li>
+      </ul>
+      <div class="callout">
+        💡 <strong>Capstone = การรวมร่าง</strong> — โจทย์เดียว แต่ต้องเอาความรู้ทุก module มาใช้จริง
+        ไม่ใช่แค่เขียน prompt แล้วรอผล แต่ต้อง design, build, secure, test และ ship เป็น artifact
+        ที่ demo ได้จริงในเวลาจำกัด
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>เลือกโจทย์ Capstone</h2>
+      <p>
+        เลือก use case จริงจากงานองค์กรอย่างใดอย่างหนึ่ง (หรือเสนอโจทย์ของทีมตัวเองก็ได้ ถ้าใกล้เคียง scope นี้):
+      </p>
+      <table>
+        <tr><th>โจทย์</th><th>รายละเอียด</th></tr>
+        <tr>
+          <td><strong>1. Presale Proposal Generator</strong></td>
+          <td>Agent ที่รับ requirement ลูกค้า + template เดิม แล้ว draft proposal/SOW เบื้องต้น พร้อม citation จาก past project ที่เกี่ยวข้อง</td>
+        </tr>
+        <tr>
+          <td><strong>2. Automated PR Reviewer สำหรับทีม</strong></td>
+          <td>รัน Claude Code แบบ headless ใน CI เพื่อ review PR อัตโนมัติ — เช็ค coding standard, security pattern, และ comment กลับใน PR</td>
+        </tr>
+        <tr>
+          <td><strong>3. Internal Doc / Runbook Agent</strong></td>
+          <td>Agent ที่ค้นและตอบคำถามจาก internal doc/runbook (RAG หรือ MCP filesystem tool) พร้อมอ้างอิงแหล่งที่มาทุกครั้ง</td>
+        </tr>
+        <tr>
+          <td><strong>4. Monitoring / Alert Agent</strong></td>
+          <td>Agent ที่ตรวจ log/metric ผ่าน MCP tool แล้วสรุป incident, เสนอ root cause และแจ้งเตือนทีมผ่าน chat (Slack/Telegram)</td>
+        </tr>
+      </table>
+      <div class="callout">💡 เลือกโจทย์ที่ scope เล็กพอทำเสร็จได้จริงใน 1 sprint ดีกว่าเลือกโจทย์ใหญ่แล้ว demo ไม่ได้</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Checklist: Solution ต้องมีครบ</h2>
+      <p>ทุก capstone ต้องโยงกลับ concept จาก module 01–09 — นี่คือ checklist ที่ mentor จะเช็ค:</p>
+      <table>
+        <tr><th>Checklist</th><th>โยงกลับ Module</th></tr>
+        <tr><td>Agentic loop ชัดเจน (observe → plan → act → verify)</td><td>01 — AI Agents 101</td></tr>
+        <tr><td>ใช้ platform ที่เหมาะสม (Hermes / Claude Code CLI)</td><td>02 / 03</td></tr>
+        <tr><td>Workflow มี test/verify ทุก step สำคัญ</td><td>04 — Engineering Workflows</td></tr>
+        <tr><td>Context management ดี (CLAUDE.md, ไม่ยัด context เกินจำเป็น)</td><td>05 — Prompt & Context</td></tr>
+        <tr><td>มี permission/hook ป้องกันความเสี่ยง (เช่น block <code>rm -rf</code>, secret leak)</td><td>06 — Hooks & Permissions</td></tr>
+        <tr><td>ถ้าซับซ้อนพอ ใช้ multi-agent/subagent แบ่งงาน</td><td>07 — Multi-Agent Orchestration</td></tr>
+        <tr><td>ผ่าน governance checklist (secret, audit, data handling)</td><td>08 — Enterprise Governance</td></tr>
+        <tr><td>Deploy/automate ได้จริง ไม่ใช่แค่รันมือ</td><td>09 — CI/CD & Automation</td></tr>
+      </table>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Rubric การประเมิน</h2>
+      <p>Capstone ถูกให้คะแนนตาม 4 หมวดต่อไปนี้:</p>
+      <table>
+        <tr><th>หมวด</th><th>น้ำหนัก</th><th>รายละเอียด</th></tr>
+        <tr><td><strong>Functionality</strong></td><td>30%</td><td>Agent ทำงานได้จริงตาม spec ที่ตั้งไว้ — รันแล้วได้ output ที่ถูกต้อง ไม่ใช่ demo แบบ mock</td></tr>
+        <tr><td><strong>Safety</strong></td><td>25%</td><td>มี hook/permission ครบตาม risk ของ use case — block destructive action, ไม่ leak secret, มี audit trail</td></tr>
+        <tr><td><strong>Documentation</strong></td><td>20%</td><td>มี README.md และ CLAUDE.md ที่อธิบายชัดว่า agent ทำอะไร, setup ยังไง, limitation คืออะไร</td></tr>
+        <tr><td><strong>Demo</strong></td><td>25%</td><td>Demo ได้จริงในเวลาจำกัด (5–10 นาที) — รันคำสั่งจริง ไม่ใช่ slide เล่าเฉย ๆ</td></tr>
+      </table>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Timeline แนะนำ (1 Sprint = 7 วัน)</h2>
+      <table>
+        <tr><th>Day</th><th>งาน</th><th>Output</th></tr>
+        <tr><td>1–2</td><td>Design: เลือกโจทย์, เขียน spec สั้น, ออกแบบ agentic loop</td><td>spec.md</td></tr>
+        <tr><td>3–4</td><td>Build: setup project, CLAUDE.md, permissions, core loop</td><td>working prototype</td></tr>
+        <tr><td>5</td><td>Test + Harden: เพิ่ม hook, รัน test, แก้ edge case</td><td>test output + hook log</td></tr>
+        <tr><td>6–7</td><td>Demo + Doc: เขียน README, เตรียม demo, ขอ feedback</td><td>README.md + demo</td></tr>
+      </table>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Phase 1–2: Spec + Setup</h2>
+      <p><strong>1. เขียน spec สั้น (1 หน้า) ก่อนเริ่มโค้ด</strong> — spec นี้บังคับให้คิดให้จบก่อนแตะโค้ด และเป็นเอกสารที่ mentor/เพื่อนร่วมทีมใช้ทำความเข้าใจโจทย์ได้เร็ว:</p>
+      <pre><code>## Problem
+## Users
+## Core loop (observe/plan/act/verify)
+## Out of scope</code></pre>
+      <p><strong>2. Setup project จริง</strong> — init repo จริง ไม่ใช่ไฟล์กระจัดกระจายใน local:</p>
+      <pre><code>mkdir capstone-agent && cd capstone-agent
+git init
+touch CLAUDE.md README.md
+mkdir -p .claude
+# settings.json ใส่ permissions/hooks</code></pre>
+      <div class="callout">💡 การเขียน spec.md ก่อนแตะโค้ดคือการนำ discipline จาก Module 04/05 (engineering workflow + context management) มาใช้ตั้งแต่ต้น</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Phase 3–4: Build Core Loop + Hook</h2>
+      <p><strong>3. ใช้ Claude Code จริงสร้าง core feature</strong> — นี่คือจุดที่เอา Module 03 (Claude Code CLI) มาใช้ตรง ๆ ไม่ใช่เขียนโค้ดมือทั้งหมด:</p>
+      <pre><code>claude -p "implement the core agentic loop
+described in spec.md, write tests" \
+  --allowedTools "Edit,Bash(git *),Write"</code></pre>
+      <p><strong>4. เพิ่ม PreToolUse hook กัน risk</strong> — นำ pattern จาก Module 06 (Hooks & Permissions) มาใช้ป้องกัน action อันตรายก่อนที่ agent จะรันจริง:</p>
+      <pre><code>{
+  "hooks": {
+    "PreToolUse": [{
+      "matcher": "Bash",
+      "hooks": [{
+        "type": "command",
+        "command": "./.claude/hooks/block-danger.sh"
+      }]
+    }]
+  }
+}</code></pre>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Phase 5–6: Test + Deploy/Demo</h2>
+      <p><strong>5. Test + capture evidence จริง</strong> — evidence ต้องจับต้องได้ ไม่ใช่แค่บอกว่า "test ผ่านแล้ว":</p>
+      <pre><code>pytest -v | tee test-output.log
+git add -A && git commit -m "capstone: tested core loop"</code></pre>
+      <p><strong>6. เขียน README พร้อม output จริง แล้ว demo</strong> — ต้อง copy output จริงจากการรันคำสั่ง ไม่ใช่ตัวอย่างสมมติ:</p>
+      <pre><code>## Usage
+\`\`\`
+$ python agent.py "review this PR"
+[actual output pasted here]
+\`\`\`</code></pre>
+      <div class="callout pink">⚠️ ห้ามพิมพ์ log มือหรือ mock ผลลัพธ์ — ทุก evidence (test output, README usage) ต้องมาจากการรันจริง</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Next Steps หลังคอร์สจบ</h2>
+      <ul>
+        <li><strong>Resource เพิ่มเติม:</strong> Claude Code docs, Anthropic engineering blog, Hermes plugin/skill ecosystem</li>
+        <li><strong>ขอ feedback จากทีม:</strong> demo ให้ lead/peer ดู, เก็บ pain point จริงก่อนเอาไป production</li>
+        <li><strong>Scale จาก prototype → งานจริง:</strong> ใส่ observability, error handling, cost tracking, และผ่าน governance review (Module 08) ก่อน rollout ให้ทีมอื่นใช้</li>
+        <li>โปรเจกต์นี้ควรอยู่ใน git ของทีม ไม่ใช่แค่ไฟล์ใน local — ทำให้คนอื่นต่อยอดได้</li>
+      </ul>
+    </div>
+
+    <div class="lesson-section">
+      <h2>พร้อมแล้ว</h2>
+      <p>
+        ถึงเวลาเอาทุกอย่างที่เรียนมา 9 module มารวมเป็นโปรเจกต์จริงหนึ่งชิ้น 🎉
+        ตอนนี้คุณมีทั้งความรู้และควรมี artifact จริงที่ demo ได้ภายในจบคอร์สนี้
+      </p>
+    </div>
+
+    <div class="pagefoot">
+      <a href="slides.html">← กลับไปดู Slides</a>
+      <a href="lab.html">ไปทำ Lab →</a>
+    </div>
+    <div class="footer-note">Internal Enablement — Module 10 Content</div>
+  </div>
+<script src="../../assets/theme.js" defer></script>
+</body>
+</html>

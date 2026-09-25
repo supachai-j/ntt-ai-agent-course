@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem('course-theme')||(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content · Module 02 — Hermes Agent Platform: Architecture — AI Agent Engineering Course</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<button class="theme-toggle-btn" type="button" aria-label="สลับธีม Light/Dark">☀️</button>
+  <div class="topnav">
+    <div class="brand"><span class="dot"></span> AI Agent Engineering Course</div>
+    <nav>
+      <a href="../../index.html">Home</a>
+      <a href="slides.html">Slides</a>
+      <a href="content.html" class="active">Content</a>
+      <a href="lab.html">Lab</a>
+    </nav>
+  </div>
+
+  <div class="wrap">
+    <div class="lesson-hero">
+      <span class="badge">📖 Content · Module 02</span>
+      <h1>Hermes Agent Platform — Architecture</h1>
+      <p style="color:var(--text-dim);">สถาปัตยกรรมเต็มของ Hermes: Profiles, MCP Tools layer, Connectors, Skills system, และ Subagent orchestration — พื้นฐานก่อนเข้าสู่ Claude Code Fundamentals ใน Module 03</p>
+    </div>
+
+    <div class="tldr"><strong>TL;DR:</strong> Hermes คือ platform ที่กำลังรันคอร์สนี้อยู่จริง ประกอบด้วย 5 layer หลัก — Profiles (แยก workspace), MCP Tools (ความสามารถของ agent), Connectors (ช่องทางสื่อสาร 20+ platforms), Skills system (procedural knowledge แบบ on-demand), และ Subagent orchestration (delegate_task) เข้าใจ layer เหล่านี้ช่วยให้ debug ไว เขียน skill ตรงจุด และออกแบบ automation ได้ปลอดภัย</div>
+
+    <div class="lesson-section">
+      <h2>ทำไมต้องเข้าใจสถาปัตยกรรมของ Hermes?</h2>
+      <p>Hermes คือ platform ที่กำลังรันคอร์สนี้อยู่จริง — สิ่งที่คุณคุยกับ Claude Code ผ่าน Discord ตอนนี้คือ Hermes instance หนึ่ง ไม่ใช่ตัวอย่างสมมติหรือ diagram บนกระดาษ การเข้าใจ architecture ช่วยให้ debug ได้เร็วขึ้นเมื่อมีอะไรผิดปกติ เขียน skill ได้ตรงจุดเพราะรู้ว่าระบบ inject/โหลดเนื้อหาตอนไหน และออกแบบ automation ได้ปลอดภัยขึ้นเพราะเข้าใจขอบเขตของแต่ละ layer โมดูลนี้เป็นพื้นฐานสำคัญก่อนไป Module 03: Claude Code Fundamentals ซึ่งจะลงรายละเอียดของ Claude Code ในฐานะ subagent ที่ Hermes เรียกใช้</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>ภาพรวมสถาปัตยกรรม: Layer Stack</h2>
+      <p>สถาปัตยกรรมของ Hermes ประกอบด้วย 5 layer หลักที่ทำงานร่วมกัน:</p>
+      <table>
+        <tr><th>#</th><th>Layer</th><th>หน้าที่</th></tr>
+        <tr><td>1</td><td><strong>Profiles</strong></td><td>แยก workspace ต่อบริบท (memory, skills, cron แยกกัน)</td></tr>
+        <tr><td>2</td><td><strong>MCP Tools layer</strong></td><td>terminal, file I/O, browser, web_search, delegate_task, cronjob ฯลฯ</td></tr>
+        <tr><td>3</td><td><strong>Connectors</strong></td><td>ช่องทางสื่อสารจริง: Discord, Telegram, Email</td></tr>
+        <tr><td>4</td><td><strong>Skills system</strong></td><td>procedural knowledge ที่โหลดเฉพาะเมื่อ relevant</td></tr>
+        <tr><td>5</td><td><strong>Subagent orchestration</strong></td><td>delegate_task สำหรับงานที่ต้อง isolate context</td></tr>
+      </table>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Diagram: TumEzZ Hermes System (ภาพรวมจริง)</h2>
+      <p>ด้านล่างคือ diagram ของ deployment จริง — ไม่ใช่ตัวอย่างสมมติ:</p>
+      <img src="../../assets/images/hermes-architecture-overview.png" alt="TumEzZ Hermes System architecture diagram — AI Agent Platform for Knowledge, Automation and Operations" style="max-width:100%;border-radius:10px;border:1px solid var(--border);box-shadow:0 8px 30px rgba(0,0,0,0.25);">
+      <p style="color:var(--text-dim);margin-top:0.8em;">Flow ของ diagram: Users &amp; Channels (LINE/Discord) → Hermes Agent (Claude Sonnet + MCP) → Knowledge Layer (Google OKF / Local Files / Notion) + CI Pipeline (GitHub Actions) — deployment นี้รันบน Tailscale mesh ที่เชื่อม Home และ IDC ESXi เข้าด้วยกัน</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Integration Tools: 3 กลุ่มหลักจาก diagram</h2>
+      <p>Diagram ข้างต้นแสดง integration จริงที่ deploy ใช้งาน แบ่งออกได้เป็น 3 กลุ่มใหญ่:</p>
+      <ol>
+        <li><strong>Skills &amp; Tools (MCP)</strong> — ความสามารถของ agent เอง: Search, Summarize, Analyze, Code, Operate, Manage, Integrate</li>
+        <li><strong>Knowledge Layer</strong> — แหล่งข้อมูลที่ agent อ่าน/เขียนได้: Google OKF, Local Files, Notion (optional)</li>
+        <li><strong>Channels &amp; CI Pipeline</strong> — ทางเข้า-ออกของ agent กับโลกภายนอก: LINE, Discord (user-facing) + GitHub Actions (automated commit → validate → deploy)</li>
+      </ol>
+
+      <h3>1. Skills &amp; Tools (MCP) — Capability Categories</h3>
+      <table>
+        <tr><th>Category</th><th>ตัวอย่าง MCP tool จริง</th><th>ใช้ทำอะไร</th></tr>
+        <tr><td>Search</td><td><code>web_search</code>, <code>search_files</code></td><td>ค้นเว็บ / ค้นไฟล์ในเครื่อง</td></tr>
+        <tr><td>Summarize / Analyze</td><td><code>web_extract</code>, <code>read_file</code></td><td>ดึงเนื้อหา อ่าน/สรุปเอกสาร</td></tr>
+        <tr><td>Code</td><td><code>terminal</code>, <code>patch</code>, <code>write_file</code></td><td>รันคำสั่ง แก้ไฟล์ เขียนโค้ด</td></tr>
+        <tr><td>Operate</td><td><code>browser_*</code>, <code>cronjob_manage</code></td><td>ควบคุม browser, ตั้งเวลา automation</td></tr>
+        <tr><td>Manage / Integrate</td><td><code>tool_search</code> + <code>tool_call</code> (deferred connectors)</td><td>ต่อ third-party service ตามต้องการ ไม่ preload ทุกตัว</td></tr>
+      </table>
+      <div class="callout pink">⚠️ ข้อควรระวัง: ไม่ใช่ทุก MCP tool ถูก preload ตลอดเวลา — บาง connector (เช่น Notion, Airtable, Google Workspace) เป็น "deferred tool" ต้องเรียกผ่าน <code>tool_search</code> ก่อนจึงจะ <code>tool_describe</code>/<code>tool_call</code> ได้</div>
+
+      <h3>2. Knowledge Layer — แหล่งข้อมูลที่ agent เข้าถึงได้</h3>
+      <p><strong>Google OKF (Team Knowledge Base):</strong> structured knowledge และ team documentation, รองรับ search &amp; retrieval แบบ semantic, และ version controlled — เห็น history การแก้ไข</p>
+      <p><strong>Local Files (on Hermes host):</strong> configs, scripts, logs, reports เข้าถึงตรงผ่าน <code>read_file</code>/<code>write_file</code>/<code>search_files</code> เร็วที่สุดเพราะไม่มี network round-trip</p>
+      <p><strong>Notion (Optional):</strong> team wiki / project docs, sync ผ่าน MCP connector, ใช้เก็บ knowledge ที่ non-technical stakeholder ต้องอ่านง่าย (เช่น presale proposal notes)</p>
+      <div class="callout">💡 หลักการเลือกแหล่งข้อมูล: <strong>Local Files</strong> สำหรับ code/config ที่ agent แก้บ่อย, <strong>Google OKF</strong> สำหรับ knowledge ที่ทีมต้อง search ย้อนหลัง, <strong>Notion</strong> สำหรับเอกสารที่ non-engineer ต้องอ่าน/แก้ร่วม</div>
+
+      <h3>3. Channels &amp; CI Pipeline</h3>
+      <p><strong>User-facing Channels:</strong> Discord ใช้สำหรับ team collaboration, multiple servers, bot commands (แบบที่ใช้คุยตอนนี้) ส่วน LINE เหมาะกับ non-technical user ในองค์กรไทย — chat กับ Hermes, ask/request, get notification</p>
+      <p><strong>CI Pipeline (GitHub Actions)</strong> ทำงานเป็น 3 ขั้นตอน: (1) Commit changes — update docs/configs/prompts, (2) GitHub Actions — validate &amp; test, build knowledge package, (3) Deploy/Sync — update Google OKF, sync ไป OneDrive/local, notify Hermes agent</p>
+      <p>ทำไม CI pipeline ถึงสำคัญสำหรับ knowledge base: knowledge base ที่ agent อ้างอิง (Google OKF) ควรผ่าน version control + validation เหมือน code — กัน "แก้ผิดแล้ว agent ตอบผิดตาม" ได้ audit trail และ rollback ได้ถ้า sync พัง (โยงกับหลักการ verify evidence จาก Module 08)</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Profiles: แยก workspace ต่อบริบท</h2>
+      <p>Profile คือ "ห้องทำงาน" แยกกันโดยสมบูรณ์ — คนละ <strong>memory</strong>, คนละ <strong>skills</strong>, คนละ <strong>cron jobs</strong> ตัวอย่างเช่น profile <code>tumps</code> สำหรับงานส่วนตัว แยกขาดจาก profile ของทีม KDX ไม่มี data leak ข้ามบริบท</p>
+      <h3>Path convention</h3>
+      <pre><code>/home/ubuntu/.hermes/profiles/&lt;name&gt;/
+  ├── skills/
+  ├── memories/
+  ├── cron/
+  └── plugins/ (ถ้ามี)
+
+# default profile (ไม่ระบุชื่อ):
+/home/ubuntu/.hermes/skills/
+/home/ubuntu/.hermes/memories/
+/home/ubuntu/.hermes/cron/</code></pre>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Terminology: Profile vs Agent vs Bot vs Subagent</h2>
+      <p>Official docs แยก 5 คำนี้ชัดเจน — สับสนกันบ่อยในทีม ควรใช้ให้ตรง:</p>
+      <table>
+        <tr><th>คำ</th><th>ความหมาย</th></tr>
+        <tr><td><strong>Profile</strong></td><td>persistent home directory สำหรับ config+data ของ assistant หนึ่งตัว</td></tr>
+        <tr><td><strong>Agent</strong></td><td>running instance ที่ใช้ profile นั้นอยู่ ณ ขณะนั้น</td></tr>
+        <tr><td><strong>Bot</strong></td><td>profile ที่ถูก present เป็น roster entry ใน Bot Mode พร้อม avatar — ไม่ใช่ทุก profile จะเป็น Bot</td></tr>
+        <tr><td><strong>Platform account</strong></td><td>account จริงบน Telegram/Discord/ฯลฯ ที่ผูกกับ gateway ผ่าน bot token</td></tr>
+        <tr><td><strong>Subagent</strong></td><td>child assistant จาก <code>delegate_task</code> — conversation แยก ไม่ใช่ profile แยก</td></tr>
+      </table>
+      <div class="callout pink">⚠️ Official safety warning: "Never point two agent processes at the same profile" — สอง process ที่เขียน memory เข้า home เดียวกันจะโหลด write ของกันและกันเข้า system prompt ทุก session start จนสถานะพัง ควรใช้ external memory provider แทนถ้าต้องการ shared memory จริง</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Memory vs Skills: ต่างกันตรงไหน</h2>
+      <table>
+        <tr><th>คุณสมบัติ</th><th>Memory</th><th>Skills</th></tr>
+        <tr><td>Inject เมื่อไร</td><td>ทุก turn (persistent)</td><td>เฉพาะเมื่อ relevant (on-demand)</td></tr>
+        <tr><td>เนื้อหา</td><td>Facts ข้าม session</td><td>Procedural knowledge / workflow</td></tr>
+        <tr><td>ข้อจำกัด</td><td>มี char limit ต้องจัดการเมื่อเต็ม</td><td>ไม่จำกัดจำนวน skill (โหลดทีละตัว)</td></tr>
+        <tr><td>ตัวอย่าง</td><td>"ชื่อโปรเจกต์คือ X", "user ชอบภาษาไทย"</td><td>"วิธี deploy บน ESXi", "วิธีใช้ xurl"</td></tr>
+      </table>
+      <div class="callout pink">⚠️ ข้อควรระวัง: Memory เต็ม char limit ต้อง prune/summarize เอง — อย่าปล่อยให้ log สะสมจนล้น</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>MCP Tools Layer</h2>
+      <p>Hermes ต่อกับเครื่องมือผ่าน <strong>Model Context Protocol (MCP)</strong> official docs แบ่ง built-in tools เป็น 9 category — ต่างจากที่คอร์สนี้เคยแบ่งเองแบบ 2 กลุ่ม (ฉบับ official ละเอียดและ verifiable กว่า):</p>
+      <table>
+        <tr><th>Category</th><th>ตัวอย่าง</th></tr>
+        <tr><td>Web</td><td><code>web_search</code>, <code>web_extract</code></td></tr>
+        <tr><td>Terminal &amp; Files</td><td><code>terminal</code>, <code>process</code>, <code>read_file</code>, <code>patch</code></td></tr>
+        <tr><td>Browser</td><td><code>browser_navigate</code>, <code>browser_snapshot</code>, <code>browser_vision</code></td></tr>
+        <tr><td>Media</td><td><code>vision_analyze</code>, <code>image_generate</code>, <code>text_to_speech</code></td></tr>
+        <tr><td>Agent orchestration</td><td><code>todo</code>, <code>clarify</code>, <code>execute_code</code>, <code>delegate_task</code></td></tr>
+        <tr><td>Memory &amp; recall</td><td><code>memory</code>, <code>session_search</code></td></tr>
+        <tr><td>Automation</td><td><code>cronjob</code></td></tr>
+        <tr><td>Integrations</td><td><code>ha_*</code> (Home Assistant), MCP server tools</td></tr>
+      </table>
+      <div class="callout pink">⚠️ ข้อควรระวัง: ตัวเลข "60+ built-in tools" มาจากคำโปรยหน้า docs index เท่านั้น ไม่ใช่ authoritative count — ถ้าต้องการตัวเลขแม่นยำให้เปิด Tools Reference/Toolsets Reference บน official docs โดยตรง</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Nous Portal / Tool Gateway</h2>
+      <p>ฟีเจอร์ที่ Hermes ไม่ได้บังคับให้ทุกคนหา API key เอง — paid subscriber ใช้ web search/image gen/TTS/browser ผ่าน <strong>Tool Gateway</strong> โดยไม่ต้องมี API key แยกต่างหาก</p>
+      <div class="callout">💡 เทียบกับสถานการณ์จริงของทีม: คล้ายกับ subscription ที่หลายคนมีอยู่แล้ว (เช่น ChatGPT Enterprise, Gemini Plus) — <strong>มี subscription ไม่ได้แปลว่ามี API access อัตโนมัติ</strong> ต้องแยกสมัคร API key ต่างหากเสมอ เว้นแต่ผู้ให้บริการมี "gateway" แบบเดียวกับ Nous Portal ที่ bridge ให้</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Pattern: tool_search + tool_describe + tool_call</h2>
+      <p>ปัญหา: มี MCP tools เยอะมาก ถ้าโหลด schema ทุกตัวทุก turn → context overhead สูง แนวทางแก้คือ pattern 3 ขั้นตอน:</p>
+      <pre><code>// 1. ค้นหา tool ที่ต้องการ (ยังไม่รู้ schema)
+tool_search({queries: ["send discord message", "read airtable record"]})
+
+// 2. โหลด full schema เฉพาะ tool ที่จะใช้จริง
+tool_describe({names: ["discord_send", "airtable_get"]})
+
+// 3. เรียกใช้งานจริง
+tool_call({calls: [{name: "discord_send", arguments: {...}}]})</code></pre>
+      <p>แนวคิด: tool ที่ไม่ค่อยได้ใช้ถูก "deferred" — โหลดตามต้องการ ไม่ inject schema ทุกตัวตลอดเวลา ลด token cost ต่อ turn</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Connectors: ช่องทางสื่อสารจริง</h2>
+      <p>Hermes ไม่ได้ผูกกับ UI เดียว — official docs ของ Nous Research ระบุว่ารองรับ <strong>20+ platforms</strong> จากตัว gateway เดียวกัน ไม่ใช่แค่ 2-3 ตัวที่คนทั่วไปคุ้นเคย</p>
+      <ul>
+        <li><strong>Multi-user thread</strong> — หลายคนคุยใน channel เดียวกันได้ Hermes ต้องแยกแยะว่าใครพูด</li>
+        <li><strong>Sender prefix</strong> — ข้อความ inbound ถูก tag ด้วยชื่อผู้ส่ง เพื่อให้ agent ตอบถูกคน/บริบทถูก</li>
+        <li><strong>Home channel</strong> — concept ของช่องทางหลักที่ agent "รายงานกลับ" หรือส่ง notification โดยดีฟอลต์</li>
+      </ul>
+      <div class="callout">💡 ตัวอย่างในคอร์สนี้: คุณกำลังคุยกับ Claude Code ผ่าน Discord connector — ข้อความของคุณถูก route เข้า Hermes, ประมวลผลด้วย profile ที่กำหนด, แล้วตอบกลับผ่าน connector เดิม</div>
+
+      <h3>Connectors: ลิสต์เต็มจาก official docs</h3>
+      <p>Hermes Agent รองรับ platform ต่อไปนี้จาก gateway process เดียว (ที่มา: <a href="https://hermes-agent.nousresearch.com" target="_blank" rel="noopener">hermes-agent.nousresearch.com</a>):</p>
+      <p><strong>Chat/Messaging ที่คุ้นเคย:</strong> Telegram, Discord, Slack, WhatsApp, Signal, Matrix, Mattermost, Email, SMS</p>
+      <p><strong>Enterprise/ภูมิภาคเฉพาะ:</strong> Microsoft Teams, Google Chat, DingTalk, Feishu, WeCom, Weixin, QQ Bot, Yuanbao, BlueBubbles, Home Assistant และอื่นๆ</p>
+      <div class="callout pink">⚠️ ข้อควรระวัง: อย่าอธิบาย Hermes ว่า "Discord bot ที่มี AI" กับลูกค้า/ทีม — มันคือ multi-platform gateway จริงจัง เหมาะกับองค์กรที่ทีมกระจายใช้หลาย platform (เช่น ทีมไทยใช้ LINE คู่กับ Teams ของฝั่ง global)</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Skills System: โครงสร้าง SKILL.md</h2>
+      <pre><code>---
+name: my-skill-name
+description: Use when &lt;trigger condition&gt;. &lt;one-line behavior&gt;.
+version: 1.0
+---
+
+# My Skill Name
+
+## When to use
+...
+
+## Steps
+1. ...
+2. ...
+
+## Pitfalls
+- ...</code></pre>
+      <p>Frontmatter (YAML) + markdown body — <code>description</code> คือ trigger หลัก: ต้องขึ้นต้นด้วยวลีที่ self-contained ภายใน ~60 ตัวอักษรแรก (house authoring standard ของ Hermes) เพื่อให้ระบบ keyword-match แล้วโหลด skill ได้ถูกต้อง</p>
+
+      <h3>Skills: linked_files &amp; keyword trigger</h3>
+      <p><strong>Keyword-based trigger:</strong> agent เห็นรายชื่อ skill + description ทั้งหมดก่อน แล้วเลือกโหลด (<code>skill_view</code>) เฉพาะตัวที่ relevant กับ task ปัจจุบัน — ไม่ inject เนื้อหาเต็มทุก skill ทุก turn</p>
+      <pre><code>my-skill/
+  SKILL.md
+  references/   # เอกสารอ้างอิงยาว
+  templates/    # ไฟล์ template ให้ copy
+  scripts/      # helper scripts</code></pre>
+      <div class="callout pink">⚠️ Write lessons, not logs: skill ควรบันทึก imperative rule + เหตุผล ("ทำแบบนี้เพราะ X") ไม่ใช่ log เหตุการณ์ ("วันที่ Y แก้ bug Z") — log ไม่ generalize ข้าม task ในอนาคต</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>ทางลัด: /learn และ Autonomous Curator</h2>
+      <p><strong>/learn — สอน skill โดยไม่ต้องเขียน SKILL.md เอง:</strong> บอก agent ว่า "อยากให้รู้เรื่องอะไร" หรือชี้ไปยังเอกสารอ้างอิง agent จะ gather material ด้วย tool ที่มีอยู่แล้ว แล้ว author skill ให้เองตาม house standard</p>
+      <pre><code>/learn filing an expense: open the portal,
+New > Expense, attach the receipt, submit</code></pre>
+      <p><strong>Autonomous Curator:</strong> <code>hermes curator</code> รีวิว skill ที่ agent สร้างเอง, consolidate ที่ซ้ำซ้อน, archive ที่ล้าสมัย — ส่วนหนึ่งของ "closed learning loop" ที่ทำให้ Hermes ต่างจาก agent framework ทั่วไป</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Subagent Orchestration: delegate_task</h2>
+      <ul>
+        <li>Subagent แต่ละตัวมี <strong>isolated context</strong> — ไม่เห็น conversation หลักของ parent agent</li>
+        <li>Parent ต้องส่ง context ที่จำเป็น <strong>ทั้งหมด</strong> เข้าไปใน task description เอง (path, spec, constraints)</li>
+        <li>ผลลัพธ์ที่ subagent ส่งกลับคือ <strong>self-report</strong> — ข้อความบรรยายว่าทำอะไรสำเร็จ</li>
+      </ul>
+      <div class="callout pink">⚠️ อย่าเชื่อ self-report เฉยๆ: ต้อง verify ด้วย evidence จริง เช่น เปิดไฟล์ดูเอง, เช็ค URL จริง, รัน command ตรวจสอบ — ไม่ใช่เชื่อคำอ้างของ subagent ว่า "ทำเสร็จแล้ว"</div>
+
+      <h3>ตัวอย่าง delegate_task ในทางปฏิบัติ</h3>
+      <pre><code>delegate_task({
+  task: "Build slides.html และ lab.html สำหรับ module 02 ...",
+  context: "spec เต็ม + content brief + path ที่ต้องใช้ ...",
+  // subagent ไม่เห็น conversation ก่อนหน้า ต้องใส่ context ครบ
+})
+
+// หลัง subagent รายงานว่า "สร้างไฟล์เสร็จแล้ว":
+// → parent ต้อง read_file / ls -la ยืนยันเองเสมอ</code></pre>
+      <p>Pattern นี้เหมาะกับงานที่แยก context ได้ชัดเจน (เช่น build 1 module ต่อ subagent) เพื่อไม่ให้ context หลักบวมจากรายละเอียดที่ไม่เกี่ยว</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Hermes vs Claude Code</h2>
+      <table>
+        <tr><th></th><th>Hermes</th><th>Claude Code</th></tr>
+        <tr><td>Scope</td><td>General-purpose agent platform</td><td>Coding-focused CLI agent</td></tr>
+        <tr><td>Tools</td><td>Multi-tool (browser, email, calendar, ฯลฯ)</td><td>เน้น file/code/terminal/git</td></tr>
+        <tr><td>ช่องทาง</td><td>Multi-channel (Discord, Telegram, Email)</td><td>Terminal / IDE integration</td></tr>
+        <tr><td>ใช้ในคอร์สนี้</td><td>รัน course ทั้งหมด, ตอบคำถามผ่าน Discord</td><td>Subagent ที่ Hermes เรียกใช้เพื่อ coding task</td></tr>
+      </table>
+      <p>จุดสำคัญ: Claude Code สามารถถูกเรียกเป็น subagent จาก Hermes ได้ (เช่น เดโม่ที่เพิ่งเห็น) — รายละเอียดเชิงลึกของ Claude Code เองไปดูต่อใน Module 03</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>สรุป Module 02</h2>
+      <ul>
+        <li>Profiles แยก workspace สมบูรณ์ต่อบริบท — memory/skills/cron คนละชุด, ห้ามสอง process ชี้ profile เดียวกัน</li>
+        <li>Terminology: Profile ≠ Agent ≠ Bot ≠ Platform account ≠ Subagent</li>
+        <li>Memory = inject ทุก turn มี limit, Skills = โหลดตามต้องการ ไม่จำกัดจำนวน, description ≤60 ตัวอักษร</li>
+        <li>MCP tools ใช้ pattern tool_search → tool_describe → tool_call เพื่อลด context overhead</li>
+        <li>Connectors เชื่อม Hermes กับ 20+ platforms จริง (ไม่ใช่แค่ Discord/Telegram/Email)</li>
+        <li>Skills เขียนแบบ "lessons not logs" + <code>/learn</code> สอน skill เร็วๆ + Autonomous Curator ดูแลให้</li>
+        <li>delegate_task = isolated subagent — ต้อง verify ผลลัพธ์ด้วย evidence เสมอ</li>
+      </ul>
+    </div>
+
+    <div class="pagefoot">
+      <a href="slides.html">← กลับไปดู Slides</a>
+      <a href="lab.html">ไปทำ Lab →</a>
+    </div>
+    <div class="footer-note">Internal Enablement — Module 02 Content</div>
+  </div>
+<script src="../../assets/theme.js" defer></script>
+</body>
+</html>

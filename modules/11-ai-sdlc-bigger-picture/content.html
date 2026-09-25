@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem('course-theme')||(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content · Module 11 — The Bigger Picture: AI Coding Agent SDLC — AI Agent Engineering Course</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<button class="theme-toggle-btn" type="button" aria-label="สลับธีม Light/Dark">☀️</button>
+  <div class="topnav">
+    <div class="brand"><span class="dot"></span> AI Agent Engineering Course</div>
+    <nav>
+      <a href="../../index.html">Home</a>
+      <a href="slides.html">Slides</a>
+      <a href="content.html" class="active">Content</a>
+      <a href="lab.html">Lab</a>
+    </nav>
+  </div>
+
+  <div class="wrap">
+    <div class="lesson-hero">
+      <span class="badge">📖 Content · Module 11</span>
+      <h1>The Bigger Picture: AI Coding Agent SDLC</h1>
+      <p style="color:var(--text-dim);">Module 01-10 สอนวิธีใช้ Hermes/Claude Code เป็นเครื่องมือ โมดูลนี้ชี้ไปยังคอร์สแยกที่ลึกกว่า (ai-sdlc) ซึ่งครอบคลุมวินัยทั้งวงจรชีวิตของการพัฒนาซอฟต์แวร์ด้วย agent — ตั้งแต่กลไกภายในของ agent ไปจนถึง governance ระดับทีม</p>
+    </div>
+
+    <div class="tldr"><strong>TL;DR:</strong> คอร์สนี้ตอบคำถาม "ใช้เครื่องมือยังไง" ส่วนคอร์ส ai-sdlc (15 modules, 127 บท, พร้อม eval harness ที่รันได้จริง) ตอบคำถามที่ลึกกว่า — agent ทำงานข้างในยังไง, ต้นทุนคำนวณยังไง, จะรับมือ legacy code ยังไง, จะรู้ได้ยังไงว่า test ที่ agent เขียนจับบั๊กจริง, ภัยคุกคามจาก prompt injection มีหน้าตายังไง และจะดูแล agent ในทีมยังไง โมดูลนี้เป็นแผนที่สรุป ไม่ใช่สิ่งทดแทนการเรียนต้นทาง</div>
+
+    <div class="lesson-section">
+      <h2>ทำไมต้องมีโมดูลนี้</h2>
+      <p>Module 01-10 ของคอร์สนี้ตอบคำถาม <strong>"ใช้ Hermes/Claude Code ยังไง"</strong> — วิธีตั้งค่า profile, เขียน prompt ที่ดี, ทำ feature loop แบบ TDD, ตั้งค่า tooling/MCP/multi-agent, CI/CD automation ฯลฯ แต่ยังไม่ได้ตอบคำถามที่ลึกกว่านั้น เช่น <strong>agent ทำงานข้างในยังไง</strong>, <strong>ต้นทุนคำนวณยังไง</strong>, <strong>จะรับมือ legacy code ยังไง</strong>, และ <strong>จะรู้ได้ยังไงว่า test ที่ agent เขียนจับบั๊กจริง</strong></p>
+      <div class="callout">💡 คอร์สแยกที่ตอบคำถามเหล่านี้: คอร์ส <strong>AI Coding Agent SDLC</strong> — 15 modules, 127 บท, พร้อม eval harness ที่รันได้จริง ไม่ใช่ทฤษฎีเปล่า — ครอบคลุมตั้งแต่กลไกภายในของ agent ไปจนถึง governance ระดับทีม โมดูลนี้เป็น "แผนที่" สรุปหัวข้อสำคัญ 60-90 วินาทีต่อหัวข้อ แล้วชี้ไปเรียนลึกที่ต้นทาง</div>
+      <p><a href="https://supachai-j.github.io/ai-sdlc/" target="_blank">https://supachai-j.github.io/ai-sdlc/</a></p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>แผนที่ 15 Module ของ ai-sdlc</h2>
+      <p>คอร์ส ai-sdlc แบ่งเป็น 5 phase ครอบคลุม 15 module ทั้งหมด ตารางด้านล่างสรุปโครงสร้างเต็ม:</p>
+      <table>
+        <tr><th>Phase</th><th>Module</th><th>หัวข้อ</th></tr>
+        <tr><td rowspan="3">00 · Foundations</td><td>M01</td><td>กลไกภายในของ Agent</td></tr>
+        <tr><td>M02</td><td>Context Engineering</td></tr>
+        <tr><td>M03</td><td>เศรษฐศาสตร์ของ Token และโมเดล</td></tr>
+        <tr><td rowspan="4">01-02 · Build</td><td>M04</td><td>Requirements, Research และการย่อยงาน</td></tr>
+        <tr><td>M05</td><td>ออกแบบ Codebase ให้ Agent ทำงานได้</td></tr>
+        <tr><td>M06 / M07</td><td>Frontend Implementation / Backend และงานที่แตะข้อมูล</td></tr>
+        <tr><td>M08</td><td>Brownfield และ Legacy Code</td></tr>
+        <tr><td rowspan="4">04 · Quality &amp; Scale</td><td>M09 / M10</td><td>Tooling (MCP/Skills/Hooks/Plugins) / Multi-Agent Orchestration</td></tr>
+        <tr><td>M11 / M12</td><td>Testing และ QA / Evals — วัดผลระบบ agent เอง</td></tr>
+        <tr><td>M13</td><td>ความปลอดภัยและโมเดลภัยคุกคาม</td></tr>
+        <tr><td>M14</td><td>CI/CD และ Agent ในสายพาน</td></tr>
+        <tr><td>05 · Team</td><td>M15</td><td>Operations, Governance และการใช้จริงในทีม</td></tr>
+      </table>
+      <p>ส่วนที่เหลือของหน้านี้กวดเฉพาะหัวข้อที่ <strong>ยังไม่มี</strong> ใน Module 01-10 ของคอร์สนี้เท่านั้น — Tooling (M09) / Multi-Agent (M10) / Governance (M15) บางส่วนคาบเกี่ยวกับ Module 06-08 ของคอร์สนี้แล้ว จึงข้ามรายละเอียดตรงนั้น</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>M01 · Agent ไม่ใช่กล่องดำ</h2>
+      <p>Agent คือ <strong>loop ธรรมดา</strong> ที่ห่อด้วยวิศวกรรมหลายชั้น — ประกอบมาจาก 4-5 แนวคิดคนละทีม คนละปี ที่ค่อยๆ รวมกันในช่วง ~2 ปี ตารางลำดับเวลาด้านล่างแสดงว่าแต่ละแนวคิดเพิ่มอะไรเข้ามาในภาพรวม:</p>
+      <table>
+        <tr><th>ปี</th><th>แนวคิด</th><th>สิ่งที่เพิ่มเข้ามา</th></tr>
+        <tr><td>2021-12</td><td>WebGPT</td><td>โมเดล + browser — เริ่มมีความคิดว่าให้หาข้อมูลเองได้</td></tr>
+        <tr><td>2022-01</td><td>Chain-of-Thought</td><td>ให้คิดเป็นขั้นๆ ออกมาเป็นข้อความก่อนตอบ</td></tr>
+        <tr><td>2022-05</td><td>MRKL Systems</td><td>แยกงานให้ module ภายนอกทำแทนที่จะให้โมเดลทำเอง</td></tr>
+        <tr><td>2022-10</td><td>ReAct</td><td>ต้นตำรับของลูป — "คิด" กับ "ลงมือ" สลับกันในลูปเดียว</td></tr>
+      </table>
+      <div class="callout">💡 ทำไมสำคัญกับ debug: คนที่ debug agent ไม่เป็น ไม่ใช่เพราะไม่เก่ง แต่เพราะไม่มีแบบจำลองในหัวว่าข้างในมีอะไรบ้าง — เมื่อมีแล้ว ปัญหาที่ดูลึกลับจะกลายเป็นคำถามว่า "ชั้นไหนพัง"</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>M02 · Context Engineering</h2>
+      <p><strong>บริบทคืองบประมาณ ไม่ใช่ถัง</strong> — ทุก token ที่ใส่เข้าไปมีต้นทุนสองชั้น: เงินที่จ่าย และความสนใจของโมเดลที่ถูกดึงไปจากสิ่งที่สำคัญกว่า</p>
+      <div class="callout pink">⚠️ Lost in the Middle (2023): "ใส่ได้" กับ "ใช้ได้ดี" ไม่ใช่เรื่องเดียวกัน — context window ใหญ่ไม่ได้ยกเลิกวินัยข้อนี้ แค่ทำให้ค่าเสียหายมาช้าลง</div>
+      <p>เชื่อมกับ Module 05 (Prompt &amp; Context) ของคอร์สนี้ที่สอนแค่ระดับ "ใช้ /compact ยังไง" — M02 ของ ai-sdlc สอนหลักคิดเบื้องหลังเต็มบทว่าทำไม trade-off นี้ถึงมีอยู่</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>M03 · เศรษฐศาสตร์ของ Token และโมเดล</h2>
+      <p>คำถามที่ถูกไม่ใช่ "โมเดลไหนถูกกว่า" แต่คือ <strong>"ต้นทุนต่องานที่เสร็จเท่าไร"</strong> — โมเดลราคาต่อ token ถูกกว่าครึ่งแต่ต้องวน 3 รอบ แพงกว่าเสมอ M03 อธิบายผ่านสองแนวคิดคลาสสิกที่ย้อนไปก่อนยุค LLM มาก:</p>
+      <p><strong>Cache (1960s CPU cache → prompt caching):</strong> อ่านซ้ำถูกกว่าอ่านครั้งแรกมาก — ตรรกะเดียวกันเป๊ะกับ prompt caching ยุค LLM</p>
+      <p><strong>Cascade (Viola–Jones 2001 → model routing):</strong> กรองด้วยของถูกก่อน แล้วค่อยจ่ายแพงเฉพาะเคสที่จำเป็น</p>
+      <div class="callout pink">⚠️ แนวคิดทั้งสองขัดกันเองเมื่อใช้พร้อมกันกับ LLM — ต้องรู้จุดตัดสินใจว่าเมื่อไหร่ใช้อันไหน</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>M04 · Requirements ที่ "ตรวจได้"</h2>
+      <p>บทที่ให้ผลตอบแทนสูงที่สุดในคอร์ส — วางแผน 10 นาที ประหยัดการสั่งซ้ำเป็นชั่วโมง ตารางด้านล่างเทียบความต่างระหว่าง "คำสั่ง" กับ "ข้อกำหนดที่ตรวจได้":</p>
+      <table>
+        <tr><th></th><th>คำสั่ง</th><th>ข้อกำหนด</th></tr>
+        <tr><td>ตัวอย่าง</td><td>"แก้บั๊กตรงหน้า checkout ให้หน่อย"</td><td>"เมื่อตะกร้าว่าง ปุ่มชำระเงินต้อง disabled และเทสต์ checkout.empty ต้องเขียว"</td></tr>
+        <tr><td>รู้ว่าเสร็จเมื่อ</td><td>คนดูแล้วรู้สึกว่าใช่</td><td>สคริปต์ตัดสินได้</td></tr>
+        <tr><td>เมื่อผิด</td><td>ต้องอธิบายใหม่ทั้งหมด</td><td>ชี้ได้ว่าข้อไหนไม่ผ่าน</td></tr>
+      </table>
+      <div class="callout">💡 Prompt ที่ดีไม่ใช่คำสั่งที่เขียนเก่ง แต่คือ <strong>ข้อกำหนดที่ตรวจได้</strong> — นี่คือหลักการเดียวกับที่ Module 04 (Engineering Workflows) ของคอร์สนี้ใช้ใน TDD RED phase (เขียน failing test = เขียนข้อกำหนดที่ตรวจได้)</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>M08 · Brownfield &amp; Legacy Code</h2>
+      <p>งานจริงไม่ได้เริ่มจากโฟลเดอร์ว่าง — เริ่มจาก repo อายุ 6 ปี ไม่มีเทสต์ ไม่มี type คนเขียนลาออกไปแล้ว กติกา<strong>กลับด้าน</strong>จาก greenfield:</p>
+      <table>
+        <tr><th></th><th>Greenfield</th><th>Brownfield</th></tr>
+        <tr><td>ความเสี่ยง</td><td>ทำไม่เสร็จ</td><td>ทำของที่เคยใช้ได้ให้พัง</td></tr>
+        <tr><td>กลยุทธ์</td><td>ลุยได้เลย</td><td>สร้างตาข่ายก่อน แล้วค่อยขยับ</td></tr>
+      </table>
+      <div class="callout">💡 3 output ก่อนสั่งแก้อะไรเลย: 1) แผนที่ระดับบน (โมดูลหลัก, อะไรเรียกอะไร) 2) เส้นทางของฟีเจอร์ (request → DB ทีละไฟล์) 3) รายการของที่ดูแปลก (โค้ดตายแล้ว, ชื่อขัดกัน, ของซ้ำ) — ข้อ 3 มีค่าที่สุด เพราะ agent ไม่มีความคุ้นเคยมาบดบัง มันเห็นสิ่งที่คนในทีมชินตาจนมองไม่เห็นแล้ว</div>
+      <p><strong>กรณีศึกษา "list-registration trap":</strong> ai-sdlc M08 ยกตัวอย่างเคสจริงที่ agent ถูกสั่งให้ "เพิ่มฟิลด์ registration ใหม่ในหน้า list" — โดยผิวเผินดูเป็นงานง่าย แต่โค้ดฐานมีระบบ registration สองชุดที่ตั้งชื่อคล้ายกันซ้อนกันอยู่ (legacy กับใหม่) ที่ไม่มีใครในทีมจำได้แล้วว่าทำไมถึงมีสองชุด agent ที่ไม่ได้ทำแผนที่ระดับบนก่อน แก้ผิดชุดและทำของที่ใช้งานได้อยู่แล้วพังแบบเงียบๆ — นี่คือเหตุผลที่ M08 ยืนกรานว่าต้องทำ 3 output ข้างต้นก่อนแตะโค้ดจริงเสมอในงาน brownfield</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>M11 · Testing: เทสต์ที่ Agent เขียนเอง</h2>
+      <p>Agent เขียนเทสต์ได้เร็วมาก — ทั้งข้อดีและปัญหา เพราะ<strong>เทสต์ที่ผ่านไม่ได้แปลว่าโค้ดถูก</strong></p>
+      <div class="callout pink">⚠️ ความต่างสำคัญ: เมื่อคนเขียนโค้ดแล้วเขียนเทสต์ เทสต์สะท้อนความเข้าใจของคนนั้น — เมื่อ agent เขียนทั้งคู่ เทสต์สะท้อน<strong>สิ่งที่โค้ดทำ</strong> ไม่ใช่<strong>สิ่งที่โค้ดควรทำ</strong></div>
+      <p>วิธีแก้ (TDD: red→green→refactor, Kent Beck 1999-2002) ถูกคิดมาก่อนมี LLM 20 ปี เพื่อกัน "เขียนโค้ดก่อนแล้วเขียนเทสต์ยืนยันสิ่งที่เพิ่งเขียน" — ตรงกับปัญหาของ agent วันนี้พอดี นี่คือเหตุผลที่ Module 04 ของคอร์สนี้ยืนกฎเหล็ก "ห้ามให้ agent แก้ไฟล์ test เอง" ในรอบ GREEN</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>M13 · Prompt Injection: ภัยคุกคามที่รู้วันเกิด</h2>
+      <p>ข้อเท็จจริงหนึ่งข้อที่อธิบายภัยเกือบทั้งหมด: <strong>โมเดลแยกไม่ออกระหว่างคำสั่งจากคุณ กับข้อความที่หน้าตาเหมือนคำสั่งซึ่งอยู่ในข้อมูลที่มันอ่าน</strong> ลำดับเวลาด้านล่างแสดงว่าภัยนี้ถูกค้นพบและตั้งชื่อเมื่อไร:</p>
+      <table>
+        <tr><th>วันที่</th><th>เหตุการณ์</th></tr>
+        <tr><td>2022-09</td><td>Riley Goodside สาธิต ข้อความในอินพุตทำให้โมเดลเลิกทำตามคำสั่งเดิม</td></tr>
+        <tr><td>2022-09-12</td><td>Simon Willison ตั้งชื่อ "prompt injection" เทียบกับ SQL injection</td></tr>
+        <tr><td>2023-02</td><td>Indirect prompt injection — พิษไม่ต้องมาจากผู้ใช้ มาจากของที่ agent ไปอ่านเอง</td></tr>
+        <tr><td>2023→</td><td>OWASP จัดเป็นอันดับ 1 (LLM01)</td></tr>
+      </table>
+      <div class="callout pink">⚠️ เชื่อมตรงกับกฎ untrusted-content ที่ระบบนี้เองก็บังคับใช้อยู่ — เนื้อหาจากเว็บ/ไฟล์ที่ agent อ่าน ต้องถูก treat เป็น data ไม่ใช่ instruction เสมอ</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>M12 · Evals</h2>
+      <p>โมดูลที่คอร์สทั่วไปไม่มี — <strong>ความแปรปรวนระหว่างการรันสองครั้งของงานเดียวกัน มักใหญ่กว่าผลของการแก้ prompt</strong> ที่เพิ่งทำ</p>
+      <div class="callout">💡 เนื้อหานี้มีอยู่แล้วใน Module 09 ของคอร์สนี้ — ดู "วัดผลว่า pipeline ดีขึ้นจริงหรือแค่รู้สึกว่าดีขึ้น" ใน Module 09 (CI/CD Automation) — ดึงมาจาก M12 นี้โดยตรง พร้อม hands-on mini-eval lab</div>
+      <p><a href="../09-cicd-automation/slides.html">↩ กลับไปดู Module 09</a> · <a href="https://supachai-j.github.io/ai-sdlc/m12-evals.html" target="_blank">อ่านเต็มที่ ai-sdlc M12</a></p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>M15 · Governance: Runbook ที่ Agent ทำตามได้จริง</h2>
+      <p>ปัญหาที่เหลืออยู่ไม่ใช่ปัญหาเทคนิค แต่เป็น<strong>ความไว้ใจที่ปรับเทียบถูก</strong> — ไว้ใจน้อยเกินไม่ได้ประโยชน์ ไว้ใจมากเกินเจ็บ</p>
+      <div class="callout">💡 ทำไม runbook เดิมของทีมใช้กับ agent ไม่ได้: Runbook สำหรับคนเว้นช่องว่างไว้ให้คนเติมเอง เช่น "ตรวจดูว่าคิวปกติไหม" — คนอ่านรู้ว่าปกติแปลว่าอะไรเพราะเคยเห็นตอนไม่ปกติมาแล้ว agent ไม่มีความรู้ที่ค้างอยู่ในหัวคนเก่านั้น</div>
+      <p>เชื่อมกับ Module 08 (Enterprise Governance) ของคอร์สนี้ที่พูดเรื่อง account model/secrets — M15 ของ ai-sdlc ขยายไปถึงระดับ "ทีม 15 คนใช้ agent พร้อมกัน" ทั้งหมด</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>ตัวอย่างจริง: AI Hero Skills (Matt Pocock)</h2>
+      <p>โปรเจกต์ open-source ที่เอาหลักการ Requirements/TDD/Code-Review จาก M04 และ M11 มาทำเป็น <strong>ชุด skill สำหรับ agent</strong> จริง (269K+ GitHub stars) — ติดตั้งได้ทั้ง Claude Code, Cursor, Codex, Copilot ด้วยคำสั่งเดียว</p>
+      <pre><code class="language-bash"># ติดตั้งทั้งชุด (25 skills)
+npx skills@latest add mattpocock/skills
+
+# หรือติดตั้งเป็น managed plugin ใน Claude Code
+claude plugins install mattpocock-skills</code></pre>
+      <p><a href="https://www.aihero.dev/skills" target="_blank">https://www.aihero.dev/skills</a></p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>AI Hero: "Main Flow" = M04 + M11 เป็น skill รันจริง</h2>
+      <p>Skill 5 ตัวเรียงกันเป็น spine เดียวตั้งแต่ idea จนถึง code ที่ review แล้ว — ตรงกับหลักการ "ข้อกำหนดที่ตรวจได้" (M04) และ "test-first" (M11) ที่เพิ่งเรียนไป ตารางด้านล่างเทียบแต่ละ slash command กับแนวคิดของคอร์สนี้:</p>
+      <table>
+        <tr><th>Slash Command</th><th>ทำอะไร</th><th>เทียบกับ ai-sdlc</th></tr>
+        <tr><td><code>/grill-with-docs</code></td><td>สัมภาษณ์คุณเรื่อง plan/design จนกว่าคุณกับ agent เข้าใจตรงกัน แล้วบันทึกคำศัพท์ + การตัดสินใจที่กลับยากลงไฟล์จริง (<code>CONTEXT.md</code>, ADR)</td><td>= M04 spec-first แต่ทำเป็น interactive interview ไม่ใช่เขียนเองครั้งเดียว</td></tr>
+        <tr><td><code>/to-spec</code></td><td>แปลงบทสนทนาที่ตกลงกันแล้วเป็น spec ที่เขียนไว้เป็นลายลักษณ์อักษร</td><td>= "ข้อกำหนดที่ตรวจได้" ของ M04 ในรูปเอกสารจริง</td></tr>
+        <tr><td><code>/to-tickets</code></td><td>ตัด spec เป็น ticket เล็กๆ ที่ agent สร้างได้ทีละชิ้น</td><td>= การย่อยงาน (task decomposition) ของ M04</td></tr>
+        <tr><td><code>/implement</code></td><td>สร้าง spec ที่เสร็จแล้วให้เป็นโค้ด แบบ <strong>test-first</strong></td><td>= RED-GREEN-REFACTOR ของ M11/Module 04 ทุกประการ</td></tr>
+        <tr><td><code>/code-review</code></td><td>Review diff เทียบกับทั้ง coding standard และ spec เดิม</td><td>= "PR review pattern" ของ Module 04 ในคอร์สนี้ ขยายให้เช็ค spec compliance ด้วย</td></tr>
+      </table>
+    </div>
+
+    <div class="lesson-section">
+      <h2>บทเรียนจาก AI Hero: Artifact ต้องเป็นไฟล์จริง ไม่ใช่แค่ใน context</h2>
+      <p><code>/grill-with-docs</code> ต่างจาก skill สัมภาษณ์อื่นตรงที่ <strong>stateful</strong> — เขียนผลลงไฟล์ทันทีที่แต่ละจุดตกลงกันได้ ไม่รอสรุปตอนจบ</p>
+      <table>
+        <tr><th>สิ่งที่ตกลงได้</th><th>ไปลงที่ไหน</th></tr>
+        <tr><td>คำศัพท์เฉพาะโปรเจกต์ (term)</td><td><code>CONTEXT.md</code> — glossary ทันทีที่ term นั้น resolve</td></tr>
+        <tr><td>การตัดสินใจที่กลับยาก + มี trade-off จริง</td><td><code>docs/adr/</code> (Architecture Decision Record)</td></tr>
+        <tr><td>ทุกอย่างที่ตกลงกันนอกเหนือจากนั้น</td><td>อยู่ใน conversation เท่านั้น — หายไปเมื่อ session จบ</td></tr>
+      </table>
+      <div class="callout pink">⚠️ กับดักที่พบบ่อย: session ที่ยังไม่มีคำศัพท์ใหม่หรือการตัดสินใจที่เข้าเกณฑ์ทั้ง 3 ข้อพร้อมกัน จะไม่มีอะไรถูกเขียนลงไฟล์เลย — นี่คือพฤติกรรมที่ถูกต้อง ไม่ใช่ bug แต่ต้องรู้ไว้ก่อน ไม่งั้นจะคิดว่า skill พัง</div>
+      <p>เชื่อมตรงกับหลักการ "artifact ต้องตรวจสอบได้" ที่ทั้ง Module 02 (AI-DLC Inception เป็น stage-gate) และ M04 ของ ai-sdlc (requirements ที่ตรวจได้) พูดถึง — เอกสารที่มีอยู่จริงในโค้ด ดีกว่าความเข้าใจที่ค้างอยู่ใน context window ของ session เดียว</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>สรุป: ทำไมควรเรียนต่อที่ ai-sdlc</h2>
+      <ul>
+        <li>M01-M03: กลไก agent + context + token economics — พื้นฐานที่คอร์สนี้ไม่ได้สอนลึกระดับนี้</li>
+        <li>M04, M08: requirements ที่ตรวจได้ + brownfield strategy — ขยาย engineering workflow ในระดับที่ลึกกว่า Module 04 ของคอร์สนี้</li>
+        <li>M11, M13: testing discipline + prompt injection threat model — เจาะลึกกว่า TDD/governance ที่มีในคอร์สนี้</li>
+        <li>M12: Evals — มีสรุปสั้นแล้วใน Module 09 ของคอร์สนี้ ไปอ่านเต็มที่ต้นทาง</li>
+        <li>M15: governance ระดับทีม — ต่อยอดจาก Module 08 ของคอร์สนี้</li>
+        <li>AI Hero Skills (aihero.dev) — ตัวอย่าง open-source ที่เอาหลักการ spec-first/TDD/code-review มาทำเป็น skill ติดตั้งใช้ได้จริงวันนี้ ไม่ต้องรอสร้างเอง</li>
+      </ul>
+      <div class="callout">💡 <strong>คอร์สนี้ (Hermes/Claude Code)</strong> = "วิธีใช้เครื่องมือ" · <strong>ai-sdlc</strong> = "วินัยตลอดวงจรชีวิตการพัฒนา" — เรียนคู่กันได้ ไม่ทับซ้อนกันจริง</div>
+      <p><a href="https://supachai-j.github.io/ai-sdlc/" target="_blank">https://supachai-j.github.io/ai-sdlc/</a> — 15 modules, 127 บท, eval harness รันได้จริง</p>
+    </div>
+
+    <div class="pagefoot">
+      <a href="slides.html">← กลับไปดู Slides</a>
+      <a href="lab.html">ไปทำ Lab →</a>
+    </div>
+    <div class="footer-note">Internal Enablement — Module 11 Content (Optional/Enrichment)</div>
+  </div>
+<script src="../../assets/theme.js" defer></script>
+</body>
+</html>

@@ -7,16 +7,16 @@
 <title>Module 10 · Capstone Project — AI Agent Engineering Course</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/theme/black.css">
-<link rel="stylesheet" href="../../assets/style.css">
 <link rel="stylesheet" href="../../assets/reveal-theme.css">
 </head>
 <body>
 <button class="theme-toggle-btn" type="button" aria-label="สลับธีม Light/Dark">☀️</button>
+<a class="content-link-btn" href="content.html">📖 Content</a>
 <div class="reveal">
   <div class="slides">
 
     <section class="title-slide">
-      <span class="badge">Module 10 · Ship</span>
+      <span class="badge">🚀 Module 10 · Ship</span>
       <h1>Capstone Project</h1>
       <p class="subtitle">รวมทุกอย่างที่เรียนมาเป็นโปรเจกต์เดียวที่ใช้งานได้จริง</p>
       <p style="margin-top:2em;font-size:0.55em;color:var(--r-text-dim);">Internal Enablement — AI Agent Engineering Course</p>
@@ -24,109 +24,65 @@
 
     <section>
       <h2>ทำไมต้องมี Capstone</h2>
-      <div class="two-col">
-        <div>
-          <p>ตลอด 9 module ที่ผ่านมา เราเรียนแยกเป็นส่วน ๆ:</p>
-          <ul>
-            <li>Agentic loop และ tool use (01)</li>
-            <li>Hermes platform + Claude Code CLI (02/03)</li>
-            <li>Engineering workflow + context (04/05)</li>
-            <li>Hooks, permissions, multi-agent (06/07)</li>
-            <li>Governance และ CI/CD automation (08/09)</li>
-          </ul>
-        </div>
-        <div>
-          <div class="card-box">
-            <h4>Capstone = การรวมร่าง</h4>
-            <p>โจทย์เดียว แต่ต้องเอาความรู้ทุก module มาใช้จริง —
-            ไม่ใช่แค่เขียน prompt แล้วรอผล แต่ต้อง design, build, secure,
-            test และ ship เป็น artifact ที่ demo ได้จริงในเวลาจำกัด</p>
-          </div>
-        </div>
+      <div class="stack">
+        <div class="stack-layer accent">01 Agentic loop + tool use</div>
+        <div class="stack-layer">02 / 03 Hermes + Claude Code CLI</div>
+        <div class="stack-layer">04 / 05 Engineering workflow + context</div>
+        <div class="stack-layer">06 / 07 Hooks, permissions, multi-agent</div>
+        <div class="stack-layer pink">08 / 09 Governance + CI/CD</div>
       </div>
+      <div class="big-stat"><span class="num">1</span><span class="label">โปรเจกต์เดียว ใช้ทุก module 01–09 จริง — ไม่ใช่แค่ prompt แล้วรอผล</span></div>
     </section>
 
     <section>
       <h2>เลือกโจทย์ Capstone</h2>
-      <p>เลือก use case จริงจากงานองค์กรอย่างใดอย่างหนึ่ง (หรือเสนอโจทย์ของทีมตัวเองก็ได้ ถ้าใกล้เคียง scope นี้):</p>
-      <div class="two-col">
-        <div class="card-box">
-          <h4>1. Presale Proposal Generator</h4>
-          <p>Agent ที่รับ requirement ลูกค้า + template เดิม แล้ว draft proposal/SOW เบื้องต้น
-          พร้อม citation จาก past project ที่เกี่ยวข้อง</p>
-        </div>
-        <div class="card-box">
-          <h4>2. Automated PR Reviewer สำหรับทีม</h4>
-          <p>รัน Claude Code แบบ headless ใน CI เพื่อ review PR อัตโนมัติ — เช็ค coding
-          standard, security pattern, และ comment กลับใน PR</p>
-        </div>
-      </div>
-      <div class="two-col">
-        <div class="card-box">
-          <h4>3. Internal Doc / Runbook Agent</h4>
-          <p>Agent ที่ค้นและตอบคำถามจาก internal doc/runbook (RAG หรือ MCP filesystem tool)
-          พร้อมอ้างอิงแหล่งที่มาทุกครั้ง</p>
-        </div>
-        <div class="card-box">
-          <h4>4. Monitoring / Alert Agent</h4>
-          <p>Agent ที่ตรวจ log/metric ผ่าน MCP tool แล้วสรุป incident, เสนอ root cause
-          และแจ้งเตือนทีมผ่าน chat (Slack/Telegram)</p>
-        </div>
+      <p style="text-align:center;">เลือก use case จริง 1 อัน (หรือเสนอโจทย์ทีมตัวเองที่ scope ใกล้เคียง)</p>
+      <div class="icon-grid">
+        <div class="icon-card"><span class="icon">📝</span><div class="title">Presale Proposal Generator</div><div class="desc">draft proposal/SOW จาก requirement + template เดิม พร้อม citation</div></div>
+        <div class="icon-card"><span class="icon">🔍</span><div class="title">Automated PR Reviewer</div><div class="desc">headless Claude Code ใน CI เช็ค coding standard + security</div></div>
+        <div class="icon-card"><span class="icon">📚</span><div class="title">Internal Doc / Runbook Agent</div><div class="desc">ตอบคำถามจาก doc/runbook พร้อมอ้างอิงแหล่งที่มา</div></div>
+        <div class="icon-card"><span class="icon">🚨</span><div class="title">Monitoring / Alert Agent</div><div class="desc">ตรวจ log/metric สรุป incident แจ้งทีมผ่าน chat</div></div>
       </div>
     </section>
 
     <section>
-      <h2>Checklist: Solution ต้องมีครบ</h2>
-      <p>ทุก capstone ต้องโยงกลับ concept จาก module 01–09 — นี่คือ checklist ที่ mentor จะเช็ค:</p>
+      <h2>Checklist: โยงกลับทุก Module</h2>
+      <p>ทุก capstone ต้องเช็คครบ 8 ข้อนี้ — mentor จะเช็คตรงนี้</p>
       <table>
         <tr><th>Checklist</th><th>โยงกลับ Module</th></tr>
-        <tr><td>Agentic loop ชัดเจน (observe → plan → act → verify)</td><td>01 — AI Agents 101</td></tr>
+        <tr><td>Agentic loop ชัดเจน (observe → plan → act → verify)</td><td>01</td></tr>
         <tr><td>ใช้ platform ที่เหมาะสม (Hermes / Claude Code CLI)</td><td>02 / 03</td></tr>
-        <tr><td>Workflow มี test/verify ทุก step สำคัญ</td><td>04 — Engineering Workflows</td></tr>
-        <tr><td>Context management ดี (CLAUDE.md, ไม่ยัด context เกินจำเป็น)</td><td>05 — Prompt & Context</td></tr>
-        <tr><td>มี permission/hook ป้องกันความเสี่ยง (เช่น block <code>rm -rf</code>, secret leak)</td><td>06 — Hooks & Permissions</td></tr>
-        <tr><td>ถ้าซับซ้อนพอ ใช้ multi-agent/subagent แบ่งงาน</td><td>07 — Multi-Agent Orchestration</td></tr>
-        <tr><td>ผ่าน governance checklist (secret, audit, data handling)</td><td>08 — Enterprise Governance</td></tr>
-        <tr><td>Deploy/automate ได้จริง ไม่ใช่แค่รันมือ</td><td>09 — CI/CD & Automation</td></tr>
+        <tr><td>Workflow มี test/verify ทุก step สำคัญ</td><td>04</td></tr>
+        <tr><td>Context management ดี (CLAUDE.md, ไม่ยัด context เกิน)</td><td>05</td></tr>
+        <tr><td>มี permission/hook ป้องกันความเสี่ยง (secret leak, <code>rm -rf</code>)</td><td>06</td></tr>
+        <tr><td>ถ้าซับซ้อนพอ ใช้ multi-agent/subagent แบ่งงาน</td><td>07</td></tr>
+        <tr><td>ผ่าน governance checklist (secret, audit, data handling)</td><td>08</td></tr>
+        <tr><td>Deploy/automate ได้จริง ไม่ใช่แค่รันมือ</td><td>09</td></tr>
       </table>
     </section>
 
     <section>
       <h2>Rubric การประเมิน</h2>
-      <div class="two-col">
-        <div class="card-box">
-          <h4>Functionality (30%)</h4>
-          <p>Agent ทำงานได้จริงตาม spec ที่ตั้งไว้ — รันแล้วได้ output ที่ถูกต้อง
-          ไม่ใช่ demo แบบ mock</p>
-        </div>
-        <div class="card-box">
-          <h4>Safety (25%)</h4>
-          <p>มี hook/permission ครบตาม risk ของ use case — block destructive action,
-          ไม่ leak secret, มี audit trail</p>
-        </div>
-      </div>
-      <div class="two-col">
-        <div class="card-box">
-          <h4>Documentation (20%)</h4>
-          <p>มี README.md และ CLAUDE.md ที่อธิบายชัดว่า agent ทำอะไร, setup ยังไง,
-          limitation คืออะไร</p>
-        </div>
-        <div class="card-box">
-          <h4>Demo (25%)</h4>
-          <p>Demo ได้จริงในเวลาจำกัด (5–10 นาที) — รันคำสั่งจริง ไม่ใช่ slide เล่าเฉย ๆ</p>
-        </div>
-      </div>
+      <table>
+        <tr><th>หมวด</th><th>น้ำหนัก</th><th>เช็คอะไร</th></tr>
+        <tr><td>⚙️ Functionality</td><td>30%</td><td>Agent ทำงานได้จริงตาม spec ไม่ใช่ demo mock</td></tr>
+        <tr><td>🛡️ Safety</td><td>25%</td><td>hook/permission ครบตาม risk, ไม่ leak secret, มี audit trail</td></tr>
+        <tr><td>📄 Documentation</td><td>20%</td><td>README.md + CLAUDE.md อธิบายชัดเจน มี limitation</td></tr>
+        <tr><td>🎬 Demo</td><td>25%</td><td>Demo จริงในเวลาจำกัด (5–10 นาที) รันคำสั่งจริง</td></tr>
+      </table>
     </section>
 
     <section>
-      <h2>Timeline แนะนำ (1 Sprint = 7 วัน)</h2>
-      <table>
-        <tr><th>Day</th><th>งาน</th><th>Output</th></tr>
-        <tr><td>1–2</td><td>Design: เลือกโจทย์, เขียน spec สั้น, ออกแบบ agentic loop</td><td>spec.md</td></tr>
-        <tr><td>3–4</td><td>Build: setup project, CLAUDE.md, permissions, core loop</td><td>working prototype</td></tr>
-        <tr><td>5</td><td>Test + Harden: เพิ่ม hook, รัน test, แก้ edge case</td><td>test output + hook log</td></tr>
-        <tr><td>6–7</td><td>Demo + Doc: เขียน README, เตรียม demo, ขอ feedback</td><td>README.md + demo</td></tr>
-      </table>
+      <h2>Timeline: 1 Sprint = 7 วัน</h2>
+      <div class="flow vertical">
+        <div class="flow-box accent"><span class="flow-icon">📐</span>Day 1–2: Design<span class="flow-sub">spec.md — เลือกโจทย์ + agentic loop</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><span class="flow-icon">🔨</span>Day 3–4: Build<span class="flow-sub">working prototype — setup, CLAUDE.md, core loop</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box warn"><span class="flow-icon">🧪</span>Day 5: Test + Harden<span class="flow-sub">test output + hook log</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box pink"><span class="flow-icon">🎬</span>Day 6–7: Demo + Doc<span class="flow-sub">README.md + demo</span></div>
+      </div>
     </section>
 
     <section>
@@ -197,15 +153,12 @@ $ python agent.py "review this PR"
 
     <section>
       <h2>Next Steps หลังคอร์สจบ</h2>
-      <ul>
-        <li><strong>Resource เพิ่มเติม:</strong> Claude Code docs, Anthropic engineering blog,
-        Hermes plugin/skill ecosystem</li>
-        <li><strong>ขอ feedback จากทีม:</strong> demo ให้ lead/peer ดู, เก็บ pain point จริง
-        ก่อนเอาไป production</li>
-        <li><strong>Scale จาก prototype → งานจริง:</strong> ใส่ observability, error handling,
-        cost tracking, และผ่าน governance review (module 08) ก่อน rollout ให้ทีมอื่นใช้</li>
-        <li>โปรเจกต์นี้ควรอยู่ใน git ของทีม ไม่ใช่แค่ไฟล์ใน local — ทำให้คนอื่นต่อยอดได้</li>
-      </ul>
+      <div class="icon-grid">
+        <div class="icon-card"><span class="icon">📚</span><div class="title">อ่านต่อ</div><div class="desc">Claude Code docs, Anthropic eng blog, Hermes skill/plugin ecosystem</div></div>
+        <div class="icon-card"><span class="icon">🗣️</span><div class="title">ขอ Feedback</div><div class="desc">demo ให้ lead/peer ดู เก็บ pain point จริงก่อนไป production</div></div>
+        <div class="icon-card"><span class="icon">📈</span><div class="title">Scale ให้เป็นงานจริง</div><div class="desc">observability, error handling, cost tracking, governance review (08)</div></div>
+        <div class="icon-card"><span class="icon">🌱</span><div class="title">เก็บใน Git ทีม</div><div class="desc">ไม่ใช่แค่ local — ให้คนอื่นต่อยอดได้</div></div>
+      </div>
     </section>
 
     <section>

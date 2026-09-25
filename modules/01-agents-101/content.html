@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem('course-theme')||(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content · Module 01 — AI Agents 101 — AI Agent Engineering Course</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<button class="theme-toggle-btn" type="button" aria-label="สลับธีม Light/Dark">☀️</button>
+  <div class="topnav">
+    <div class="brand"><span class="dot"></span> AI Agent Engineering Course</div>
+    <nav>
+      <a href="../../index.html">Home</a>
+      <a href="slides.html">Slides</a>
+      <a href="content.html" class="active">Content</a>
+      <a href="lab.html">Lab</a>
+    </nav>
+  </div>
+
+  <div class="wrap">
+    <div class="lesson-hero">
+      <span class="badge">📖 Content · Module 01</span>
+      <h1>AI Agents 101</h1>
+      <p style="color:var(--text-dim);">พื้นฐาน agentic loop, tool use, ความต่างจาก chatbot ธรรมดา และเหตุผลที่องค์กรต้องลงทุนเรื่อง AI agents</p>
+    </div>
+
+    <div class="tldr"><strong>TL;DR:</strong> Agent ไม่ใช่ LLM ที่ฉลาดกว่า แต่คือ LLM ที่ทำงานผ่าน <strong>agentic loop</strong> (observe → plan → act → observe) ร่วมกับ system prompt, tools, memory และ loop controller — ทำให้ทำงานหลายขั้นตอนอัตโนมัติได้จริงแทนที่จะตอบครั้งเดียวจบแบบ chatbot ธรรมดา มีประโยชน์ชัดเจนทั้งฝั่ง presale และ engineering แต่ต้องระวัง hallucination, สิทธิ์ tool ที่กว้างเกินไป และต้องมี human-in-the-loop สำหรับ action ที่ irreversible เสมอ</div>
+
+    <div class="lesson-section">
+      <h2>LLM call ธรรมดา คืออะไร</h2>
+      <p>
+        ก่อนจะเข้าใจว่า agent คืออะไร ต้องเข้าใจก่อนว่า LLM call แบบธรรมดา (<strong>single-turn inference</strong>)
+        ทำงานยังไง: เราส่ง prompt เข้าไป โมเดลประมวลผลแล้วตอบกลับมาครั้งเดียว แล้วจบการทำงานตรงนั้น
+        ไม่มีการวนซ้ำ ไม่มีการเรียกอะไรต่อ
+      </p>
+      <pre><code class="language-text">User: "สรุป email นี้ให้หน่อย"
+LLM:  [สรุปข้อความ] → จบการทำงาน</code></pre>
+      <p>
+        จุดสำคัญคือ โมเดลในโหมดนี้ <strong>ไม่รู้จักโลกภายนอก</strong> — มันไม่สามารถไปอ่านไฟล์จริงในเครื่อง
+        เรียก API ภายนอก หรือรันคำสั่ง terminal เองได้ ทุกอย่างที่มันตอบมาจากสิ่งที่อยู่ใน prompt/context
+        กับความรู้ที่ถูก train มาเท่านั้น นี่คือสิ่งที่ chatbot ทั่วไปหลายตัวทำงานอยู่
+      </p>
+      <div class="callout">💡 ถ้าคุณเคยใช้ ChatGPT/Claude แบบถาม-ตอบธรรมดาไม่เปิด tool ใดๆ นั่นคือ single-turn inference — ไม่ใช่ agent</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>สิ่งที่ทำให้เป็น "Agent"</h2>
+      <p>
+        สิ่งที่แยก agent ออกจาก LLM call ธรรมดา <strong>ไม่ใช่โมเดลที่ฉลาดกว่า</strong> แต่คือสถาปัตยกรรมที่ห่อหุ้ม
+        โมเดลไว้ เรียกว่า <strong>agentic loop</strong> ซึ่งประกอบด้วย 4 ขั้นตอนที่วนซ้ำไปเรื่อยๆ:
+      </p>
+      <ol>
+        <li><strong>Observe</strong> — ดู state ปัจจุบัน หรือรับ user request เข้ามา</li>
+        <li><strong>Plan</strong> — ตัดสินใจว่าต้องทำอะไรต่อไป เพื่อเข้าใกล้เป้าหมาย</li>
+        <li><strong>Act</strong> — เรียก tool หรือ function call จริง เพื่อลงมือทำ</li>
+        <li><strong>Observe result</strong> — ดูผลลัพธ์ที่ได้กลับมาจาก tool นั้น</li>
+      </ol>
+      <p>
+        จากนั้นวนกลับไปที่ข้อ 1 ใหม่อีกครั้ง โดยใช้ผลลัพธ์ล่าสุดเป็นข้อมูลในการ plan รอบถัดไป
+        กระบวนการนี้จะวนต่อไปเรื่อยๆ จนกว่างานจะเสร็จสมบูรณ์ หรือจนกว่าจะถึง limit ที่กำหนดไว้ (เช่น
+        จำนวนรอบสูงสุด หรือ timeout) เพื่อป้องกันไม่ให้ agent วน loop ไม่จบ
+      </p>
+      <div class="callout">💡 กุญแจสำคัญ: agent = LLM + loop ที่ให้มันสังเกต-วางแผน-ลงมือทำ-สังเกตผลซ้ำๆ ไม่ใช่แค่โมเดลรุ่นใหม่กว่าเดิม</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Agentic Loop ในทางปฏิบัติ: ตัวอย่าง restart service</h2>
+      <p>
+        ลองดูตัวอย่างการทำงานจริงของ agentic loop เมื่อ user สั่งงานที่ต้องใช้หลาย tool call
+        ต่อเนื่องกัน และ agent ต้องตัดสินใจเองว่าจะเรียกอะไรต่อจากผลลัพธ์ที่ได้ในแต่ละรอบ:
+      </p>
+      <pre><code class="language-text">User: "เช็คว่า service X down อยู่ไหม แล้ว restart ถ้า down"
+
+Loop:
+  observe → user request
+  plan    → ต้องเรียก tool "check_status" ก่อน
+  act     → check_status("service-x")
+  observe → result: "down"
+  plan    → ต้องเรียก tool "restart_service"
+  act     → restart_service("service-x")
+  observe → result: "restarted, status: up"
+  plan    → งานเสร็จแล้ว ไม่ต้องเรียก tool เพิ่ม
+  → ตอบ user: "restart สำเร็จ service กลับมา up แล้ว"</code></pre>
+      <p>
+        สังเกตว่า agent ไม่ได้ถูกบอกล่วงหน้าว่าต้องเรียก tool ไหนบ้างตามลำดับตายตัว มันตัดสินใจเองใน
+        แต่ละรอบของ loop โดยอิงจากผลลัพธ์ (observation) ล่าสุด — ถ้า check_status คืนค่า "up" อยู่แล้ว
+        agent ก็จะ plan ต่างออกไป (ไม่เรียก restart_service) และตอบ user ไปเลยว่าไม่ต้องทำอะไร
+        นี่คือความยืดหยุ่นที่ chatbot ธรรมดาทำไม่ได้
+      </p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>องค์ประกอบหลักของ agent</h2>
+      <p>Agent ที่ใช้งานได้จริงประกอบด้วย 4 ส่วนหลัก ซึ่งทำงานร่วมกันเพื่อขับเคลื่อน agentic loop:</p>
+      <table>
+        <thead><tr><th>องค์ประกอบ</th><th>หน้าที่</th></tr></thead>
+        <tbody>
+          <tr><td><strong>System prompt / instructions</strong></td><td>กำหนดบทบาท ขอบเขต และกติกาการทำงานของ agent ตั้งแต่ต้น — เช่น agent นี้ทำอะไรได้/ไม่ได้ ควรตอบสไตล์ไหน</td></tr>
+          <tr><td><strong>Available tools</strong></td><td>ความสามารถในการ function calling — อ่าน/เขียนไฟล์, เรียก API ภายนอก, รันคำสั่ง terminal และอื่นๆ ที่ทำให้ agent แตะโลกภายนอกได้จริง</td></tr>
+          <tr><td><strong>Memory / context</strong></td><td>เก็บ conversation history, เอกสารที่ retrieve มา, และ state ระหว่างการวน loop เพื่อให้ agent จำได้ว่าทำอะไรไปแล้วบ้าง</td></tr>
+          <tr><td><strong>Loop controller</strong></td><td>กลไกที่ตัดสินใจว่ารอบถัดไปควรเรียก tool ไหน หรือควรหยุด loop แล้วตอบ user ไปเลย</td></tr>
+        </tbody>
+      </table>
+      <div class="callout">💡 ถ้าขาดองค์ประกอบไหนไป agent จะทำงานได้ไม่ครบ เช่น มี tools แต่ไม่มี memory จะลืมว่าทำอะไรไปแล้วในรอบก่อนหน้า</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Chatbot ธรรมดา vs Agent</h2>
+      <p>เพื่อให้เห็นความต่างชัดเจนขึ้น เทียบคุณสมบัติหลักของทั้งสองแบบ:</p>
+      <table>
+        <thead><tr><th>Chatbot ธรรมดา</th><th>Agent</th></tr></thead>
+        <tbody>
+          <tr><td>Single-turn — ตอบครั้งเดียวจบ</td><td>Multi-turn tool use — วน loop จนงานเสร็จ</td></tr>
+          <tr><td>ไม่มี tool / ไม่แตะโลกภายนอก</td><td>เรียก tool จริง: ไฟล์, API, terminal, DB</td></tr>
+          <tr><td>ผู้ใช้ต้องทำ step ต่อไปเอง</td><td>ทำงานหลายขั้นตอนอัตโนมัติ</td></tr>
+          <tr><td>ไม่มี state ระหว่าง turn</td><td>เก็บ context/observe result เพื่อวางแผนต่อ</td></tr>
+          <tr><td>เหมาะกับ Q&amp;A, สรุปข้อความ</td><td>เหมาะกับงานที่ต้องลงมือทำจริง</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="lesson-section">
+      <h2>ทำไมองค์กรต้องสนใจเรื่องนี้</h2>
+      <p>Agent มีประโยชน์ในหลายบทบาทขององค์กร โดยเฉพาะสองฝั่งหลักที่คอร์สนี้เน้น:</p>
+      <p><strong>Presale:</strong> ช่วย research ข้อมูลคู่แข่ง/ลูกค้า, drafting proposal เบื้องต้น, สรุป
+      requirement จาก meeting notes ให้เร็วขึ้น — งานที่เดิมต้องใช้เวลาหลายชั่วโมงในการอ่านและสรุปเอกสาร
+      สามารถให้ agent ช่วยร่นเวลาได้มาก</p>
+      <p><strong>Engineering:</strong> เขียนโค้ด, debug, review PR, deploy อัตโนมัติ, ลด manual toil
+      ในงาน routine เช่น log analysis, config check — งานที่ทำซ้ำๆ ตามรูปแบบเดิมแต่ต้องใช้เวลา
+      เหมาะกับการให้ agent รับช่วงทำแทน</p>
+      <p>ตัวอย่างงานจริงที่ agent ช่วยได้ในแต่ละบทบาท:</p>
+      <ul>
+        <li><strong>Engineer:</strong> "หา bug ที่ทำให้ test นี้ fail แล้ว fix ให้" — agent อ่านโค้ด, รัน test, แก้, รันซ้ำ</li>
+        <li><strong>Presale:</strong> "สรุป pain point ลูกค้าจาก transcript นี้ แล้วร่าง outline proposal" — agent ค้น, สรุป, ร่าง draft</li>
+        <li><strong>Ops:</strong> "ตรวจ log 24 ชม.ที่ผ่านมา หา anomaly แล้วสรุปเป็น report" — agent วน query + สรุปอัตโนมัติ</li>
+      </ul>
+      <p>จุดร่วมของทั้ง 3 ตัวอย่าง: เป็นงานที่มี<strong>หลายขั้นตอน ทำซ้ำได้ แต่ยังต้องใช้ "การตัดสินใจ"</strong>
+      ระหว่างทาง — นี่คือจุดที่ agent ทำได้ดีกว่า automation script แบบตายตัว เพราะ agent ปรับ plan
+      ตาม observation ที่ได้ในแต่ละรอบ</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>ความเสี่ยง/ข้อจำกัดที่ต้องรู้ตั้งแต่ต้น</h2>
+      <p>ก่อนนำ agent ไปใช้งานจริง มีข้อควรระวังสำคัญที่ต้องเข้าใจตั้งแต่แรก:</p>
+      <div class="callout pink">⚠️ <strong>Hallucination</strong> — agent อาจสร้างข้อมูล/ผลลัพธ์ที่ดูสมเหตุสมผลแต่ผิดจริง เพราะโมเดลพยายามตอบให้ครบถ้วนแม้ไม่มีข้อมูลจริงรองรับ ต้อง verify ผลลัพธ์สำคัญเสมอ</div>
+      <div class="callout pink">⚠️ <strong>สิทธิ์ tool กว้างเกินไป</strong> — การให้ agent เข้าถึง production database หรือ deploy key โดยไม่จำเป็น เพิ่มความเสี่ยงมหาศาลถ้า agent ตัดสินใจผิดพลาดหรือถูก prompt injection หลอกให้ทำสิ่งที่ไม่ควรทำ</div>
+      <div class="callout pink">⚠️ <strong>ต้องมี human-in-the-loop</strong> สำหรับ action ที่ <em>irreversible</em> เช่น deploy production, delete ข้อมูล, ส่งอีเมลออกไปหาลูกค้าจริง — action เหล่านี้ต้องมีจุดหยุดรอ human อนุมัติก่อนเสมอ ไม่ควรให้ agent ทำอัตโนมัติ 100%</div>
+      <div class="card-box">
+        <h4>รายละเอียดเชิงลึก</h4>
+        <p>เรื่อง governance, permission model และ audit trail จะเรียนเต็มใน <strong>Module 08: Enterprise Governance &amp; Security</strong></p>
+      </div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Landscape เครื่องมือที่คอร์สนี้สอน: Hermes vs Claude Code</h2>
+      <p>
+        คอร์สนี้จะสอนสองเครื่องมือหลักที่ใช้สร้างและ orchestrate agent ในบริบทที่ต่างกัน:
+      </p>
+      <p><strong>Hermes</strong> — agent orchestration platform ที่จัดการ profile, skills, memory,
+      MCP tool layer และ connector (Discord/Telegram/Email) ให้ agent ทำงานแบบ persistent
+      ข้าม session และรองรับหลาย channel พร้อมกัน เหมาะกับงานที่ต้องการ agent ที่ทำงานต่อเนื่อง
+      อยู่เบื้องหลัง หรือต้องคุยผ่านหลายช่องทาง</p>
+      <p><strong>Claude Code</strong> — coding agent CLI ที่รันในเครื่องหรือ CI โดยตรง เข้าถึง
+      filesystem และ terminal ได้ตรงๆ เหมาะกับงาน engineering เช่นเขียนโค้ด, review, refactor,
+      automation ที่ต้องการความเร็วและการเข้าถึงเครื่องแบบตรงไปตรงมา</p>
+      <p>ทั้งสองเครื่องมือใช้คนละบริบท: Hermes เป็น platform ที่ orchestrate agent หลายตัว/หลาย channel
+      ส่วน Claude Code เป็น agent เดี่ยวที่โฟกัสงานโค้ดในเครื่อง — <strong>Module 02</strong> และ
+      <strong>Module 03</strong> จะลงลึกในแต่ละตัวตามลำดับ</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>สรุป</h2>
+      <ul>
+        <li>Agent = LLM + agentic loop (observe → plan → act → observe) + tools + memory</li>
+        <li>ต่างจาก chatbot ตรงที่ทำงานหลายขั้นตอนอัตโนมัติผ่าน tool call จริง</li>
+        <li>มีประโยชน์ชัดเจนทั้งฝั่ง presale และ engineering แต่ต้องระวัง hallucination และสิทธิ์ tool</li>
+        <li>Action ที่ irreversible ต้องมี human-in-the-loop เสมอ</li>
+      </ul>
+    </div>
+
+    <div class="pagefoot">
+      <a href="slides.html">← กลับไปดู Slides</a>
+      <a href="lab.html">ไปทำ Lab →</a>
+    </div>
+    <div class="footer-note">Internal Enablement — Module 01 Content</div>
+  </div>
+<script src="../../assets/theme.js" defer></script>
+</body>
+</html>

@@ -8,41 +8,38 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css">
-<link rel="stylesheet" href="../../assets/style.css">
 <link rel="stylesheet" href="../../assets/reveal-theme.css">
 </head>
 <body>
 <button class="theme-toggle-btn" type="button" aria-label="สลับธีม Light/Dark">☀️</button>
+<a class="content-link-btn" href="content.html">📖 Content</a>
 <div class="reveal">
 <div class="slides">
 
   <section class="title-slide">
-    <span class="badge">Module 11 · Bigger Picture</span>
+    <span class="badge">🗺️ Module 11 · Bigger Picture</span>
     <h1>The Bigger Picture:<br>AI Coding Agent SDLC</h1>
-    <p class="subtitle">คอร์สนี้สอน "วิธีใช้เครื่องมือ" (Hermes + Claude Code) — โมดูลนี้ชี้ไปยัง "วินัยทั้งวงจรชีวิต" ของการพัฒนาซอฟต์แวร์ด้วย agent</p>
+    <p class="subtitle">คอร์สนี้ = วิธีใช้เครื่องมือ · ai-sdlc = วินัยทั้งวงจรชีวิต</p>
   </section>
 
   <section>
-    <h2>ทำไมต้องมีโมดูลนี้</h2>
-    <p>Module 01-10 ตอบคำถาม <strong>"ใช้ Hermes/Claude Code ยังไง"</strong> —
-    แต่ยังไม่ได้ตอบคำถามที่ลึกกว่านั้น: <strong>agent ทำงานข้างในยังไง</strong>,
-    <strong>ต้นทุนคำนวณยังไง</strong>, <strong>จะรับมือ legacy code ยังไง</strong>,
-    <strong>จะรู้ได้ยังไงว่า test ที่ agent เขียนจับบั๊กจริง</strong></p>
-    <div class="card-box">
-      <h4>คอร์สแยกที่ตอบคำถามเหล่านี้: ai-sdlc</h4>
-      <p>คอร์ส <strong>AI Coding Agent SDLC</strong> — 15 modules, 127 บท, พร้อม eval harness
-      ที่รันได้จริง ไม่ใช่ทฤษฎีเปล่า — ครอบคลุมตั้งแต่กลไกภายในของ agent ไปจนถึง
-      governance ระดับทีม โมดูลนี้เป็น "แผนที่" สรุปหัวข้อสำคัญ 60-90 วินาทีต่อหัวข้อ
-      แล้วชี้ไปเรียนลึกที่ต้นทาง</p>
+    <h2>🧭 ทำไมต้องมีโมดูลนี้</h2>
+    <div class="flow">
+      <div class="flow-box accent"><span class="flow-icon">🛠️</span>M01-10<span class="flow-sub">ใช้ Hermes/Claude Code ยังไง</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box pink"><span class="flow-icon">❓</span>คำถามที่ลึกกว่า<span class="flow-sub">agent ทำงานข้างในยังไง / ต้นทุน / legacy / test จริงไหม</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box"><span class="flow-icon">🗺️</span>ai-sdlc<span class="flow-sub">15 modules ตอบคำถามเหล่านี้</span></div>
     </div>
-    <p style="font-size:0.8em;color:var(--r-text-dim);">
+    <div class="big-stat"><span class="num">127</span><span class="label">บท พร้อม eval harness ที่รันได้จริง — ไม่ใช่ทฤษฎีเปล่า</span></div>
+    <p style="font-size:0.7em;color:var(--r-text-dim);text-align:center;">
       <a href="https://supachai-j.github.io/ai-sdlc/" target="_blank">https://supachai-j.github.io/ai-sdlc/</a>
     </p>
   </section>
 
   <section>
-    <h2>แผนที่ 15 Module ของ ai-sdlc</h2>
-    <table style="font-size:0.62em;">
+    <h2>🗺️ แผนที่ 15 Module ของ ai-sdlc</h2>
+    <table style="font-size:0.58em;">
       <tr><th>Phase</th><th>Module</th><th>หัวข้อ</th></tr>
       <tr><td rowspan="3">00 · Foundations</td><td>M01</td><td>กลไกภายในของ Agent</td></tr>
       <tr><td>M02</td><td>Context Engineering</td></tr>
@@ -57,214 +54,173 @@
       <tr><td>M14</td><td>CI/CD และ Agent ในสายพาน</td></tr>
       <tr><td>05 · Team</td><td>M15</td><td>Operations, Governance และการใช้จริงในทีม</td></tr>
     </table>
-    <p style="font-size:0.75em;">โมดูลถัดไปในสไลด์นี้จะกวดเฉพาะหัวข้อที่ <strong>ยังไม่มี</strong>
-    ใน Module 01-10 ของคอร์สนี้เท่านั้น — Tooling(M09)/Multi-Agent(M10)/Governance(M15) บางส่วน
-    คาบเกี่ยวกับ Module 06-08 ของคอร์สนี้แล้ว จึงข้ามในสไลด์นี้</p>
+    <p style="font-size:0.65em;color:var(--r-text-dim);text-align:center;">สไลด์ถัดไปกวดเฉพาะหัวข้อที่ <strong>ยังไม่มี</strong> ใน Module 01-10 ของคอร์สนี้ —
+    M09/M10/M15 บางส่วนคาบเกี่ยวกับ Module 06-08 แล้ว จึงข้าม</p>
   </section>
 
   <section>
-    <h2>M01 · Agent ไม่ใช่กล่องดำ</h2>
-    <p>Agent คือ <strong>loop ธรรมดา</strong> ที่ห่อด้วยวิศวกรรมหลายชั้น —
-    ประกอบมาจาก 4-5 แนวคิดคนละทีม คนละปี ที่ค่อยๆ รวมกันในช่วง ~2 ปี</p>
-    <table>
-      <tr><th>ปี</th><th>แนวคิด</th><th>สิ่งที่เพิ่มเข้ามา</th></tr>
-      <tr><td>2021-12</td><td>WebGPT</td><td>โมเดล + browser — เริ่มมีความคิดว่าให้หาข้อมูลเองได้</td></tr>
-      <tr><td>2022-01</td><td>Chain-of-Thought</td><td>ให้คิดเป็นขั้นๆ ออกมาเป็นข้อความก่อนตอบ</td></tr>
-      <tr><td>2022-05</td><td>MRKL Systems</td><td>แยกงานให้ module ภายนอกทำแทนที่จะให้โมเดลทำเอง</td></tr>
-      <tr><td>2022-10</td><td>ReAct</td><td>ต้นตำรับของลูป — "คิด" กับ "ลงมือ" สลับกันในลูปเดียว</td></tr>
-    </table>
+    <h2>🤖 M01 · Agent ไม่ใช่กล่องดำ</h2>
+    <p style="text-align:center;">Agent = <strong>loop ธรรมดา</strong> ห่อด้วยวิศวกรรมหลายชั้น — 4-5 แนวคิดคนละทีม รวมกันใน ~2 ปี</p>
+    <div class="timeline">
+      <div class="timeline-item"><span class="t-date">2021-12 · WebGPT</span>โมเดล + browser — เริ่มหาข้อมูลเองได้</div>
+      <div class="timeline-item"><span class="t-date">2022-01 · Chain-of-Thought</span>คิดเป็นขั้นๆ ออกมาเป็นข้อความก่อนตอบ</div>
+      <div class="timeline-item"><span class="t-date">2022-05 · MRKL Systems</span>แยกงานให้ module ภายนอกทำแทนโมเดล</div>
+      <div class="timeline-item"><span class="t-date">2022-10 · ReAct</span>ต้นตำรับของลูป — "คิด" กับ "ลงมือ" สลับกันในลูปเดียว</div>
+    </div>
     <div class="card-box">
       <h4>ทำไมสำคัญกับ debug</h4>
-      <p>คนที่ debug agent ไม่เป็น ไม่ใช่เพราะไม่เก่ง แต่เพราะไม่มีแบบจำลองในหัวว่าข้างในมีอะไรบ้าง
-      — เมื่อมีแล้ว ปัญหาที่ดูลึกลับจะกลายเป็นคำถามว่า "ชั้นไหนพัง"</p>
+      <p>คนที่ debug agent ไม่เป็น ไม่ใช่เพราะไม่เก่ง แต่เพราะไม่มีแบบจำลองในหัวว่าข้างในมีอะไรบ้าง —
+      เมื่อมีแล้ว ปัญหาลึกลับจะกลายเป็นคำถามว่า "ชั้นไหนพัง"</p>
     </div>
   </section>
 
   <section>
-    <h2>M02 · Context Engineering</h2>
-    <p><strong>บริบทคืองบประมาณ ไม่ใช่ถัง</strong> — ทุก token ที่ใส่เข้าไปมีต้นทุนสองชั้น:
-    เงินที่จ่าย และความสนใจของโมเดลที่ถูกดึงไปจากสิ่งที่สำคัญกว่า</p>
+    <h2>💰 M02 · Context Engineering</h2>
+    <div class="big-stat"><span class="num">📦≠✅</span><span class="label">บริบทคืองบประมาณ ไม่ใช่ถัง — "ใส่ได้" กับ "ใช้ได้ดี" คนละเรื่อง</span></div>
     <div class="danger">
-      <strong>Lost in the Middle (2023):</strong> "ใส่ได้" กับ "ใช้ได้ดี" ไม่ใช่เรื่องเดียวกัน —
-      context window ใหญ่ไม่ได้ยกเลิกวินัยข้อนี้ แค่ทำให้ค่าเสียหายมาช้าลง
+      <strong>Lost in the Middle (2023):</strong> context window ใหญ่ไม่ยกเลิกวินัยนี้ แค่ทำให้ค่าเสียหายมาช้าลง
     </div>
-    <p style="font-size:0.85em;">เชื่อมกับ Module 05 (Prompt &amp; Context) ของคอร์สนี้ที่สอนแค่ระดับ
-    "ใช้ /compact ยังไง" — M02 ของ ai-sdlc สอนหลักคิดเบื้องหลังเต็มบทว่าทำไม trade-off นี้ถึงมีอยู่</p>
+    <p style="font-size:0.6em;color:var(--r-text-dim);text-align:center;">เชื่อมกับ Module 05 ของคอร์สนี้ (ใช้ /compact ยังไง) — M02 ของ ai-sdlc สอนหลักคิดเบื้องหลังเต็มบท</p>
   </section>
 
   <section>
-    <h2>M03 · เศรษฐศาสตร์ของ Token และโมเดล</h2>
-    <p>คำถามที่ถูกไม่ใช่ "โมเดลไหนถูกกว่า" แต่คือ <strong>"ต้นทุนต่องานที่เสร็จเท่าไร"</strong>
-    — โมเดลราคาต่อ token ถูกกว่าครึ่งแต่ต้องวน 3 รอบ แพงกว่าเสมอ</p>
-    <div class="two-col">
-      <div class="card-box">
-        <h4>Cache (1960s CPU cache → prompt caching)</h4>
-        <p>อ่านซ้ำถูกกว่าอ่านครั้งแรกมาก — ตรรกะเดียวกันเป๊ะกับ prompt caching ยุค LLM</p>
-      </div>
-      <div class="card-box">
-        <h4>Cascade (Viola–Jones 2001 → model routing)</h4>
-        <p>กรองด้วยของถูกก่อน แล้วค่อยจ่ายแพงเฉพาะเคสที่จำเป็น</p>
-      </div>
+    <h2>💸 M03 · เศรษฐศาสตร์ของ Token</h2>
+    <p style="text-align:center;">คำถามที่ถูก: ไม่ใช่ "โมเดลไหนถูกกว่า" แต่คือ <strong>"ต้นทุนต่องานที่เสร็จเท่าไร"</strong></p>
+    <div class="icon-grid">
+      <div class="icon-card"><span class="icon">🗄️</span><div class="title">Cache</div><div class="desc">1960s CPU cache → prompt caching: อ่านซ้ำถูกกว่าอ่านครั้งแรกมาก</div></div>
+      <div class="icon-card"><span class="icon">🌊</span><div class="title">Cascade</div><div class="desc">Viola–Jones 2001 → model routing: กรองด้วยของถูกก่อน จ่ายแพงเฉพาะเคสจำเป็น</div></div>
     </div>
     <div class="warn">แนวคิดทั้งสองขัดกันเองเมื่อใช้พร้อมกันกับ LLM — ต้องรู้จุดตัดสินใจว่าเมื่อไหร่ใช้อันไหน</div>
   </section>
 
   <section>
-    <h2>M04 · Requirements ที่ "ตรวจได้"</h2>
-    <p>บทที่ให้ผลตอบแทนสูงที่สุดในคอร์ส — วางแผน 10 นาที ประหยัดการสั่งซ้ำเป็นชั่วโมง</p>
-    <table>
-      <tr><th></th><th>คำสั่ง</th><th>ข้อกำหนด</th></tr>
-      <tr><td>ตัวอย่าง</td><td>"แก้บั๊กตรงหน้า checkout ให้หน่อย"</td><td>"เมื่อตะกร้าว่าง ปุ่มชำระเงินต้อง disabled และเทสต์ checkout.empty ต้องเขียว"</td></tr>
-      <tr><td>รู้ว่าเสร็จเมื่อ</td><td>คนดูแล้วรู้สึกว่าใช่</td><td>สคริปต์ตัดสินได้</td></tr>
-      <tr><td>เมื่อผิด</td><td>ต้องอธิบายใหม่ทั้งหมด</td><td>ชี้ได้ว่าข้อไหนไม่ผ่าน</td></tr>
-    </table>
+    <h2>📋 M04 · Requirements ที่ "ตรวจได้"</h2>
+    <p style="text-align:center;font-size:0.75em;">บทที่ให้ผลตอบแทนสูงสุดในคอร์ส — วางแผน 10 นาที ประหยัดการสั่งซ้ำเป็นชั่วโมง</p>
+    <div class="compare">
+      <div class="compare-box"><div class="flow-box danger">❌ คำสั่ง<span class="flow-sub">"แก้บั๊กตรงหน้า checkout ให้หน่อย" — เสร็จเมื่อ "รู้สึกว่าใช่" — ผิดแล้วต้องอธิบายใหม่ทั้งหมด</span></div></div>
+      <div class="compare-vs">VS</div>
+      <div class="compare-box"><div class="flow-box accent">✅ ข้อกำหนด<span class="flow-sub">"ตะกร้าว่าง → ปุ่มชำระเงิน disabled และเทสต์ checkout.empty ต้องเขียว" — สคริปต์ตัดสินได้ — ผิดชี้ได้ว่าข้อไหนไม่ผ่าน</span></div></div>
+    </div>
     <div class="card-box">
       <h4>Prompt ที่ดีไม่ใช่คำสั่งที่เขียนเก่ง</h4>
-      <p>แต่คือ <strong>ข้อกำหนดที่ตรวจได้</strong> — นี่คือหลักการเดียวกับที่ Module 04
-      (Engineering Workflows) ของคอร์สนี้ใช้ใน TDD RED phase (เขียน failing test = เขียนข้อกำหนดที่ตรวจได้)</p>
+      <p>แต่คือ <strong>ข้อกำหนดที่ตรวจได้</strong> — หลักการเดียวกับ Module 04 ของคอร์สนี้ใน TDD RED phase</p>
     </div>
   </section>
 
   <section>
-    <h2>M08 · Brownfield &amp; Legacy Code</h2>
-    <p>งานจริงไม่ได้เริ่มจากโฟลเดอร์ว่าง — เริ่มจาก repo อายุ 6 ปี ไม่มีเทสต์ ไม่มี type
-    คนเขียนลาออกไปแล้ว กติกา<strong>กลับด้าน</strong>จาก greenfield</p>
-    <table>
-      <tr><th></th><th>Greenfield</th><th>Brownfield</th></tr>
-      <tr><td>ความเสี่ยง</td><td>ทำไม่เสร็จ</td><td>ทำของที่เคยใช้ได้ให้พัง</td></tr>
-      <tr><td>กลยุทธ์</td><td>ลุยได้เลย</td><td>สร้างตาข่ายก่อน แล้วค่อยขยับ</td></tr>
-    </table>
+    <h2>🏚️ M08 · Brownfield &amp; Legacy Code</h2>
+    <p style="text-align:center;font-size:0.75em;">งานจริงไม่เริ่มจากโฟลเดอร์ว่าง — repo อายุ 6 ปี ไม่มีเทสต์ คนเขียนลาออกแล้ว กติกากลับด้านจาก greenfield</p>
+    <div class="compare">
+      <div class="compare-box"><div class="flow-box accent">🌱 Greenfield<span class="flow-sub">ความเสี่ยง: ทำไม่เสร็จ<br>กลยุทธ์: ลุยได้เลย</span></div></div>
+      <div class="compare-vs">VS</div>
+      <div class="compare-box"><div class="flow-box warn">🏚️ Brownfield<span class="flow-sub">ความเสี่ยง: ทำของที่เคยใช้ได้ให้พัง<br>กลยุทธ์: สร้างตาข่ายก่อน แล้วค่อยขยับ</span></div></div>
+    </div>
     <div class="card-box">
       <h4>3 output ก่อนสั่งแก้อะไรเลย</h4>
       <p>1) แผนที่ระดับบน (โมดูลหลัก, อะไรเรียกอะไร) 2) เส้นทางของฟีเจอร์ (request → DB ทีละไฟล์)
-      3) รายการของที่ดูแปลก (โค้ดตายแล้ว, ชื่อขัดกัน, ของซ้ำ) — ข้อ 3 มีค่าที่สุด เพราะ
-      agent ไม่มีความคุ้นเคยมาบดบัง มันเห็นสิ่งที่คนในทีมชินตาจนมองไม่เห็นแล้ว</p>
+      3) รายการของที่ดูแปลก (โค้ดตายแล้ว, ชื่อขัดกัน, ของซ้ำ) — ข้อ 3 มีค่าที่สุด เพราะ agent
+      ไม่มีความคุ้นเคยมาบดบัง มันเห็นสิ่งที่คนในทีมชินตาจนมองไม่เห็นแล้ว</p>
     </div>
   </section>
 
   <section>
-    <h2>M11 · Testing: เทสต์ที่ Agent เขียนเอง</h2>
-    <p>Agent เขียนเทสต์ได้เร็วมาก — ทั้งข้อดีและปัญหา เพราะ<strong>เทสต์ที่ผ่านไม่ได้แปลว่าโค้ดถูก</strong></p>
+    <h2>🧪 M11 · Testing: เทสต์ที่ Agent เขียนเอง</h2>
+    <p style="text-align:center;font-size:0.75em;">Agent เขียนเทสต์ได้เร็วมาก — ทั้งข้อดีและปัญหา เพราะ<strong>เทสต์ที่ผ่านไม่ได้แปลว่าโค้ดถูก</strong></p>
     <div class="danger">
-      <strong>ความต่างสำคัญ:</strong> เมื่อคนเขียนโค้ดแล้วเขียนเทสต์ เทสต์สะท้อนความเข้าใจของคนนั้น
-      — เมื่อ agent เขียนทั้งคู่ เทสต์สะท้อน<strong>สิ่งที่โค้ดทำ</strong> ไม่ใช่<strong>สิ่งที่โค้ดควรทำ</strong>
+      <strong>ความต่างสำคัญ:</strong> คนเขียนโค้ด+เทสต์เอง → เทสต์สะท้อนความเข้าใจ ·
+      agent เขียนทั้งคู่ → เทสต์สะท้อน<strong>สิ่งที่โค้ดทำ</strong> ไม่ใช่<strong>สิ่งที่โค้ดควรทำ</strong>
     </div>
-    <p style="font-size:0.85em;">วิธีแก้ (TDD: red→green→refactor, Kent Beck 1999-2002) ถูกคิดมาก่อนมี LLM 20 ปี
-    เพื่อกัน "เขียนโค้ดก่อนแล้วเขียนเทสต์ยืนยันสิ่งที่เพิ่งเขียน" — ตรงกับปัญหาของ agent วันนี้พอดี
-    นี่คือเหตุผลที่ Module 04 ของคอร์สนี้ยืนกฎเหล็ก "ห้ามให้ agent แก้ไฟล์ test เอง" ในรอบ GREEN</p>
+    <p style="font-size:0.6em;color:var(--r-text-dim);text-align:center;">TDD (red→green→refactor, Kent Beck 1999-2002) คิดมาก่อน LLM 20 ปี เพื่อกันปัญหานี้พอดี —
+    เหตุผลที่ Module 04 ของคอร์สนี้ห้าม agent แก้ไฟล์ test เองในรอบ GREEN</p>
   </section>
 
   <section>
-    <h2>M13 · Prompt Injection: ภัยคุกคามที่รู้วันเกิด</h2>
-    <p>ข้อเท็จจริงหนึ่งข้อที่อธิบายภัยเกือบทั้งหมด: <strong>โมเดลแยกไม่ออกระหว่างคำสั่งจากคุณ
-    กับข้อความที่หน้าตาเหมือนคำสั่งซึ่งอยู่ในข้อมูลที่มันอ่าน</strong></p>
-    <table>
-      <tr><th>วันที่</th><th>เหตุการณ์</th></tr>
-      <tr><td>2022-09</td><td>Riley Goodside สาธิต ข้อความในอินพุตทำให้โมเดลเลิกทำตามคำสั่งเดิม</td></tr>
-      <tr><td>2022-09-12</td><td>Simon Willison ตั้งชื่อ "prompt injection" เทียบกับ SQL injection</td></tr>
-      <tr><td>2023-02</td><td>Indirect prompt injection — พิษไม่ต้องมาจากผู้ใช้ มาจากของที่ agent ไปอ่านเอง</td></tr>
-      <tr><td>2023→</td><td>OWASP จัดเป็นอันดับ 1 (LLM01)</td></tr>
-    </table>
-    <div class="warn">เชื่อมตรงกับกฎ untrusted-content ที่ระบบนี้เองก็บังคับใช้อยู่ — เนื้อหาจากเว็บ/ไฟล์ที่ agent อ่าน
+    <h2>💉 M13 · Prompt Injection: ภัยที่รู้วันเกิด</h2>
+    <p style="text-align:center;font-size:0.75em;">โมเดลแยกไม่ออกระหว่างคำสั่งจากคุณ กับข้อความที่หน้าตาเหมือนคำสั่งในข้อมูลที่มันอ่าน</p>
+    <div class="timeline">
+      <div class="timeline-item"><span class="t-date">2022-09</span>Riley Goodside สาธิต — ข้อความในอินพุตทำให้โมเดลเลิกทำตามคำสั่งเดิม</div>
+      <div class="timeline-item"><span class="t-date">2022-09-12</span>Simon Willison ตั้งชื่อ "prompt injection" เทียบกับ SQL injection</div>
+      <div class="timeline-item"><span class="t-date">2023-02</span>Indirect prompt injection — พิษมาจากของที่ agent ไปอ่านเอง ไม่ต้องมาจากผู้ใช้</div>
+      <div class="timeline-item"><span class="t-date">2023→</span>OWASP จัดเป็นอันดับ 1 (LLM01)</div>
+    </div>
+    <div class="warn">เชื่อมตรงกับกฎ untrusted-content ของระบบนี้เอง — เนื้อหาจากเว็บ/ไฟล์ที่ agent อ่าน
     ต้องถูก treat เป็น data ไม่ใช่ instruction เสมอ</div>
   </section>
 
   <section>
-    <h2>M12 · Evals</h2>
-    <p>โมดูลที่คอร์สทั่วไปไม่มี — <strong>ความแปรปรวนระหว่างการรันสองครั้งของงานเดียวกัน
-    มักใหญ่กว่าผลของการแก้ prompt</strong> ที่เพิ่งทำ</p>
-    <div class="card-box">
-      <h4>เนื้อหานี้มีอยู่แล้วใน Module 09 ของคอร์สนี้</h4>
-      <p>ดู "วัดผลว่า pipeline ดีขึ้นจริงหรือแค่รู้สึกว่าดีขึ้น" ใน Module 09 (CI/CD Automation)
-      — ดึงมาจาก M12 นี้โดยตรง พร้อม hands-on mini-eval lab</p>
+    <h2>📎 M12/M15 · Evals &amp; Governance</h2>
+    <div class="icon-grid">
+      <div class="icon-card"><span class="icon">📊</span><div class="title">M12 · Evals</div><div class="desc">ความแปรปรวนระหว่าง 2 รันของงานเดียวกัน มักใหญ่กว่าผลของการแก้ prompt — สรุปแล้วใน Module 09 ของคอร์สนี้</div></div>
+      <div class="icon-card"><span class="icon">📜</span><div class="title">M15 · Governance</div><div class="desc">Runbook สำหรับคนเว้นช่องให้คนเติมเอง — agent ไม่มีความรู้ค้างหัวแบบคนเก่า ต้องเขียนให้ agent ทำตามได้จริง</div></div>
     </div>
-    <p style="font-size:0.8em;color:var(--r-text-dim);">
-      <a href="../09-cicd-automation/slides.html">↩ กลับไปดู Module 09</a> ·
-      <a href="https://supachai-j.github.io/ai-sdlc/m12-evals.html" target="_blank">อ่านเต็มที่ ai-sdlc M12</a>
+    <p style="font-size:0.7em;color:var(--r-text-dim);text-align:center;">
+      <a href="../09-cicd-automation/slides.html">↩ กลับไปดู Module 09 (Evals)</a> ·
+      <a href="https://supachai-j.github.io/ai-sdlc/m12-evals.html" target="_blank">อ่านเต็ม ai-sdlc M12</a><br>
+      เชื่อมกับ Module 08 (Enterprise Governance) ของคอร์สนี้ — M15 ขยายไปถึงระดับ "ทีม 15 คนใช้ agent พร้อมกัน"
     </p>
   </section>
 
   <section>
-    <h2>M15 · Governance: Runbook ที่ Agent ทำตามได้จริง</h2>
-    <p>ปัญหาที่เหลืออยู่ไม่ใช่ปัญหาเทคนิค แต่เป็น<strong>ความไว้ใจที่ปรับเทียบถูก</strong>
-    — ไว้ใจน้อยเกินไม่ได้ประโยชน์ ไว้ใจมากเกินเจ็บ</p>
-    <div class="card-box">
-      <h4>ทำไม runbook เดิมของทีมใช้กับ agent ไม่ได้</h4>
-      <p>Runbook สำหรับคนเว้นช่องว่างไว้ให้คนเติมเอง เช่น "ตรวจดูว่าคิวปกติไหม" —
-      คนอ่านรู้ว่าปกติแปลว่าอะไรเพราะเคยเห็นตอนไม่ปกติมาแล้ว agent ไม่มีความรู้ที่ค้างอยู่ในหัวคนเก่านั้น</p>
-    </div>
-    <p style="font-size:0.85em;">เชื่อมกับ Module 08 (Enterprise Governance) ของคอร์สนี้ที่พูดเรื่อง
-    account model/secrets — M15 ของ ai-sdlc ขยายไปถึงระดับ "ทีม 15 คนใช้ agent พร้อมกัน" ทั้งหมด</p>
-  </section>
-
-  <section>
-    <h2>ตัวอย่างจริง: AI Hero Skills (Matt Pocock)</h2>
-    <p>โปรเจกต์ open-source ที่เอาหลักการ Requirements/TDD/Code-Review จาก M04 และ M11
-    มาทำเป็น <strong>ชุด skill สำหรับ agent</strong> จริง (269K+ GitHub stars) —
-    ติดตั้งได้ทั้ง Claude Code, Cursor, Codex, Copilot ด้วยคำสั่งเดียว</p>
+    <h2>🦸 ตัวอย่างจริง: AI Hero Skills (Matt Pocock)</h2>
+    <p style="text-align:center;font-size:0.75em;">เอาหลักการ Requirements/TDD/Code-Review จาก M04+M11 มาทำเป็น<strong>ชุด skill สำหรับ agent</strong>จริง</p>
+    <div class="big-stat"><span class="num">269K+</span><span class="label">GitHub stars — ติดตั้งได้ทั้ง Claude Code, Cursor, Codex, Copilot ด้วยคำสั่งเดียว</span></div>
     <pre><code class="language-bash"># ติดตั้งทั้งชุด (25 skills)
 npx skills@latest add mattpocock/skills
 
 # หรือติดตั้งเป็น managed plugin ใน Claude Code
 claude plugins install mattpocock-skills</code></pre>
-    <p style="font-size:0.8em;color:var(--r-text-dim);">
+    <p style="font-size:0.7em;color:var(--r-text-dim);text-align:center;">
       <a href="https://www.aihero.dev/skills" target="_blank">https://www.aihero.dev/skills</a></p>
   </section>
 
   <section>
-    <h2>AI Hero: "Main Flow" = M04 + M11 เป็น skill รันจริง</h2>
-    <p>Skill 5 ตัวเรียงกันเป็น spine เดียวตั้งแต่ idea จนถึง code ที่ review แล้ว —
-    ตรงกับหลักการ "ข้อกำหนดที่ตรวจได้" (M04) และ "test-first" (M11) ที่เพิ่งเรียนไป</p>
-    <table style="font-size:0.65em;">
-      <tr><th>Slash Command</th><th>ทำอะไร</th><th>เทียบกับ ai-sdlc</th></tr>
-      <tr><td><code>/grill-with-docs</code></td><td>สัมภาษณ์คุณเรื่อง plan/design จนกว่าคุณกับ agent เข้าใจตรงกัน แล้วบันทึกคำศัพท์ + การตัดสินใจที่กลับยากลงไฟล์จริง (<code>CONTEXT.md</code>, ADR)</td><td>= M04 spec-first แต่ทำเป็น interactive interview ไม่ใช่เขียนเองครั้งเดียว</td></tr>
-      <tr><td><code>/to-spec</code></td><td>แปลงบทสนทนาที่ตกลงกันแล้วเป็น spec ที่เขียนไว้เป็นลายลักษณ์อักษร</td><td>= "ข้อกำหนดที่ตรวจได้" ของ M04 ในรูปเอกสารจริง</td></tr>
-      <tr><td><code>/to-tickets</code></td><td>ตัด spec เป็น ticket เล็กๆ ที่ agent สร้างได้ทีละชิ้น</td><td>= การย่อยงาน (task decomposition) ของ M04</td></tr>
-      <tr><td><code>/implement</code></td><td>สร้าง spec ที่เสร็จแล้วให้เป็นโค้ด แบบ <strong>test-first</strong></td><td>= RED-GREEN-REFACTOR ของ M11/Module 04 ทุกประการ</td></tr>
-      <tr><td><code>/code-review</code></td><td>Review diff เทียบกับทั้ง coding standard และ spec เดิม</td><td>= "PR review pattern" ของ Module 04 ในคอร์สนี้ ขยายให้เช็ค spec compliance ด้วย</td></tr>
-    </table>
+    <h2>⛓️ AI Hero "Main Flow" = M04 + M11 เป็น skill รันจริง</h2>
+    <p style="text-align:center;font-size:0.7em;">Skill 5 ตัวเรียงกันเป็น spine เดียวตั้งแต่ idea จนถึง code ที่ review แล้ว</p>
+    <div class="flow vertical">
+      <div class="flow-box accent"><span class="flow-icon">🗣️</span><code>/grill-with-docs</code><span class="flow-sub">สัมภาษณ์จน align กัน → เขียน CONTEXT.md / ADR ทันที (= M04 spec-first แบบ interactive)</span></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box"><span class="flow-icon">📄</span><code>/to-spec</code><span class="flow-sub">แปลงบทสนทนาเป็น spec ลายลักษณ์อักษร (= "ข้อกำหนดที่ตรวจได้" ของ M04)</span></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box"><span class="flow-icon">🎫</span><code>/to-tickets</code><span class="flow-sub">ตัด spec เป็น ticket เล็กๆ (= task decomposition ของ M04)</span></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box pink"><span class="flow-icon">⚡</span><code>/implement</code><span class="flow-sub">สร้างโค้ดแบบ test-first (= RED-GREEN-REFACTOR ของ M11/Module 04)</span></div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-box"><span class="flow-icon">🔍</span><code>/code-review</code><span class="flow-sub">Review diff เทียบ coding standard + spec เดิม (= PR review pattern ของ Module 04 + spec compliance)</span></div>
+    </div>
   </section>
 
   <section>
-    <h2>บทเรียนจาก AI Hero: Artifact ต้องเป็นไฟล์จริง ไม่ใช่แค่ใน context</h2>
-    <p><code>/grill-with-docs</code> ต่างจาก skill สัมภาษณ์อื่นตรงที่ <strong>stateful</strong> —
+    <h2>📁 บทเรียน: Artifact ต้องเป็นไฟล์จริง</h2>
+    <p style="text-align:center;font-size:0.7em;"><code>/grill-with-docs</code> ต่างจาก skill สัมภาษณ์อื่นตรงที่ <strong>stateful</strong> —
     เขียนผลลงไฟล์ทันทีที่แต่ละจุดตกลงกันได้ ไม่รอสรุปตอนจบ</p>
-    <table>
+    <table style="font-size:0.6em;">
       <tr><th>สิ่งที่ตกลงได้</th><th>ไปลงที่ไหน</th></tr>
-      <tr><td>คำศัพท์เฉพาะโปรเจกต์ (term)</td><td><code>CONTEXT.md</code> — glossary ทันทีที่ term นั้น resolve</td></tr>
-      <tr><td>การตัดสินใจที่กลับยาก + มี trade-off จริง</td><td><code>docs/adr/</code> (Architecture Decision Record)</td></tr>
-      <tr><td>ทุกอย่างที่ตกลงกันนอกเหนือจากนั้น</td><td>อยู่ใน conversation เท่านั้น — หายไปเมื่อ session จบ</td></tr>
+      <tr><td>คำศัพท์เฉพาะโปรเจกต์ (term)</td><td><code>CONTEXT.md</code> — glossary ทันทีที่ term resolve</td></tr>
+      <tr><td>การตัดสินใจที่กลับยาก + trade-off จริง</td><td><code>docs/adr/</code> (Architecture Decision Record)</td></tr>
+      <tr><td>ทุกอย่างที่ตกลงกันนอกเหนือจากนั้น</td><td>อยู่ใน conversation เท่านั้น — หายเมื่อ session จบ</td></tr>
     </table>
     <div class="warn">
-      <strong>กับดักที่พบบ่อย:</strong> session ที่ยังไม่มีคำศัพท์ใหม่หรือการตัดสินใจที่เข้าเกณฑ์
-      ทั้ง 3 ข้อพร้อมกัน จะไม่มีอะไรถูกเขียนลงไฟล์เลย — นี่คือพฤติกรรมที่ถูกต้อง ไม่ใช่ bug
-      แต่ต้องรู้ไว้ก่อน ไม่งั้นจะคิดว่า skill พัง
+      <strong>กับดักที่พบบ่อย:</strong> session ที่ยังไม่มีคำศัพท์ใหม่หรือการตัดสินใจที่เข้าเกณฑ์ทั้ง 3 ข้อพร้อมกัน
+      จะไม่มีอะไรถูกเขียนลงไฟล์เลย — นี่คือพฤติกรรมที่ถูกต้อง ไม่ใช่ bug
     </div>
-    <p style="font-size:0.85em;">เชื่อมตรงกับหลักการ "artifact ต้องตรวจสอบได้" ที่ทั้ง Module 02
-    (AI-DLC Inception เป็น stage-gate) และ M04 ของ ai-sdlc (requirements ที่ตรวจได้) พูดถึง —
-    เอกสารที่มีอยู่จริงในโค้ด ดีกว่าความเข้าใจที่ค้างอยู่ใน context window ของ session เดียว</p>
+    <p style="font-size:0.55em;color:var(--r-text-dim);text-align:center;">เชื่อมตรงกับ "artifact ต้องตรวจสอบได้" ที่ Module 02 (AI-DLC Inception stage-gate)
+    และ M04 ของ ai-sdlc พูดถึง — เอกสารจริงในโค้ด ดีกว่าความเข้าใจที่ค้างอยู่ใน context window ของ session เดียว</p>
   </section>
 
   <section>
-    <h2>สรุป: ทำไมควรเรียนต่อที่ ai-sdlc</h2>
-    <ul>
-      <li>M01-M03: กลไก agent + context + token economics — พื้นฐานที่คอร์สนี้ไม่ได้สอนลึกระดับนี้</li>
-      <li>M04, M08: requirements ที่ตรวจได้ + brownfield strategy — ขยาย engineering workflow ในระดับที่ลึกกว่า Module 04 ของคอร์สนี้</li>
-      <li>M11, M13: testing discipline + prompt injection threat model — เจาะลึกกว่า TDD/governance ที่มีในคอร์สนี้</li>
-      <li>M12: Evals — มีสรุปสั้นแล้วใน Module 09 ของคอร์สนี้ ไปอ่านเต็มที่ต้นทาง</li>
-      <li>M15: governance ระดับทีม — ต่อยอดจาก Module 08 ของคอร์สนี้</li>
-      <li>AI Hero Skills (aihero.dev) — ตัวอย่าง open-source ที่เอาหลักการ spec-first/TDD/code-review
-      มาทำเป็น skill ติดตั้งใช้ได้จริงวันนี้ ไม่ต้องรอสร้างเอง</li>
-    </ul>
-    <div class="verify">
-      <strong>คอร์สนี้ (Hermes/Claude Code)</strong> = "วิธีใช้เครื่องมือ" ·
-      <strong>ai-sdlc</strong> = "วินัยตลอดวงจรชีวิตการพัฒนา" — เรียนคู่กันได้ ไม่ทับซ้อนกันจริง
+    <h2>🎯 สรุป: ทำไมควรเรียนต่อที่ ai-sdlc</h2>
+    <div class="compare">
+      <div class="compare-box"><div class="flow-box accent">🛠️ คอร์สนี้<span class="flow-sub">Hermes / Claude Code<br>"วิธีใช้เครื่องมือ"</span></div></div>
+      <div class="compare-vs">VS</div>
+      <div class="compare-box"><div class="flow-box pink">📚 ai-sdlc<span class="flow-sub">15 modules / 127 บท<br>"วินัยตลอดวงจรชีวิตการพัฒนา"</span></div></div>
     </div>
+    <div class="verify">เรียนคู่กันได้ ไม่ทับซ้อนกันจริง — M01-03 พื้นฐานเชิงลึก · M04/M08 requirements+brownfield ·
+    M11/M13 testing+security · M12 evals (สรุปแล้วใน Module 09) · M15 governance ทีม · AI Hero Skills = ตัวอย่าง production จริง</div>
     <a class="lab-cta" href="lab.html">ไปทำ Lab Module 11 →</a>
   </section>
 
   <section class="title-slide">
-    <span class="badge">Module 11 · Bigger Picture</span>
+    <span class="badge">🗺️ Module 11 · Bigger Picture</span>
     <h2>เรียนต่อ</h2>
     <p class="subtitle">https://supachai-j.github.io/ai-sdlc/ — 15 modules, 127 บท, eval harness รันได้จริง</p>
   </section>

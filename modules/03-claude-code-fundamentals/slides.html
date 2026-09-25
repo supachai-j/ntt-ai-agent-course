@@ -11,11 +11,12 @@
 </head>
 <body>
 <button class="theme-toggle-btn" type="button" aria-label="สลับธีม Light/Dark">☀️</button>
+<a class="content-link-btn" href="content.html">📖 Content</a>
 <div class="reveal">
 <div class="slides">
 
   <section class="title-slide">
-    <span class="badge">Module 03 · Foundations</span>
+    <span class="badge">🤖 Module 03 · Foundations</span>
     <h1>Claude Code CLI — Fundamentals</h1>
     <p class="subtitle">ติดตั้ง, auth, orchestration modes, CLAUDE.md และการรันงานจริงครั้งแรก</p>
     <p style="margin-top:2em;color:var(--r-text-dim);font-size:0.55em;">AI Agent Engineering Course</p>
@@ -23,46 +24,41 @@
 
   <section>
     <h2>Claude Code คืออะไร</h2>
-    <ul>
-      <li><strong>Claude Code</strong> คือ official CLI coding agent จาก Anthropic</li>
-      <li>ติดตั้งผ่าน npm package: <code>@anthropic-ai/claude-code</code></li>
-      <li>รันในเทอร์มินัล อ่าน/แก้ไฟล์ รัน command จริง ใช้ git ได้เหมือน engineer คนหนึ่ง</li>
-      <li>ใช้ได้ทั้งแบบ interactive (คุยโต้ตอบ) และแบบ automation/CI (one-shot, headless)</li>
-      <li>เป็น agent ตัวเดียวกับที่กำลังรันงานหลายโมดูลของคอร์สนี้อยู่เบื้องหลัง</li>
-    </ul>
+    <div class="icon-grid">
+      <div class="icon-card"><span class="icon">⌨️</span><div class="title">Official CLI</div><div class="desc">Coding agent จาก Anthropic</div></div>
+      <div class="icon-card"><span class="icon">📦</span><div class="title">npm install</div><div class="desc">@anthropic-ai/claude-code</div></div>
+      <div class="icon-card"><span class="icon">🛠️</span><div class="title">Real actions</div><div class="desc">อ่าน/แก้ไฟล์, รัน command, ใช้ git</div></div>
+      <div class="icon-card"><span class="icon">🔁</span><div class="title">2 โหมด</div><div class="desc">Interactive หรือ automation/CI</div></div>
+    </div>
   </section>
 
   <section>
     <h2>ติดตั้งและ Authentication</h2>
-    <div class="two-col">
-      <div>
-        <h4 style="color:var(--r-accent-2);">1. ติดตั้ง</h4>
-        <pre><code class="language-bash">npm install -g @anthropic-ai/claude-code
-claude --version</code></pre>
-        <h4 style="color:var(--r-accent-2);">2. ตรวจสุขภาพ</h4>
-        <pre><code class="language-bash">claude doctor</code></pre>
-      </div>
-      <div>
-        <h4 style="color:var(--r-accent-2);">3. Auth (เลือก 1 วิธี)</h4>
-        <pre><code class="language-bash"># Browser OAuth — Claude Pro/Max subscription
+    <div class="flow">
+      <div class="flow-box accent"><span class="flow-icon">📦</span>Install<span class="flow-sub">npm install -g</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box"><span class="flow-icon">🩺</span>Doctor<span class="flow-sub">claude doctor</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box pink"><span class="flow-icon">🔐</span>Auth<span class="flow-sub">เลือก 1 วิธี</span></div>
+    </div>
+    <pre><code class="language-bash">npm install -g @anthropic-ai/claude-code
+claude --version
+claude doctor</code></pre>
+    <pre><code class="language-bash"># Browser OAuth — Claude Pro/Max subscription
 claude
 # หรือ login แบบ console สำหรับ API billing
 claude auth login --console
 # หรือใช้ API key ตรงๆ
 export ANTHROPIC_API_KEY="sk-ant-..."</code></pre>
-        <pre><code class="language-bash">claude auth status</code></pre>
-      </div>
-    </div>
   </section>
 
   <section>
     <h2>ตรวจสอบสถานะการติดตั้ง</h2>
-    <p>คำสั่งพื้นฐานที่ควรรันทุกครั้งหลังติดตั้งหรือเมื่อพบปัญหา</p>
     <table>
       <tr><th>คำสั่ง</th><th>ใช้ทำอะไร</th></tr>
-      <tr><td><code>claude --version</code></td><td>เช็ค version ของ CLI ที่ติดตั้งอยู่</td></tr>
-      <tr><td><code>claude doctor</code></td><td>ตรวจสุขภาพการติดตั้ง (path, config, auto-update, multiple installs)</td></tr>
-      <tr><td><code>claude auth status</code></td><td>เช็คว่า login อยู่หรือยัง ใช้ auth method ไหน</td></tr>
+      <tr><td><code>claude --version</code></td><td>เช็ค version ของ CLI</td></tr>
+      <tr><td><code>claude doctor</code></td><td>ตรวจสุขภาพการติดตั้ง</td></tr>
+      <tr><td><code>claude auth status</code></td><td>เช็คสถานะ login</td></tr>
     </table>
     <div class="card-box">
       <h4>ตัวอย่าง output จริงจาก <code>claude auth status</code></h4>
@@ -77,18 +73,14 @@ export ANTHROPIC_API_KEY="sk-ant-..."</code></pre>
 
   <section>
     <h2>สอง Orchestration Mode</h2>
-    <p>Claude Code รันได้ 2 แบบหลัก ขึ้นกับว่าต้องการ dialog กับ agent หรือแค่ผลลัพธ์เดียว</p>
-    <table>
-      <tr><th>โหมด</th><th>คำสั่ง</th><th>เหมาะกับ</th></tr>
-      <tr><td><strong>Interactive REPL</strong></td><td><code>claude</code></td><td>ทำงานร่วมกับ agent แบบโต้ตอบ, สำรวจโค้ด, debug ทีละขั้น</td></tr>
-      <tr><td><strong>Print mode</strong></td><td><code>claude -p "task"</code></td><td>Automation, CI/CD, script — รันครั้งเดียวแล้วจบ ไม่มี dialog</td></tr>
-    </table>
+    <div class="compare">
+      <div class="compare-box"><div class="flow-box accent">💬 Interactive REPL<span class="flow-sub"><code>claude</code></span></div><p>สำรวจโค้ด, debug ทีละขั้น, dialog กับ agent</p></div>
+      <div class="compare-vs">VS</div>
+      <div class="compare-box"><div class="flow-box pink">⚡ Print mode<span class="flow-sub"><code>claude -p "task"</code></span></div><p>Automation, CI/CD, script — รันครั้งเดียวจบ</p></div>
+    </div>
     <div class="card-box">
       <h4>กฎง่ายๆ ในการเลือกโหมด</h4>
-      <ul>
-        <li>ต้องการควบคุมทีละ step + ตรวจงานระหว่างทาง → <strong>Interactive</strong></li>
-        <li>ต้องรันใน pipeline / script / ไม่มีคนนั่งดู → <strong>Print mode (<code>-p</code>)</strong></li>
-      </ul>
+      <p>ควบคุมทีละ step → <strong>Interactive</strong> &nbsp;|&nbsp; รันใน pipeline ไม่มีคนดู → <strong>Print mode</strong></p>
     </div>
   </section>
 
@@ -99,17 +91,13 @@ claude -p "explain what this repo does" --max-turns 3
 
 # เอาผลลัพธ์เป็น JSON เพื่อ parse ต่อใน script
 claude -p "list files" --output-format json | jq -r '.result'</code></pre>
-    <p>Print mode <strong>ข้าม trust dialog</strong> โดยอัตโนมัติ — เหมาะกับ non-interactive context (CI runner, cron, script) แต่ต้องรันเฉพาะใน directory ที่เชื่อถือได้</p>
+    <div class="warn">Print mode <strong>ข้าม trust dialog</strong> อัตโนมัติ — รันเฉพาะใน directory ที่เชื่อถือได้เท่านั้น</div>
   </section>
 
   <section>
     <h2>CLAUDE.md — Project Memory</h2>
-    <ul>
-      <li>ไฟล์ที่ Claude Code <strong>auto-load</strong> ทุกครั้งที่เริ่ม session ใน directory นั้น</li>
-      <li>เก็บบริบทโปรเจกต์: architecture, key commands (test/lint/dev), code standards</li>
-      <li>ไม่ใช่ prompt แต่คือ "ความจำถาวร" ที่ agent อ่านก่อนเริ่มงานทุกครั้ง</li>
-      <li>ยิ่งเขียนดี agent ยิ่งเดาโครงสร้างโปรเจกต์ถูกโดยไม่ต้องถามซ้ำ</li>
-    </ul>
+    <div class="big-stat"><span class="num">🧠</span><span class="label">ไฟล์ที่ Claude Code auto-load ทุกครั้งที่เริ่ม session</span></div>
+    <p style="text-align:center;color:var(--r-text-dim);">ไม่ใช่ prompt แต่คือ "ความจำถาวร" — ยิ่งเขียนดี agent ยิ่งเดาโครงสร้างโปรเจกต์ถูกโดยไม่ต้องถามซ้ำ</p>
   </section>
 
   <section>
@@ -135,59 +123,48 @@ Entry point: src/server.js. Routes in src/routes/.
 
   <section>
     <h2>CLAUDE.md — Hierarchy</h2>
-    <table>
-      <tr><th>ระดับ</th><th>Path</th><th>ขอบเขต</th></tr>
-      <tr><td>Global</td><td><code>~/.claude/CLAUDE.md</code></td><td>ใช้กับทุกโปรเจกต์ของ user คนนั้น</td></tr>
-      <tr><td>Project</td><td><code>./CLAUDE.md</code></td><td>เฉพาะโปรเจกต์นี้ — commit เข้า git แชร์กับทีม</td></tr>
-      <tr><td>Local</td><td><code>.claude/CLAUDE.local.md</code></td><td>เฉพาะเครื่อง — <strong>gitignored</strong> ใช้เก็บ config ส่วนตัว</td></tr>
-    </table>
-    <p>Claude Code รวมทั้ง 3 ระดับเข้าด้วยกันตอนโหลด context — ระดับที่เฉพาะเจาะจงกว่าจะ override</p>
+    <div class="stack">
+      <div class="stack-layer accent">Global — <code>~/.claude/CLAUDE.md</code><span class="flow-sub">ทุกโปรเจกต์ของ user</span></div>
+      <div class="stack-layer">Project — <code>./CLAUDE.md</code><span class="flow-sub">เฉพาะโปรเจกต์ — commit เข้า git</span></div>
+      <div class="stack-layer pink">Local — <code>.claude/CLAUDE.local.md</code><span class="flow-sub">เฉพาะเครื่อง — gitignored</span></div>
+    </div>
+    <p style="text-align:center;color:var(--r-text-dim);">รวมทั้ง 3 ระดับตอนโหลด context — ระดับที่เฉพาะเจาะจงกว่า override</p>
   </section>
 
   <section>
     <h2>Flags สำคัญที่ใช้บ่อย</h2>
-    <table>
-      <tr><th>Flag</th><th>ใช้ทำอะไร</th></tr>
-      <tr><td><code>--allowedTools</code></td><td>จำกัด tool ที่ agent ใช้ได้ เช่น <code>"Bash(git *) Edit"</code></td></tr>
-      <tr><td><code>--max-turns</code></td><td>จำกัดจำนวนรอบการคุย/tool call ป้องกัน runaway loop</td></tr>
-      <tr><td><code>--output-format json</code></td><td>output เป็น JSON เพื่อ parse ต่อด้วย script/jq</td></tr>
-      <tr><td><code>--model</code></td><td>เลือกโมเดล เช่น <code>sonnet</code>, <code>opus</code>, หรือชื่อเต็ม</td></tr>
-      <tr><td><code>-c, --continue</code></td><td>สานต่อ conversation ล่าสุดใน directory ปัจจุบัน</td></tr>
-      <tr><td><code>-r, --resume</code></td><td>resume session เดิมด้วย session ID หรือเปิด picker</td></tr>
-    </table>
+    <div class="icon-grid">
+      <div class="icon-card"><span class="icon">🔒</span><div class="title">--allowedTools</div><div class="desc">จำกัด tool ที่ agent ใช้ได้</div></div>
+      <div class="icon-card"><span class="icon">🔁</span><div class="title">--max-turns</div><div class="desc">ป้องกัน runaway loop</div></div>
+      <div class="icon-card"><span class="icon">🧾</span><div class="title">--output-format json</div><div class="desc">parse ต่อด้วย script/jq</div></div>
+      <div class="icon-card"><span class="icon">🧠</span><div class="title">--model</div><div class="desc">sonnet, opus, หรือชื่อเต็ม</div></div>
+      <div class="icon-card"><span class="icon">▶️</span><div class="title">-c, --continue</div><div class="desc">สานต่อ conversation ล่าสุด</div></div>
+      <div class="icon-card"><span class="icon">⏮️</span><div class="title">-r, --resume</div><div class="desc">resume ด้วย session ID/picker</div></div>
+    </div>
   </section>
 
   <section>
     <h2>Trust Dialog & Workspace Safety</h2>
     <div class="card-box">
       <h4>ครั้งแรกที่เปิด directory ใหม่ (interactive mode)</h4>
-      <p>Claude Code จะถามว่า <em>"Do you trust the files in this folder?"</em> ก่อนอ่าน/รันอะไรในโฟลเดอร์นั้น เพื่อป้องกันการรันโค้ดที่ไม่รู้จักที่มาโดยไม่ตั้งใจ</p>
+      <p>Claude Code จะถามว่า <em>"Do you trust the files in this folder?"</em> ก่อนอ่าน/รันอะไรในโฟลเดอร์นั้น</p>
     </div>
-    <ul>
-      <li>Trust dialog ถูก<strong>ข้ามอัตโนมัติ</strong>ใน print mode (<code>-p</code>) — เพราะออกแบบมาให้รันแบบ non-interactive</li>
-      <li>ข้อแนะนำ: รัน print mode เฉพาะใน directory ที่ควบคุม/เชื่อถือได้เท่านั้น</li>
-      <li>Permission mode ควบคุมเพิ่มเติมได้ผ่าน <code>--permission-mode</code> (เช่น <code>acceptEdits</code>, <code>plan</code>, <code>bypassPermissions</code>)</li>
-    </ul>
+    <div class="warn">Trust dialog ถูก<strong>ข้ามอัตโนมัติ</strong>ใน print mode — รันเฉพาะ directory ที่ควบคุม/เชื่อถือได้ ปรับเพิ่มได้ผ่าน <code>--permission-mode</code> (เช่น <code>acceptEdits</code>, <code>plan</code>, <code>bypassPermissions</code>)</div>
   </section>
 
   <section>
     <h2>Quick Win Demo</h2>
-    <p>ตัวอย่างคำสั่งเดียวที่พิสูจน์ว่า Claude Code ใช้งานได้จริงบนเครื่อง — รันใน directory ของโปรเจกต์ใดก็ได้</p>
     <pre><code class="language-bash">cd /path/to/your-project
 claude -p "explain what this repo does" --max-turns 3</code></pre>
-    <p>ภายใน 3 turns agent จะสำรวจไฟล์สำคัญ (README, package.json, entry point) แล้วสรุปโครงสร้างโปรเจกต์กลับมาเป็นข้อความ</p>
+    <p style="text-align:center;color:var(--r-text-dim);">ภายใน 3 turns agent สำรวจ README, package.json, entry point แล้วสรุปโครงสร้างโปรเจกต์กลับมา</p>
   </section>
 
   <section>
     <h2>ปัญหา: Interactive session หลุดเมื่อ SSH disconnect</h2>
-    <ul>
-      <li>Claude Code interactive mode (<code>claude</code> เฉยๆ) เป็น process ที่ผูกกับ terminal session — ปิด SSH/ปิดแล็ปท็อป = process ตาย ทั้งงานที่ยังไม่เสร็จ</li>
-      <li>งานที่ใช้เวลานาน (refactor ใหญ่, multi-step pipeline) ต้องรอดูจนจบ ไม่สามารถ "เดินไปทำอย่างอื่นแล้วกลับมาดู" ได้</li>
-      <li>เปิดหลาย SSH session พร้อมกันเพื่อรันหลายงาน → จัดการยาก สลับหน้าต่างไม่สะดวก</li>
-    </ul>
-    <div class="card-box">
-      <h4>ทางออก: tmux (terminal multiplexer)</h4>
-      <p>รัน process ไว้ "ข้างใน" tmux session ที่อยู่บน server เอง — <strong>ไม่ผูกกับ SSH connection ของคุณ</strong> ปิด SSH ได้ session ยังรันต่อ กลับมา SSH ใหม่แล้ว <code>attach</code> กลับเข้าไปดูงานที่ทำค้างไว้ได้เหมือนไม่เคยหลุด</p>
+    <div class="compare">
+      <div class="compare-box"><div class="flow-box danger">❌ ไม่มี tmux<span class="flow-sub">ปิด SSH = process ตาย</span></div><p>งานที่ทำค้างไว้หายหมด ต้องเริ่มใหม่</p></div>
+      <div class="compare-vs">VS</div>
+      <div class="compare-box"><div class="flow-box accent">✅ ใช้ tmux<span class="flow-sub">session อยู่บน server เอง</span></div><p>ปิด SSH ได้ session ยังรันต่อ กลับมา attach ใหม่ได้</p></div>
     </div>
   </section>
 
@@ -196,16 +173,27 @@ claude -p "explain what this repo does" --max-turns 3</code></pre>
     <table>
       <tr><th>คำสั่ง</th><th>ใช้ทำอะไร</th></tr>
       <tr><td><code>tmux new -s work</code></td><td>สร้าง session ใหม่ชื่อ <code>work</code></td></tr>
-      <tr><td><code>Ctrl-b</code> แล้วกด <code>d</code></td><td><strong>Detach</strong> — ออกจาก session โดยไม่ปิด process ข้างใน</td></tr>
-      <tr><td><code>tmux ls</code></td><td>ดูรายชื่อ session ที่กำลังรันอยู่ทั้งหมด</td></tr>
-      <tr><td><code>tmux attach -t work</code></td><td><strong>Attach</strong> กลับเข้า session ที่ detach ไว้</td></tr>
-      <tr><td><code>tmux kill-session -t work</code></td><td>ปิด session ทิ้งถาวร (process ข้างในตายด้วย)</td></tr>
+      <tr><td><code>Ctrl-b</code> แล้ว <code>d</code></td><td><strong>Detach</strong> — ออกโดยไม่ปิด process</td></tr>
+      <tr><td><code>tmux ls</code></td><td>ดูรายชื่อ session ทั้งหมด</td></tr>
+      <tr><td><code>tmux attach -t work</code></td><td><strong>Attach</strong> กลับเข้า session</td></tr>
+      <tr><td><code>tmux kill-session -t work</code></td><td>ปิด session ทิ้งถาวร</td></tr>
     </table>
-    <div class="warn"><strong>ข้อควรระวัง:</strong> <code>Ctrl-b d</code> คือ detach (ปลอดภัย งานยังรันต่อ) ส่วน <code>exit</code> หรือ <code>Ctrl-d</code> ภายใน shell ของ tmux pane คือปิด pane นั้นทิ้งจริง — อย่าสับสนสองอย่างนี้ ถ้าพิมพ์ <code>exit</code> ตอน Claude Code กำลังทำงานอยู่ งานจะถูก kill ทันที</div>
+    <div class="warn"><strong>ข้อควรระวัง:</strong> <code>Ctrl-b d</code> = detach (ปลอดภัย) ส่วน <code>exit</code>/<code>Ctrl-d</code> ในเชลล์ = ปิด pane จริง อย่าสับสน — พิมพ์ <code>exit</code> ตอน Claude Code กำลังทำงานจะ kill งานทันที</div>
   </section>
 
   <section>
-    <h2>Workflow จริง: Claude Code ผ่าน tmux บน remote server</h2>
+    <h2>Workflow จริง: Claude Code ผ่าน tmux</h2>
+    <div class="flow vertical">
+      <div class="flow-box accent"><span class="flow-icon">🔑</span>SSH เข้า server</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box"><span class="flow-icon">🪟</span>tmux new -s claude-work</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box"><span class="flow-icon">🤖</span>claude (คุยงานตามปกติ)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box pink"><span class="flow-icon">👋</span>Ctrl-b d (detach)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box accent"><span class="flow-icon">🔁</span>ssh + tmux attach -t claude-work</div>
+    </div>
     <pre><code class="language-bash"># 1. SSH เข้า server ตามปกติ
 ssh user@remote-server
 
@@ -214,50 +202,43 @@ tmux new -s claude-work
 claude
 # ... คุยงานกับ Claude Code ตามปกติ อาจใช้เวลานาน ...
 
-# 3. อยากออกไปทำอย่างอื่นแต่ไม่อยากให้งานหยุด
-#    กด Ctrl-b แล้วกด d (detach) — กลับสู่ shell ปกติ
-#    session ยังรันอยู่เบื้องหลัง แม้ปิด SSH ไปแล้ว
+# 3. Ctrl-b แล้ว d (detach) — กลับสู่ shell ปกติ session ยังรันอยู่เบื้องหลัง
 
-# 4. กลับมาดูทีหลัง (แม้ SSH connection เดิมหลุดไปแล้วก็ตาม)
+# 4. กลับมาดูทีหลัง (แม้ SSH connection เดิมหลุดไปแล้ว)
 ssh user@remote-server
 tmux attach -t claude-work
 # กลับเข้าไปเห็น Claude Code ตรงจุดที่ค้างไว้เป๊ะ</code></pre>
-    <p>Pattern นี้เหมาะกับงานยาว (refactor ข้ามคืน, migration หลายขั้นตอน) หรือเมื่อทำงานจาก network ที่ไม่เสถียร (WiFi หลุดบ่อย, VPN ตัด)</p>
   </section>
 
   <section>
     <h2>รันหลายงานพร้อมกันด้วยหลาย tmux session</h2>
     <pre><code class="language-bash"># ตั้งชื่อ session ให้สื่อความหมาย แยกงานตามโปรเจกต์/task
-tmux new -s frontend-fix -d    # -d = สร้างแบบ detached ทันที ไม่ต้องเข้าไปก่อน
+tmux new -s frontend-fix -d    # -d = สร้างแบบ detached ทันที
 tmux new -s backend-refactor -d
 tmux new -s db-migration -d
 
-# ดูว่ามีอะไรรันอยู่บ้าง
 tmux ls
-# frontend-fix: 1 windows ...
-# backend-refactor: 1 windows ...
-# db-migration: 1 windows ...
 
-# ส่งคำสั่งเข้า session โดยไม่ต้อง attach ก่อน (ใช้บ่อยเวลา automate/monitor จากภายนอก)
+# ส่งคำสั่งเข้า session โดยไม่ต้อง attach ก่อน
 tmux send-keys -t frontend-fix 'claude -p "fix the failing test in Button.test.tsx"' Enter
 
 # ตรวจความคืบหน้าแบบไม่ต้อง attach เข้าไปเต็มๆ
 tmux capture-pane -t frontend-fix -p -S -30</code></pre>
     <div class="card-box">
-      <h4>เกี่ยวข้องกับ Module 07</h4>
-      <p>Pattern <code>tmux send-keys</code> + <code>capture-pane</code> นี้เป็นรากฐานเดียวกับที่ Module 07 (Multi-Agent Orchestration) ใช้ตอน spawn หลาย Claude Code instance พร้อมกัน — ต่างกันแค่ที่นี่คุณเป็นคนสั่งเอง ส่วน Module 07 ให้ agent อื่นเป็นคนสั่งแทน</p>
+      <h4>🔗 เกี่ยวข้องกับ Module 07</h4>
+      <p><code>tmux send-keys</code> + <code>capture-pane</code> คือรากฐานเดียวกับที่ Module 07 (Multi-Agent Orchestration) ใช้ spawn หลาย Claude Code instance — ต่างกันแค่ที่นี่คุณสั่งเอง ส่วน Module 07 ให้ agent อื่นสั่งแทน</p>
     </div>
   </section>
 
   <section>
     <h2>สรุป Module 03</h2>
-    <ul>
-      <li>ติดตั้งง่ายผ่าน npm, auth ได้ทั้ง OAuth subscription และ API key</li>
-      <li>เลือกโหมดให้ถูกงาน: Interactive สำหรับสำรวจ/debug, Print mode สำหรับ automation</li>
-      <li>CLAUDE.md คือหัวใจของ "ความจำโปรเจกต์" — เขียนดีมีผลต่อคุณภาพงานของ agent โดยตรง</li>
-      <li>Flags อย่าง <code>--allowedTools</code>, <code>--max-turns</code> ช่วยควบคุมความเสี่ยงตอนรันแบบ automation</li>
-      <li>tmux ทำให้ Claude Code session รอดจาก SSH disconnect — <code>Ctrl-b d</code> detach, <code>tmux attach</code> กลับเข้าไปดูงานที่ค้างไว้</li>
-    </ul>
+    <div class="icon-grid">
+      <div class="icon-card"><span class="icon">📦</span><div class="title">ติดตั้งง่าย</div><div class="desc">npm, auth ทั้ง OAuth/API key</div></div>
+      <div class="icon-card"><span class="icon">🔁</span><div class="title">เลือกโหมดให้ถูก</div><div class="desc">Interactive vs Print mode</div></div>
+      <div class="icon-card"><span class="icon">🧠</span><div class="title">CLAUDE.md</div><div class="desc">หัวใจของความจำโปรเจกต์</div></div>
+      <div class="icon-card"><span class="icon">🔒</span><div class="title">Flags ควบคุมความเสี่ยง</div><div class="desc">--allowedTools, --max-turns</div></div>
+      <div class="icon-card"><span class="icon">🪟</span><div class="title">tmux</div><div class="desc">รอดจาก SSH disconnect</div></div>
+    </div>
     <a class="lab-cta" href="lab.html">ไปที่ Lab Module 03 →</a>
   </section>
 

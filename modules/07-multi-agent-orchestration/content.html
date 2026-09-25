@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem('course-theme')||(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content · Module 07 — Multi-Agent Orchestration — AI Agent Engineering Course</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<button class="theme-toggle-btn" type="button" aria-label="สลับธีม Light/Dark">☀️</button>
+  <div class="topnav">
+    <div class="brand"><span class="dot"></span> AI Agent Engineering Course</div>
+    <nav>
+      <a href="../../index.html">Home</a>
+      <a href="slides.html">Slides</a>
+      <a href="content.html" class="active">Content</a>
+      <a href="lab.html">Lab</a>
+    </nav>
+  </div>
+
+  <div class="wrap">
+    <div class="lesson-hero">
+      <span class="badge">📖 Content · Module 07</span>
+      <h1>Multi-Agent Orchestration</h1>
+      <p style="color:var(--text-dim);">เมื่อไหร่ควรแตกงานเป็นหลาย agent, วิธีสร้าง/เรียกใช้ Claude Code subagents, การรัน parallel instances อย่างปลอดภัย, และหลักการ verify ก่อนเชื่อผลลัพธ์จาก subagent เสมอ</p>
+    </div>
+
+    <div class="tldr"><strong>TL;DR:</strong> ใช้ multi-agent เมื่อ context ล้น, งาน independent รันขนานได้, หรือต้องการ specialist role — สร้าง subagent ผ่าน <code>.claude/agents/*.md</code> (static) หรือ <code>--agents</code> flag (dynamic), รัน parallel งานผ่าน tmux session แยกกัน แต่ห้ามขนานงานที่มี dependency ระหว่างกัน และไม่ว่า pattern ไหนก็ต้อง verify evidence จริงก่อนเชื่อว่า subagent ทำสำเร็จ — ไม่ใช่แค่เชื่อ self-report</div>
+
+    <div class="lesson-section">
+      <h2>เมื่อไหร่ต้องใช้ Multi-Agent</h2>
+      <p>ไม่ใช่ทุกงานที่ต้องแตกเป็นหลาย agent — การเพิ่ม agent เพิ่ม complexity, overhead ในการ coordinate, และความเสี่ยงเรื่อง context ที่ไม่ sync กัน ควรประเมินก่อนว่างานตรงกับเงื่อนไขไหน</p>
+      <p><strong>Single agent พอแล้ว</strong> เมื่องานเป็น sequential เดียวที่ context เล็ก, งานที่ต้อง maintain state ต่อเนื่องตลอดการทำงาน (เช่น debug ที่ต้องจำ hypothesis ก่อนหน้า), หรือ debug/fix เฉพาะจุดในไฟล์เดียวที่ไม่ต้องการมุมมองจากหลาย role</p>
+      <p><strong>ต้องแตกเป็น Multi-Agent</strong> เมื่อ context ใหญ่เกินจะยัดใน context window เดียวได้อย่างมีประสิทธิภาพ, งานเป็น independent ที่รันขนานกันได้จริง (parallelizable), หรือต้องการ specialist role ที่แยกจากกัน เช่น security reviewer, test writer, docs writer ที่แต่ละตัวมี system prompt/focus แคบของตัวเอง</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>3 สัญญาณหลักที่บอกว่าถึงเวลาแตก Agent</h2>
+      <p><strong>1. Context overflow</strong> — งานมีไฟล์หรือสเปกเยอะจนโมเดลลืม instruction ตอนต้น หรือ performance ตกลงเมื่อ context ยาวเกินไป นี่คือสัญญาณว่าควรแตกงานให้แต่ละ agent รับผิดชอบ context ส่วนที่เล็กลง</p>
+      <p><strong>2. Parallelizable independent tasks</strong> — งาน A ไม่ต้องรอผลของงาน B เลย เช่น เขียน README.md กับเขียน unit test ให้อีกไฟล์หนึ่ง เป็นงานที่ไม่ share state หรือ interface ระหว่างกัน สามารถรันพร้อมกันได้อย่างปลอดภัย</p>
+      <p><strong>3. Role specialization</strong> — อยากได้ persona หรือ system prompt ที่ focus แคบเฉพาะเรื่อง เช่น "review เฉพาะ security" แทนที่จะให้ agent ตัวเดียวสวมหลายหมวก (เขียนโค้ด + review + เขียน docs ในตัวเดียว) ซึ่งทำให้ quality ของแต่ละบทบาทลดลง</p>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Claude Code Custom Subagents</h2>
+      <p>Claude Code รองรับการสร้าง subagent แบบ static โดยเก็บเป็นไฟล์ Markdown ที่มี YAML frontmatter ไว้ในโฟลเดอร์ <code>.claude/agents/*.md</code> ของ repo แต่ละไฟล์นิยาม 1 subagent ที่มี system prompt, model, และ tool access ของตัวเอง แยกจาก context ของ main conversation โดยสมบูรณ์</p>
+      <pre><code class="language-yaml">---
+name: reviewer
+description: Reviews code for security issues, bad practices, and style violations. Use proactively after writing or editing code.
+model: sonnet
+tools: Read, Grep, Glob
+---
+
+You are a senior security-focused code reviewer.
+Review the diff or files given for:
+- Injection risks (SQL, command, template)
+- Secrets/credentials committed in plaintext
+- Missing input validation
+- Unsafe deserialization
+
+Report findings as a list with severity (critical/high/medium/low),
+file:line reference, and a concrete fix suggestion. Do not modify files.</code></pre>
+      <div class="callout">💡 สังเกตว่า <code>tools</code> ถูกจำกัดเหลือแค่ <code>Read, Grep, Glob</code> — subagent นี้ไม่มี write access เลย เพราะหน้าที่ของมันคือ "review" ไม่ใช่ "fix" การจำกัด tools แบบนี้ช่วยลดความเสี่ยงที่ subagent จะแก้ไฟล์โดยไม่ได้ตั้งใจ</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>เรียกใช้ Subagent: Static @name vs Dynamic --agents</h2>
+      <p>มีสองวิธีหลักในการเรียกใช้ subagent ใน Claude Code</p>
+      <p><strong>Static agent (ไฟล์ .md)</strong> — เรียกด้วย <code>@name</code> ตรงในบทสนทนา Claude Code จะโหลด system prompt และ tools ที่ระบุไว้ใน frontmatter ของไฟล์นั้น แล้วรันเป็น subagent ที่แยก context ออกจาก conversation หลัก</p>
+      <pre><code>› @reviewer check this diff for security issues</code></pre>
+      <p><strong>Dynamic agent (CLI flag)</strong> — กำหนด agent ชั่วคราวตอนรัน CLI ผ่าน flag <code>--agents</code> โดยส่ง JSON ที่นิยาม description, prompt, tools แบบ inline โดยไม่ต้องสร้างไฟล์ในระบบเลย เหมาะกับ automation/CI ที่ agent definition อาจ generate แบบ dynamic ตาม pipeline</p>
+      <pre><code class="language-bash">claude -p "review auth.py" \
+  --agents '{"reviewer":{"description":"security reviewer","prompt":"You are a security reviewer...","tools":["Read","Grep"]}}'</code></pre>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Subagent Frontmatter Fields</h2>
+      <p>YAML frontmatter ของไฟล์ subagent มี field หลักดังนี้:</p>
+      <table>
+        <tr><th>Field</th><th>ความหมาย</th></tr>
+        <tr><td><code>name</code></td><td>ชื่อที่ใช้เรียกด้วย <code>@name</code></td></tr>
+        <tr><td><code>description</code></td><td>บอก Claude Code ว่า agent นี้ทำอะไร ใช้ตอนไหน — ใช้สำหรับ auto-delegation ที่ Claude Code จะเลือก subagent ที่เหมาะสมให้อัตโนมัติ</td></tr>
+        <tr><td><code>model</code></td><td>โมเดลที่ subagent นี้ใช้ (เช่น sonnet, opus) — เลือกให้เหมาะกับความซับซ้อนของงานและ cost ที่ยอมรับได้</td></tr>
+        <tr><td><code>tools</code></td><td>จำกัด tool ที่ subagent เข้าถึงได้ — ตัด write access ถ้า subagent ไม่จำเป็นต้องแก้ไฟล์ ลด blast radius หากมี error</td></tr>
+      </table>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Parallel Claude Instances ผ่าน tmux</h2>
+      <p>เมื่อมีหลาย independent task ที่อยากรันพร้อมกันจริงๆ (ไม่ใช่ subagent ภายใน conversation เดียว แต่เป็น process Claude Code แยกกันเลย) วิธีหนึ่งที่ใช้ได้จริงคือรันแต่ละ task ใน tmux session ของตัวเอง แล้ว monitor ผลลัพธ์แบบ async</p>
+      <pre><code class="language-bash"># สร้าง session แยกสำหรับแต่ละงาน
+tmux new-session -d -s task-readme "claude -p 'write README.md for this repo' > out-readme.log"
+tmux new-session -d -s task-tests  "claude -p 'write unit tests for utils.py' > out-tests.log"
+
+# monitor ผลแบบ loop
+for s in task-readme task-tests; do
+  echo "=== $s ==="
+  tmux capture-pane -t "$s" -p | tail -20
+done
+
+# เช็คว่า session จบหรือยัง แล้ว kill session ที่ค้าง
+tmux list-sessions
+tmux kill-session -t task-readme</code></pre>
+      <div class="callout">💡 การ capture-pane และ tail แบบนี้ให้ผลลัพธ์ล่าสุดของแต่ละ session โดยไม่ต้อง attach เข้าไปดูตรงๆ ทำให้ script อัตโนมัติสามารถ poll สถานะของหลาย task พร้อมกันได้</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>⚠️ Anti-pattern: Dependency Race Condition</h2>
+      <p>ข้อผิดพลาดที่พบบ่อยที่สุดเมื่อเริ่มใช้ parallel agent คือการขนานงานที่มี dependency ระหว่างกันโดยไม่รู้ตัว</p>
+      <div class="danger">❌ <strong>อย่าทำ:</strong> รัน "เขียน API endpoint" กับ "เขียน integration test ที่เรียก endpoint นั้น" แบบขนานกัน — เพราะ task B (เขียน test) อาจ generate เสร็จก่อนที่ task A จะสร้าง endpoint จริงเสียอีก ผลที่ได้คือ test อ้าง function signature ที่ยังไม่มีอยู่จริง หรือ mock ที่ผิดเพี้ยนไปจาก implementation จริงที่ task A สร้างขึ้นมาทีหลัง</div>
+      <div class="verify">✅ <strong>ทำแบบนี้:</strong> งานที่มี dependency ต้องรัน sequential เท่านั้น (A เสร็จสมบูรณ์ก่อนจึงเริ่ม B) หรือให้ agent เดียวทำทั้งคู่ต่อกันเพื่อรักษา context ต่อเนื่องระหว่าง endpoint และ test เฉพาะงานที่ independent จริงๆ — ไม่ share state และไม่ share interface ระหว่างกัน — ถึงจะปลอดภัยพอที่จะรันขนานได้</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Hermes delegate_task Pattern</h2>
+      <p>หลักการเดียวกันกับ Claude Code custom subagents นำมาใช้กับ Hermes ผ่าน <code>delegate_task</code> ได้เช่นกัน — เทียบเคียงกับสิ่งที่เคยพูดถึงใน Module 02 (Hermes Architecture):</p>
+      <p><strong>Isolated context</strong> — subagent ที่ถูก delegate ไปไม่เห็น conversation history ของ parent agent เลย มันเริ่มต้นจาก context ที่ว่างเปล่า (หรือเกือบว่างเปล่า) ทุกครั้ง</p>
+      <p><strong>ต้องส่ง context ที่จำเป็นทั้งหมด</strong> — เพราะ subagent ไม่ได้ "จำ" อะไรมาก่อนจาก parent agent เลย ดังนั้น path ของไฟล์ที่เกี่ยวข้อง, spec ของงาน, และ constraint ทุกอย่างต้องถูกระบุไว้อย่างชัดเจนใน task prompt ที่ส่งไป การละเลยส่วนนี้เป็นสาเหตุอันดับหนึ่งที่ subagent ทำงานผิดพลาดหรือทำงานที่ไม่ตรงกับที่ต้องการ</p>
+      <p><strong>ผลลัพธ์เป็น self-report</strong> — เมื่อ subagent จบงาน มันจะสรุปกลับมาว่า "ทำสำเร็จแล้ว" แต่นั่นเป็นเพียงคำบอกเล่าของ subagent เอง ไม่ใช่หลักฐานที่ยืนยันได้ subagent อาจ hallucinate ว่าทำสำเร็จทั้งที่จริงมี error เกิดขึ้น หรือไฟล์ที่ควรถูกสร้างไม่ถูกสร้างขึ้นจริง</p>
+      <div class="callout">💡 <strong>หลักการร่วม: Verify ก่อนเชื่อ</strong> — ไม่ว่าจะเป็น Claude Code subagent หรือ Hermes subagent parent agent ต้องตรวจสอบ evidence จริงเสมอ เช่น ไฟล์ที่มีอยู่จริงในระบบไฟล์, test ที่รันผ่านจริง, หรือ output ที่สามารถ diff ได้ ก่อนที่จะถือว่างานนั้นเสร็จสมบูรณ์</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>ทำไมต้อง Verify เสมอ</h2>
+      <p>พฤติกรรมบางอย่างที่ดูสะดวกแต่มีความเสี่ยงสูงเมื่อทำงานกับ subagent:</p>
+      <table>
+        <tr><th>พฤติกรรมเสี่ยง</th><th>ทำไมอันตราย</th></tr>
+        <tr><td>เชื่อ log "Done" จาก subagent ทันที</td><td>Subagent อาจ hallucinate ว่าทำสำเร็จ ทั้งที่ error หรือไฟล์ไม่ถูกสร้างขึ้นจริง</td></tr>
+        <tr><td>ไม่เปิดไฟล์ output จริงมาตรวจ</td><td>เนื้อหาอาจไม่ตรงสเปกที่ต้องการ หรือมี syntax ผิดที่ log ไม่ได้บอกไว้เลย</td></tr>
+        <tr><td>ไม่รัน test/lint หลัง subagent เสร็จงาน</td><td>Code อาจ compile ไม่ผ่าน แต่ subagent รายงานกลับมาว่าเขียนเสร็จเรียบร้อยแล้ว</td></tr>
+      </table>
+    </div>
+
+    <div class="lesson-section">
+      <h2>Agent Teams (Advanced)</h2>
+      <p>นอกเหนือจาก subagent เดี่ยวๆ และ parallel tmux แล้ว Claude Code ยังรองรับโหมด multi-agent แบบ collaborative ที่ agent หลายตัวทำงานร่วมกันเป็นทีมและแชร์สถานะระหว่างกันได้ ผ่าน flag ระดับ advanced</p>
+      <pre><code class="language-bash">claude --teammate-mode --brief "coordinate with other agents on this refactor"</code></pre>
+      <p><code>--teammate-mode</code> เปิดโหมดให้ agent ทำงานร่วมกันเป็นทีม แชร์สถานะระหว่างกันได้ ในขณะที่ <code>--brief</code> เป็นข้อความสั้นสำหรับ SendUserMessage ที่ agent อื่นในทีมสามารถเห็นได้ ทำให้เกิดการประสานงานระหว่าง agent หลายตัวแบบใกล้เคียง real-time</p>
+      <div class="callout">💡 Agent Teams เป็น feature ขั้นสูงที่เหมาะกับ workflow ที่ต้องประสานงาน agent หลายตัวอย่างจริงจัง — แนะนำให้เริ่มจากการใช้ subagent เดี่ยวและ parallel ผ่าน tmux ให้คล่องตัวก่อนที่จะขยับไปใช้ Agent Teams</div>
+    </div>
+
+    <div class="lesson-section">
+      <h2>สรุป: เลือก Pattern ให้ถูกกับงาน</h2>
+      <table>
+        <tr><th>สถานการณ์</th><th>Pattern</th></tr>
+        <tr><td>งาน specialist เดียว เรียกซ้ำได้บ่อยๆ</td><td>Custom subagent (<code>.claude/agents/*.md</code>)</td></tr>
+        <tr><td>งานชั่วคราว ไม่อยากสร้างไฟล์ถาวร</td><td><code>--agents</code> flag แบบ dynamic</td></tr>
+        <tr><td>หลายงาน independent ที่รันพร้อมกันได้</td><td>tmux session แยกต่างหากต่องาน</td></tr>
+        <tr><td>งานที่มี dependency ระหว่างกัน</td><td>Sequential agent เดียว — ห้ามขนานเด็ดขาด</td></tr>
+      </table>
+    </div>
+
+    <div class="pagefoot">
+      <a href="slides.html">← กลับไปดู Slides</a>
+      <a href="lab.html">ไปทำ Lab →</a>
+    </div>
+    <div class="footer-note">Internal Enablement — Module 07 Content</div>
+  </div>
+<script src="../../assets/theme.js" defer></script>
+</body>
+</html>
