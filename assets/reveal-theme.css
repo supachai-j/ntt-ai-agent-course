@@ -34,6 +34,13 @@
    viewer to scroll WITHIN that slide via mouse wheel/trackpad/touch
    instead of content silently clipping off-screen with no way to reach it. */
 .reveal .slides section{max-height:100%;overflow-y:auto;overflow-x:hidden;}
+/* Visual hint when a slide's content exceeds the viewport: thin scrollbar +
+   subtle bottom fade so users notice there's more to scroll to, instead of
+   silently wondering if the deck "ended" mid-thought. */
+.reveal .slides section::-webkit-scrollbar{width:8px;}
+.reveal .slides section::-webkit-scrollbar-track{background:transparent;}
+.reveal .slides section::-webkit-scrollbar-thumb{background:var(--r-lime);border-radius:4px;}
+.reveal .slides section{scrollbar-width:thin;scrollbar-color:var(--r-lime) transparent;}
 .reveal .badge{
   display:inline-block;padding:4px 14px;border-radius:999px;
   background:var(--r-pink);color:#0a0a0a;
