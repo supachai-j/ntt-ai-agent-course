@@ -138,6 +138,31 @@
 
     if (!document.querySelector('.gen-picker')) buildGenPicker();
     applyGen(document.documentElement.getAttribute('data-gen') || getGen());
+    positionFloatingButtons();
+    window.addEventListener('resize', positionFloatingButtons);
+  }
+
+  function positionFloatingButtons() {
+    // theme-toggle-btn is always rightmost (right:18px, fixed in CSS).
+    // content-link-btn (if present) and gen-picker stack to its left,
+    // spaced dynamically based on actual measured widths so pill-shaped
+    // buttons with variable text width (e.g. "📖 Content") never overlap
+    // the circular gen-picker button next to them.
+    var GAP = 8;
+    var themeBtn = document.querySelector('.theme-toggle-btn');
+    var contentBtn = document.querySelector('.content-link-btn');
+    var genPicker = document.querySelector('.gen-picker');
+    if (!themeBtn) return;
+
+    var cursorRight = 18 + themeBtn.offsetWidth + GAP; // right edge offset for the next button to the left
+
+    if (contentBtn) {
+      contentBtn.style.right = cursorRight + 'px';
+      cursorRight += contentBtn.offsetWidth + GAP;
+    }
+    if (genPicker) {
+      genPicker.style.right = cursorRight + 'px';
+    }
   }
 
   if (document.readyState === 'loading') {
